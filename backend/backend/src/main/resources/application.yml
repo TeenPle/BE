@@ -2,6 +2,12 @@ server:
   port: 8080
 
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "baseline"
+
   profiles:
     active: local
   datasource:
@@ -33,9 +39,12 @@ spring:
       host: localhost
       port: 6379
 
+
+debug: true
 logging:
   level:
     root: INFO
+    org.springframework.boot.autoconfigure: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE   # 바인딩 값 출력
     org.springframework.web: INFO
@@ -70,6 +79,9 @@ file:
 
 firebase:
   service-account-path: C:/WorkSpace/keys/firebase-service-account.json
+
+
+
 
 
   # S3 기반 파일 스토리지 설정

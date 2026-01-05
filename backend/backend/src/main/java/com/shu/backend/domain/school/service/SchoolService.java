@@ -99,18 +99,16 @@ public class SchoolService {
     /*
     특정 학교 상세정보 조회 (기본으로 자유게시판 조회)
      */
-    public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable){
+    public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable) {
 
-        // 학교 조회
         School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
 
-        // 게시판 조회 (기본으로 자유게시판 조회)
         Board freeBoard = boardRepository.findBySchoolIdAndTitle(schoolId, boardTitle)
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
 
-        // 학교의 게시판 목록 조회 (해당 학교 게시판 상세 조회 버튼)
         Long regionId = school.getRegion().getId();
+
         List<Board> schoolBoards = boardRepository.findBySchoolId(schoolId);
         List<Board> regionBoards = boardRepository.findByRegionId(regionId);
 
@@ -118,20 +116,16 @@ public class SchoolService {
                 .map(BoardResponse::toDto)
                 .toList();
 
-        // 자유게시판의 글 Slice 객체로 조회
-        Slice<Post> posts = postRepository.findByBoardId(freeBoard.getId(), pageable);
+        // 변경: Slice<Post> → Slice<PostResponse>
+        Slice<PostResponse> postSlice = postService.getPostsByBoardId(freeBoard.getId(), pageable);
 
-        // 게시글을 DTO로 변환 (List<PostResponse>로 변환)
-        List<PostResponse> postResponses = posts.getContent().stream()
-                .map(post -> PostResponse.toDto(post, commentRepository.countByPostId(post.getId())))  // 댓글 수를 함께 반환
-                .collect(Collectors.toList());
-
-
-
-        return new SchoolDetailResponse(school.getId(), school.getName(), boardResponses, postResponses, posts.hasNext());
-
-
-
+        return new SchoolDetailResponse(
+                school.getId(),
+                school.getName(),
+                boardResponses,
+                postSlice.getContent(),
+                postSlice.hasNext()
+        );
     }
 
 

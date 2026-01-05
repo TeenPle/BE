@@ -9,6 +9,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+@Table(
+        name = "post",
+        indexes = {
+                @Index(name = "idx_post_board_id", columnList = "board_id"),
+                @Index(name = "idx_post_user_id", columnList = "user_id"),
+                @Index(name = "idx_post_board_created", columnList = "board_id, created_at")
+        }
+)
 @Entity
 @Getter
 @Builder

@@ -38,4 +38,41 @@ public class PostResponse {
                 .commentCount(commentCount) // 댓글 수 추가
                 .build();
     }
+
+    // 추가: 쿼리 row(Object[]) → PostResponse
+    public static PostResponse fromRow(Object[] r) {
+        // r 인덱스는 Repository 쿼리 select 순서와 반드시 동일해야 합니다.
+        Long id = (Long) r[0];
+        String title = (String) r[1];
+        String content = (String) r[2];
+
+        // enum이면 enum으로 들어옵니다 (JPQL에서 p.postStatus 선택 시)
+        String postStatus = (r[3] instanceof Enum<?> e) ? e.name() : String.valueOf(r[3]);
+
+        Integer viewCount = (Integer) r[4];
+        Boolean anonymous = (Boolean) r[5];
+        Integer likeCount = (Integer) r[6];
+        Integer dislikeCount = (Integer) r[7];
+        Long boardId = (Long) r[8];
+        Long userId = (Long) r[9];
+        String username = (String) r[10];
+
+        // JPA count는 Long으로 오는 경우가 일반적
+        int commentCount = (r[11] == null) ? 0 : ((Number) r[11]).intValue();
+
+        return PostResponse.builder()
+                .id(id)
+                .title(title)
+                .content(content)
+                .postStatus(postStatus)
+                .viewCount(viewCount)
+                .anonymous(anonymous)
+                .likeCount(likeCount == null ? 0 : likeCount)
+                .dislikeCount(dislikeCount == null ? 0 : dislikeCount)
+                .boardId(boardId)
+                .userId(userId)
+                .username(username)
+                .commentCount(commentCount)
+                .build();
+    }
 }
