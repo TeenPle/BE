@@ -22,9 +22,7 @@ import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -158,17 +156,25 @@ public class PostService {
         return PostDetailResponse.toDto(post, comments);
     }
 
-    // 특정 게시판의 글 페이징하여 조회
     public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable) {
+        // Slice 처리를 위해 size+1로 한 건 더 가져와 hasNext 판정
+        Pageable slicePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize() + 1,
+                pageable.getSort().isSorted() ? pageable.getSort() : Sort.by(Sort.Direction.DESC, "id")
+        );
 
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
+        List<Object[]> rows = postRepository.findPostRowsByBoardId(boardId, slicePageable);
 
-        Slice<Post> posts = postRepository.findByBoardId(boardId, pageable);
+        boolean hasNext = rows.size() > pageable.getPageSize();
+        if (hasNext) {
+            rows = rows.subList(0, pageable.getPageSize());
+        }
 
-        return posts.map(post -> {
-            int commentCount = commentRepository.countByPostId(post.getId());
-            return PostResponse.toDto(post, commentCount);
-        });
+        List<PostResponse> content = rows.stream()
+                .map(PostResponse::fromRow)
+                .toList();
+
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 }

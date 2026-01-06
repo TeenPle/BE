@@ -12,6 +12,13 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        name = "comment",
+        indexes = {
+                @Index(name = "idx_comment_post_id", columnList = "post_id"),
+                @Index(name = "idx_comment_post_id_status", columnList = "post_id, comment_status")
+        }
+)
 public class Comment extends BaseEntity {
 
     @Id
@@ -23,7 +30,7 @@ public class Comment extends BaseEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "comment_status", nullable = false)
     @Builder.Default
     private CommentStatus commentStatus = CommentStatus.ACTIVE;
 
