@@ -40,8 +40,9 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final CommentQueryService commentQueryService;
 
+    @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
-    public Long createPost(Long boardId, PostCreateRequest req) {
+    public Long createPost(Long userId, Long boardId, PostCreateRequest req) {
 
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
@@ -55,7 +56,7 @@ public class PostService {
         // 현재 board가 지역게시판인 경우
         if (board.getScope() == BoardScope.REGION) {
 
-            user = userRepository.findByIdWithSchoolAndRegion(req.getUserId())
+            user = userRepository.findByIdWithSchoolAndRegion(userId)
                     .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
             Long userRegionId = user.getSchool().getRegion().getId();
@@ -69,7 +70,7 @@ public class PostService {
         // 현재 board가 지역게시판 외의 게시판일 경우
         else if (board.getScope() == BoardScope.SCHOOL) {
 
-            user = userRepository.findById(req.getUserId())
+            user = userRepository.findById(userId)
                     .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
             Long userSchoolId = user.getSchool().getId();
@@ -99,8 +100,9 @@ public class PostService {
         return post.getId();
     }
 
+    @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
-    public Long updatePost(Long postId, PostUpdateRequest req){
+    public Long updatePost(Long postId, PostUpdateRequest req, Long userId){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
 
@@ -120,6 +122,7 @@ public class PostService {
         return post.getId();
     }
 
+    @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
     public Long deletePost(Long postId, Long userId){
 
