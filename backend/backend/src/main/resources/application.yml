@@ -2,13 +2,19 @@ server:
   port: 8080
 
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "baseline"
+
   profiles:
     active: local
   datasource:
-    url: jdbc:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: root
     password: 7165
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
 
   jpa:
     hibernate:
@@ -33,13 +39,17 @@ spring:
       host: localhost
       port: 6379
 
+
+debug: true
 logging:
   level:
     root: INFO
+    org.springframework.boot.autoconfigure: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE   # 바인딩 값 출력
     org.springframework.web: INFO
     com.shu.backend: DEBUG      # 프로젝트 패키지 기준
+    p6spy: INFO
 
 jwt:
   secret: c3ByaW5nLWJvb3Qtc2VjdXJpdHktand0LXR1dG9yaWFsLWppd29vbi1zcHJpbmctYm9vdC1zZWN1cml0eS1qd3QtdHV0b3JpYWwK
@@ -70,6 +80,9 @@ file:
 
 firebase:
   service-account-path: C:/WorkSpace/keys/firebase-service-account.json
+
+
+
 
 
   # S3 기반 파일 스토리지 설정

@@ -72,6 +72,17 @@ dependencies {
 	//firebase
 	implementation 'com.google.firebase:firebase-admin:9.2.0'
 
+	//flyway
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-mysql'
+
+	//flyway
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-mysql'
+
+	//p6spy
+	implementation 'p6spy:p6spy:3.9.1'
+
 
 }
 
