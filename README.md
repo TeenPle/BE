@@ -1,39 +1,81 @@
-# 🌿 SHU(SchoolHubYou) — Backend
+# 🌿 TeenPle(Teenage Place) — Backend
 
 고등학생이 자신의 학교를 인증하고 참여할 수 있는  
-**학교 전용 익명 커뮤니티 SHU**(SchoolHubYou)의 **백엔드 레포지토리**입니다.  
+**학교 전용 익명 커뮤니티 TeenPle**(Teenage Place)의 **백엔드 레포지토리**입니다.
 
 본 저장소는 인증, 게시판, 채팅, 통계 등 SHU의 핵심 서버 기능을 담당합니다.
 
 ---
 
-## 🛠️ Tech Stack
-(추후 작성)
+## 📘 Development Standards
+
+- 📄 **TeenPle 개발 표준 정의서 (PDF)**  
+  👉 [Download PDF](assets/TeenPle_Development_Standards.pdf)
+
+> 본 문서는 TeenPle 백엔드 개발 표준을 정의한 공식 문서이며,  
+> 필요 시 PDF로 업데이트됩니다.
 
 ---
 
+## 🚀 Tech Stack
+
+### Backend
+
+![Java](https://img.shields.io/badge/Java-007396?style=for-the-badge&logo=java&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Spring Security](https://img.shields.io/badge/Spring%20Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=jsonwebtokens)
+
+### Realtime / Auth
+
+![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=socket.io&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase%20Admin-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+
+### Database
+
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white)
+
+### Infrastructure & CI/CD
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![AWS EC2](https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+
+### Frontend (Mobile)
+
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+
+---
 
 ## 🔧 Architecture
-### Backend Infrastructure Overview
-(추후 작성)
 
+### Backend Infrastructure Overview
+
+![TeenPle Backend Architecture](assets/TeenPle_Arch.png)
+
+> 본 아키텍처 다이어그램은 현재 초기 설계안이며,  
+> 기능 확장 및 트래픽 증가에 따라 추후 수정·보완될 예정입니다.
 
 ---
 
-
 ## 📂 프로젝트 구조
+
 (추후 작성)
 
 ---
 
 ## 🚀 배포 파이프라인 (CI/CD)
+
 (추후 작성)
 
 ---
 
 # 📌 협업 규칙
 
-## 🌿 브랜치 전략 
+## 🌿 브랜치 전략
 
 우리 팀은 다음과 같은 브랜치 전략을 사용합니다.
 
@@ -50,6 +92,7 @@
 - 문서/설정 : `chore/{이슈번호}-{간단설명}` 또는 `docs/{이슈번호}-{간단설명}`
 
 예시:
+
 - `feat/8-swagger-config`
 - `fix/12-login-bug`
 
@@ -61,7 +104,7 @@
 3. 커밋 메시지에 이슈 번호 연동  
    `feat: Swagger 세팅 및 도메인별 그룹 설정`
 4. `develop` 대상으로 PR 생성
-    - PR 본문에 `Resolves #8` 작성
+   - PR 본문에 `Resolves #8` 작성
 5. 코드 리뷰 후 `develop`에 머지
 6. 필요 시 `develop` → `demo`, 안정화 후 `develop` → `main` 배포
 
@@ -71,24 +114,25 @@
 
 ### 1️⃣ Commit Type
 
-| Type | 설명 |
-|------|------|
-| **Feat** | 새로운 기능 추가 |
-| **Fix** | 버그 수정 |
-| **Docs** | 문서 수정 |
-| **Style** | 코드 포맷팅(동작 영향 없음) |
-| **Refactor** | 코드 리팩토링 |
-| **Test** | 테스트 코드 추가/수정 |
-| **Chore** | 기타 변경사항(빌드, 패키지 정리 등) |
-| **Design** | UI/CSS 등 디자인 관련 수정 |
-| **Comment** | 주석 추가/변경 |
-| **Init** | 프로젝트 초기 설정 |
-| **Rename** | 파일/폴더명 변경 |
-| **Remove** | 파일 삭제 |
+| Type         | 설명                                |
+| ------------ | ----------------------------------- |
+| **Feat**     | 새로운 기능 추가                    |
+| **Fix**      | 버그 수정                           |
+| **Docs**     | 문서 수정                           |
+| **Style**    | 코드 포맷팅(동작 영향 없음)         |
+| **Refactor** | 코드 리팩토링                       |
+| **Test**     | 테스트 코드 추가/수정               |
+| **Chore**    | 기타 변경사항(빌드, 패키지 정리 등) |
+| **Design**   | UI/CSS 등 디자인 관련 수정          |
+| **Comment**  | 주석 추가/변경                      |
+| **Init**     | 프로젝트 초기 설정                  |
+| **Rename**   | 파일/폴더명 변경                    |
+| **Remove**   | 파일 삭제                           |
 
 ---
 
 ### 2️⃣ Subject Rule
+
 - 제목은 **50자 이하**
 - **마침표/특수기호 X**
 - 영문 시 **동사 원형**, 첫 글자 대문자
@@ -97,6 +141,7 @@
 ---
 
 ### 3️⃣ Body Rule
+
 - 한 줄 **72자 이하**
 - “무엇을, 왜 변경했는지” 중심
 - 양은 자유롭게 작성
@@ -105,26 +150,26 @@
 ---
 
 ### 4️⃣ Footer Rule
+
 - 형식: `유형: #이슈번호`
 - 여러 개일 경우 쉼표로 구분
 - 사용 가능한 유형:
 
-| 유형 | 설명 |
-|------|------|
-| **Fixes** | 이슈 수정 중(미해결) |
-| **Resolves** | 이슈 해결 |
-| **Ref** | 참고할 이슈 |
-| **Related to** | 관련된 이슈(미해결) |
+| 유형           | 설명                 |
+| -------------- | -------------------- |
+| **Fixes**      | 이슈 수정 중(미해결) |
+| **Resolves**   | 이슈 해결            |
+| **Ref**        | 참고할 이슈          |
+| **Related to** | 관련된 이슈(미해결)  |
 
 #### 예시
+
 Feat: Add user signup feature
 
 회원가입 기능 구현  
 JWT 기반 인증 구조 초안 작성
 
 Resolves: #12
-
-
 
 ---
 
@@ -155,4 +200,3 @@ Resolves: #12
     </td>
   </tr>
 </table>
-
