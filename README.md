@@ -62,34 +62,36 @@
 
 ---
 
-## 📂 프로젝트 구조
+## 📁 프로젝트 구조
 
+```text
 backend
-├─ domain # 비즈니스 도메인 계층
-│ └─ chatmessage # 도메인 세분화 예시 (채팅 메시지)
-│ ├─ controller # API 요청/응답 처리
-│ ├─ dto # Request / Response DTO
-│ ├─ entity # JPA Entity
-│ ├─ exception # 도메인 전용 예외
-│ ├─ repository # 데이터 접근 계층
-│ └─ service # 비즈니스 로직
+├─ domain                     # 비즈니스 도메인 계층
+│  └─ chatmessage             # 도메인 세분화 예시 (채팅 메시지)
+│     ├─ controller           # API 요청/응답 처리
+│     ├─ dto                  # Request / Response DTO
+│     ├─ entity               # JPA Entity
+│     ├─ exception            # 도메인 전용 예외
+│     ├─ repository           # 데이터 접근 계층
+│     └─ service              # 비즈니스 로직
 │
-├─ global # 전역 공통 모듈
-│ ├─ apiPayload # 공통 API 응답 포맷 / 에러 코드
-│ ├─ batch # 배치 및 스케줄링 작업
-│ ├─ common # 공통 유틸리티
-│ ├─ config # 전역 설정
-│ ├─ exception # 글로벌 예외 처리
-│ ├─ file # 파일 처리 (S3 연동)
-│ ├─ firebase # Firebase Admin 연동
-│ ├─ init # 초기 데이터 및 설정
-│ ├─ jwt # JWT 발급 및 검증
-│ ├─ security # Spring Security 설정
-│ ├─ swagger # API 문서 설정
-│ └─ websocket # WebSocket 설정
+├─ global                     # 전역 공통 모듈
+│  ├─ apiPayload              # 공통 API 응답 / 에러 코드
+│  ├─ batch                   # 배치 및 스케줄링 작업
+│  ├─ common                  # 공통 유틸리티
+│  ├─ config                  # 전역 설정
+│  ├─ exception               # 글로벌 예외 처리
+│  ├─ file                    # 파일 처리 (S3 연동)
+│  ├─ firebase                # Firebase Admin 연동
+│  ├─ init                    # 초기 데이터 설정
+│  ├─ jwt                     # JWT 인증
+│  ├─ security                # Spring Security 설정
+│  ├─ swagger                 # API 문서 설정
+│  └─ websocket               # WebSocket 설정
 │
-├─ docker # Docker 및 배포 관련 설정
-└─ resources # 환경 설정 파일
+├─ docker                     # Docker 및 배포 관련 설정
+└─ resources                  # 환경 설정 파일
+```
 
 ---
 
