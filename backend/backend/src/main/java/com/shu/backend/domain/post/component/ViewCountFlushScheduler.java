@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ViewCountFlushScheduler {
 
-    private static final long FLUSH_INTERVAL_MS = 60_000; // 10초 예시
+    private static final long FLUSH_INTERVAL_MS = 30_000;
 
     private final ViewCountAccumulator accumulator;
     private final PostViewCountJdbcRepository jdbcRepository;

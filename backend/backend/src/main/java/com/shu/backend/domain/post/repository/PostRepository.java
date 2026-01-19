@@ -19,9 +19,9 @@ import java.util.Optional;
 public interface PostRepository extends JpaRepository<Post, Long> {
     Slice<Post> findByBoardId(Long boardId, Pageable pageable);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    /*@Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :postId")
-    int incrementViewCount(@Param("postId") Long postId);
+    int incrementViewCount(@Param("postId") Long postId);*/
 
     /*// 비관적 락 적용 테스트
     @Lock(LockModeType.PESSIMISTIC_WRITE)
