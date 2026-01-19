@@ -14,7 +14,8 @@ import lombok.*;
         indexes = {
                 @Index(name = "idx_post_board_id", columnList = "board_id"),
                 @Index(name = "idx_post_user_id", columnList = "user_id"),
-                @Index(name = "idx_post_board_created", columnList = "board_id, created_at")
+                @Index(name = "idx_post_board_created", columnList = "board_id, created_at"),
+                @Index(name = "idx_post_board_id_id", columnList = "board_id, id")
         }
 )
 @Entity
@@ -45,6 +46,7 @@ public class Post extends BaseEntity {
     private Integer viewCount = 0;
 
     @Column(nullable = false)
+
     private Boolean anonymous = true;
 
     @Column(name = "like_count", nullable = false)
