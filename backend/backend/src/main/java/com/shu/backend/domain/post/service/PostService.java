@@ -150,6 +150,7 @@ public class PostService {
         return post.getId();
     }
 
+    // 특정 게시글 상세 조회
     @Transactional(readOnly = true)
     public PostDetailResponse getPostDetail(Long postId) {
 
@@ -171,12 +172,13 @@ public class PostService {
         return PostDetailResponse.toDto(post, comments);
     }
 
+    // 특정 게시판의 글 페이징 조회
     public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable) {
         // Slice 처리를 위해 size+1로 한 건 더 가져와 hasNext 판정
         Pageable slicePageable = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize() + 1,
-                pageable.getSort().isSorted() ? pageable.getSort() : Sort.by(Sort.Direction.DESC, "id")
+                Sort.by(Sort.Direction.DESC, "id")
         );
 
         List<Object[]> rows = postRepository.findPostRowsByBoardId(boardId, slicePageable);
