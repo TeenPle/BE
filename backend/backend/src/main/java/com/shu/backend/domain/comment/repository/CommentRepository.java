@@ -54,4 +54,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("update Comment c set c.dislikeCount = c.dislikeCount + :delta where c.id = :commentId")
     int updateDislikeCount(@Param("commentId") Long commentId, @Param("delta") int delta);
 
+    @Query("""
+    select c from Comment c
+    join fetch c.user u
+    where c.parent.id in :parentIds
+    order by c.parent.id asc, c.createdAt asc
+""")
+    List<Comment> findChildrenByParentIds(List<Long> parentIds);
+
 }
