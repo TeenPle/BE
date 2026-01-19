@@ -8,6 +8,7 @@ import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.comment.service.CommentQueryService;
+import com.shu.backend.domain.post.component.ViewCountAccumulator;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
 import com.shu.backend.domain.post.dto.PostDetailResponse;
 import com.shu.backend.domain.post.dto.PostResponse;
@@ -21,10 +22,15 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,13 +38,15 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class PostService {
 
     private final PostRepository postRepository;
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
-    private final CommentRepository commentRepository;
     private final CommentQueryService commentQueryService;
+
+    private final ViewCountAccumulator viewCountAccumulator;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -142,14 +150,21 @@ public class PostService {
         return post.getId();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PostDetailResponse getPostDetail(Long postId) {
 
-        Post post = postRepository.findById(postId)
+        log.info("tx active={}, readOnly={}",
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                TransactionSynchronizationManager.isCurrentTransactionReadOnly());
+
+
+        // 원자 업데이트
+        Post post = postRepository.findDetailById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
 
-        // 조회수는 원자 업데이트 권장 (아래 4번 참고)
-        postRepository.incrementViewCount(postId);
+        viewCountAccumulator.increment(postId);
+
+        //postRepository.incrementViewCount(postId);
 
         List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId);
 
@@ -177,4 +192,5 @@ public class PostService {
 
         return new SliceImpl<>(content, pageable, hasNext);
     }
+
 }
