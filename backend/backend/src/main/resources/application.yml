@@ -46,6 +46,7 @@ logging:
     root: INFO
     org.springframework.boot.autoconfigure: DEBUG
     org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: trace
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE   # 바인딩 값 출력
     org.springframework.web: INFO
     com.shu.backend: DEBUG      # 프로젝트 패키지 기준
@@ -81,8 +82,24 @@ file:
 firebase:
   service-account-path: C:/WorkSpace/keys/firebase-service-account.json
 
+viewcount:
+  mode: PESSIMISTIC
 
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
 
 
   # S3 기반 파일 스토리지 설정

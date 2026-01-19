@@ -84,6 +84,18 @@ dependencies {
 	implementation 'p6spy:p6spy:3.9.1'
 
 
+	//acurator
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-core'
+
+	//caffeine
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+
+
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+
 }
 
 tasks.named('test') {
