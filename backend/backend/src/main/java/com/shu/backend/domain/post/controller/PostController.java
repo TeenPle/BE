@@ -107,5 +107,18 @@ public class PostController {
         return ApiResponse.onSuccess(postResponses);
     }
 
+    @GetMapping("/search")
+    public ApiResponse<Slice<PostResponse>> searchPosts(
+            @RequestParam String keyword,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal User user
+    ) {
+        Long schoolId = user.getSchool().getId();
+        Long regionId = 1L;
+
+        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable);
+        return ApiResponse.onSuccess(postResponses);
+    }
+
 
 }
