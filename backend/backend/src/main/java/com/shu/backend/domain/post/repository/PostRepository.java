@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +63,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    // 게시글 목록 조회시 필요한 정보만
     @Query("""
         select
             p.id,
@@ -88,4 +90,98 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         order by p.id desc
     """)
     List<Object[]> findPostRowsByBoardId(Long boardId, Pageable pageable);
+
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.viewCount,
+            p.anonymous,
+            p.likeCount,
+            p.dislikeCount,
+            b.id,
+            u.id,
+            u.username,
+            (
+                select count(c.id)
+                from Comment c
+                where c.post.id = p.id
+                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+            )
+        from Post p
+        join p.board b
+        join p.user u
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and (
+                p.title like concat('%', :keyword, '%')
+             or p.content like concat('%', :keyword, '%')
+          )
+          and (
+                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
+             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
+          )
+        order by p.id desc
+    """)
+    List<Object[]> searchAccessiblePostRowsByKeyword(
+            @Param("keyword") String keyword,
+            @Param("schoolId") Long schoolId,
+            @Param("regionId") Long regionId,
+            Pageable pageable
+    );
+
+    // 검색 조건에 맞는 postId size+1개 조회
+    @Query("""
+        select p.id
+        from Post p
+        join p.board b
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and (
+                p.title like concat('%', :keyword, '%')
+             or p.content like concat('%', :keyword, '%')
+          )
+          and (
+                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
+             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
+          )
+        order by p.id desc
+    """)
+    List<Long> findSearchPostIds(
+            @Param("keyword") String keyword,
+            @Param("schoolId") Long schoolId,
+            @Param("regionId") Long regionId,
+            Pageable pageable
+    );
+
+
+    // 21개의 postId를 통해 postRow 반환
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.viewCount,
+            p.anonymous,
+            p.likeCount,
+            p.dislikeCount,
+            b.id,
+            u.id,
+            u.username,
+            (
+                select count(c.id)
+                from Comment c
+                where c.post.id = p.id
+                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+            )
+        from Post p
+        join p.board b
+        join p.user u
+        where p.id in :postIds
+        order by p.id desc
+    """)
+    List<Object[]> findPostRowsByIds(
+            @Param("postIds") Collection<Long> postIds
+    );
 }

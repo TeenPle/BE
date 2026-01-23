@@ -31,7 +31,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -193,6 +195,54 @@ public class PostService {
                 .toList();
 
         return new SliceImpl<>(content, pageable, hasNext);
+    }
+
+    public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            // 빈 키워드 허용 정책은 팀 기준에 맞춰 조정 가능(에러/빈 결과)
+            return new SliceImpl<>(List.of(), pageable, false);
+        }
+        if (schoolId == null || regionId == null) {
+            // 인증/프로필 세팅이 안 된 상태를 방어
+            return new SliceImpl<>(List.of(), pageable, false);
+        }
+
+        Pageable slicePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize() + 1,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
+
+
+
+        /*List<Object[]> rows = postRepository.searchAccessiblePostRowsByKeyword(
+                keyword.trim(),
+                schoolId,
+                regionId,
+                slicePageable
+        );*/
+
+        // Phase 1: ID만 가져오기
+        List<Long> ids = postRepository.findSearchPostIds(keyword, schoolId, regionId, slicePageable);
+
+        boolean hasNext = ids.size() > pageable.getPageSize();
+        if (hasNext) {
+            ids = ids.subList(0, pageable.getPageSize());
+        }
+
+        if (ids.isEmpty()) {
+            return new SliceImpl<>(Collections.emptyList(), pageable, false);
+        }
+
+        // Phase 2: 21개에 대해서만 join + 댓글카운트 수행
+        List<Object[]> rows = postRepository.findPostRowsByIds(ids);
+
+        List<PostResponse> content = rows.stream()
+                .map(PostResponse::fromRow)
+                .toList();
+
+        Pageable responsePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return new SliceImpl<>(content, responsePageable, hasNext);
     }
 
 }
