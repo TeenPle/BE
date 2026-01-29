@@ -1,6 +1,6 @@
 package com.shu.backend.user.service;
 
-import com.shu.backend.domain.auth.service.SmsVerificationService;
+import com.shu.backend.domain.auth.service.VerificationService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -55,7 +55,7 @@ public class AuthServiceTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @Mock
-    private SmsVerificationService smsVerificationService;
+    private VerificationService smsVerificationService;
 
     @InjectMocks
     private AuthService authService;

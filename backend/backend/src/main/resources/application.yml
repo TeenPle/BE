@@ -2,14 +2,15 @@ server:
   port: 8080
 
 spring:
+  profiles:
+    active: local
+
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 1
     baseline-description: "baseline"
 
-  profiles:
-    active: local
   datasource:
     url: jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: root
@@ -25,19 +26,35 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
     show-sql: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: wangkihong8130@gmail.com
+    password: zwkxeqkkbwvogjmi
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   servlet:
     multipart:
       enabled: true
-      max-file-size: 20MB        # 이미지 업로드 대비
+      max-file-size: 20MB
       max-request-size: 20MB
 
   jackson:
     serialization:
       fail-on-empty-beans: false
+
   data:
     redis:
       host: localhost
       port: 6379
+
+mail:
+  from: wangkihong8130@gmail.com
 
 
 debug: true
