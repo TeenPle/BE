@@ -1,6 +1,6 @@
 package com.shu.backend.domain.user.service;
 
-import com.shu.backend.domain.auth.service.SmsVerificationService;
+import com.shu.backend.domain.auth.service.VerificationService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -33,7 +33,7 @@ public class AuthService {
     private final UserSchoolVerificationRequestRepository verificationRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final SmsVerificationService  smsVerificationService;
+    private final VerificationService smsVerificationService;
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
 
@@ -43,10 +43,10 @@ public class AuthService {
         // 이메일 / 닉네임 중복 검사
         validateSignUpRequest(request);
 
-        //휴대폰 인증을 거쳤는지
+        //이메일 인증을 거쳤는지
         smsVerificationService.verifyTokenOrThrow(
                 request.getVerificationToken(),
-                request.getPhoneNumber()
+                request.getEmail()
         );
 
         //학교 조회

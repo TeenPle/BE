@@ -14,6 +14,10 @@ public enum UserSuccessStatus implements BaseCode {
     USER_LOGIN_SUCCESS(HttpStatus.OK, "USER2001", "로그인 성공"),
     USER_LOGOUT_SUCCESS(HttpStatus.OK, "USER2003", "로그아웃에 성공했습니다."),
 
+    //  Email Verification
+    EMAIL_VERIFICATION_CODE_SENT(HttpStatus.OK, "USER2011", "이메일 인증번호 발송 성공"),
+    EMAIL_VERIFICATION_SUCCESS(HttpStatus.OK, "USER2012", "이메일 인증 성공"),
+
     // User
     USER_FOUND(HttpStatus.OK, "USER2002", "사용자 조회 성공"),
 

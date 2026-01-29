@@ -6,11 +6,11 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class SmsTokenStore {
+public class VerificationTokenStore {
 
     private final StringRedisTemplate redisTemplate;
 
-    public SmsTokenStore(StringRedisTemplate redisTemplate) {
+    public VerificationTokenStore(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
