@@ -78,7 +78,7 @@ public class AdminInitializer implements CommandLineRunner {
         if (!existsAdmin) {
             User admin = User.builder()
                     .username("시스템관리자1")
-                    .email("leejd8130@naver.com")
+                    .email("leejd8131@naver.com")
                     .nickname("admin1")
                     .password(passwordEncoder.encode("dhkdrl12"))
                     .school(adminSchool)
