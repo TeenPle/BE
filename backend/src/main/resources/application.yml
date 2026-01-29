@@ -97,7 +97,7 @@ file:
 
 
 firebase:
-  service-account-path: C:/WorkSpace/keys/firebase-service-account.json
+  service-account-path: keys/firebase-service-account.json
 
 viewcount:
   mode: PESSIMISTIC

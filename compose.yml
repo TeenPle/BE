@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: 'mysql:8.4.8'
+    container_name: 'shu-mysql'
+    restart: unless-stopped
+    environment:
+      - 'MYSQL_DATABASE=shu'
+      - 'MYSQL_ROOT_PASSWORD=7165'
+      - 'TZ=Asia/Seoul'
+    ports:
+      - '3306:3306'
+    volumes:
+      - shu_mysql_data:/var/lib/mysql
+    command:
+      - '--character-set-server=utf8mb4'
+      - '--collation-server=utf8mb4_unicode_ci'
+    healthcheck:
+      test: [ 'CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p7165' ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: 'redis:7.2-alpine'
+    container_name: 'shu-redis'
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - shu_redis_data:/data
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  shu_mysql_data:
+    driver: local
+  shu_redis_data:
+    driver: local
