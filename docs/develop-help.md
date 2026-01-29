@@ -7,5 +7,5 @@ ex) `.env`, `firebase-service-account.json`, etc..
 docker compose를 사용하여 각자의 컴퓨터에서 환경을 통일한다.
 프로젝트 root경로(compose.yml파일이 있는 디렉토리)에서 아래의 명령어를 실행한다.  
 ```shell
-$ docker-compose up -d
+$ docker compose up -d
 ```
