@@ -5,6 +5,7 @@ import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatu
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,8 +17,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 //배포 후 LocalfileStorageService -> S3FileStorageService 변경
+@Slf4j
 //@Service
-@Profile("prod")  //  prod 프로필일 때만 활성화됨
+//@Profile("prod")  //  prod 프로필일 때만 활성화됨
 @RequiredArgsConstructor
 public class S3FileStorageService implements FileStorageService {
 
@@ -34,7 +36,7 @@ public class S3FileStorageService implements FileStorageService {
     @Override
     public String uploadChatImage(MultipartFile file) {
         return upload(file, props.getChatDir(), () ->
-                new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL) // ✅ 채팅용 에러로
+                new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL) //  채팅용 에러로
         );
     }
 
@@ -55,11 +57,16 @@ public class S3FileStorageService implements FileStorageService {
                     .key(key)
                     .contentType(file.getContentType())
                     .build();
+            log.info("bucket = {}", props.getBucket());
+            log.info("dir = {}", dir);
+            log.info("key = {}", key);
 
             s3Client.putObject(
                     putObjectRequest,
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
+
+
 
             return props.getBaseUrl() + "/" + key;
 
