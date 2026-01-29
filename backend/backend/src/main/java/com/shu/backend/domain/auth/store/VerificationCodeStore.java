@@ -7,11 +7,11 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class SmsCodeStore {
+public class VerificationCodeStore {
 
     private final StringRedisTemplate redisTemplate;
 
-    public SmsCodeStore(StringRedisTemplate redisTemplate) {
+    public VerificationCodeStore(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 

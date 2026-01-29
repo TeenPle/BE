@@ -95,6 +95,9 @@ dependencies {
 
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
+	//SMTP 이메일 인증
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
 
 }
 
