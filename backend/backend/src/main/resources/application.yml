@@ -84,7 +84,7 @@ websocket:
   endpoint: "/ws/chat"
   allowed-origins: "*"  # 개발 단계 / 운영 시 실제 도메인만 허용
 
-# 로컬 파일 저장용 설정
+# 로컬 파일 저장용 설정 (배포 후 비활성화)
 file:
   upload-dir:
     student-card: uploads/student-card   # 실제 로컬 폴더 (프로젝트 기준)
@@ -119,25 +119,26 @@ management:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
 
 
-  # S3 기반 파일 스토리지 설정
-#  file:
-#    storage:
-#      bucket: shu-student-card                # 실제 S3 버킷명
-#      student-card-dir: student-card          # S3 내부 디렉토리(prefix)
-#      base-url: https://cdn.schoolhubu.com    # CloudFront or S3 정적 URL
-
-
+#  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
 #file:
-#  chat-dir: chat
-#  student-card-dir: student-card
-#  base-url: https://...
-#  bucket: ...
+#  storage:
+#    bucket: teenple-student-card
+#    student-card-dir: student-card
+#    chat-dir: chat
+#    base-url: https://cdn.teenple.com
+
+#배포후 접근키 비밀키 삽입
+cloud:
+  aws:
+#    credentials:
+#      access-key
+#      secret-key:
+    region:
+      static: ap-northeast-2
+
+#file:#  chat-dir: chat
+##  student-card-dir: student-card
+##  base-url: https://...
+##  bucket: ...
 
 
-# 배포 추후 RealSmsProvider로 교체
-#sms:
-#  sens:
-#    access-key: ${NCP_ACCESS_KEY}
-#    secret-key: ${NCP_SECRET_KEY}
-#    service-id: ${NCP_SENS_SERVICE_ID}
-#    from: ${SMS_FROM}
