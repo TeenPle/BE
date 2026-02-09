@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   flyway:
     enabled: true
@@ -12,10 +12,10 @@ spring:
     baseline-description: "baseline"
 
   datasource:
-    url: jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: 7165
-    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
+    url: ${DB_URL:jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:com.p6spy.engine.spy.P6SpyDriver}
 
   jpa:
     hibernate:
@@ -29,8 +29,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: wangkihong8130@gmail.com
-    password: zwkxeqkkbwvogjmi
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -50,14 +50,14 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 mail:
-  from: wangkihong8130@gmail.com
+  from: ${MAIL_FROM:${MAIL_USERNAME:}}
 
+debug: ${DEBUG:true}
 
-debug: true
 logging:
   level:
     root: INFO
@@ -70,19 +70,19 @@ logging:
     p6spy: INFO
 
 jwt:
-  secret: c3ByaW5nLWJvb3Qtc2VjdXJpdHktand0LXR1dG9yaWFsLWppd29vbi1zcHJpbmctYm9vdC1zZWN1cml0eS1qd3QtdHV0b3JpYWwK
-  access-token-expiration: 3600000        # 1시간 (ms)
-  refresh-token-expiration: 1209600000    # 14일 (ms)
+  secret: ${JWT_SECRET:}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}        # 1시간 (ms)
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}   # 14일 (ms)
 
 cors:
-  allowed-origins: "http://localhost:3000, https://your-app-domain.com"
-  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-  allowed-headers: "*"
-  allow-credentials: true
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000, https://your-app-domain.com}
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
 
 websocket:
-  endpoint: "/ws/chat"
-  allowed-origins: "*"  # 개발 단계 / 운영 시 실제 도메인만 허용
+  endpoint: ${WS_ENDPOINT:/ws/chat}
+  allowed-origins: ${WS_ALLOWED_ORIGINS:*}  # 개발 단계 / 운영 시 실제 도메인만 허용
 
 # 로컬 파일 저장용 설정 (배포 후 비활성화)
 file:
@@ -94,14 +94,11 @@ file:
     student-card-dir: student-card
     base-url: http://localhost:8080/uploads
 
-
-
 firebase:
-  service-account-path: keys/firebase-service-account.json
+  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:keys/firebase-service-account.json}
 
 viewcount:
   mode: PESSIMISTIC
-
 
 management:
   endpoints:
@@ -118,27 +115,19 @@ management:
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
 
-
-#  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
+##  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
 #file:
 #  storage:
-#    bucket: teenple-student-card
-#    student-card-dir: student-card
-#    chat-dir: chat
-#    base-url: https://cdn.teenple.com
+#    bucket: ${FILE_BUCKET:teenple-media}
+#    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
+#    chat-dir: ${FILE_CHAT_DIR:chat}
+#    base-url: ${FILE_BASE_URL:https://cdn.teenple.com}
 
 #배포후 접근키 비밀키 삽입
 cloud:
   aws:
-#    credentials:
-#      access-key
-#      secret-key:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
     region:
-      static: ap-northeast-2
-
-#file:#  chat-dir: chat
-##  student-card-dir: student-card
-##  base-url: https://...
-##  bucket: ...
-
-
+      static: ${AWS_REGION:ap-northeast-2}
