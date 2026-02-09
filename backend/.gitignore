@@ -37,3 +37,9 @@ out/
 .vscode/
 
 backend/backend/src/main/resources/application.yml
+
+#env
+.env
+.env.dev
+.env.stg
+.env.prd
