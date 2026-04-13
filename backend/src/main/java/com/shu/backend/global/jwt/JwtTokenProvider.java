@@ -11,6 +11,13 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+/**
+ * JWT 생성, 파싱, 검증을 담당하는 컴포넌트.
+ *
+ * 설정 파일에 정의된 secret 과 만료시간 정보를 기반으로
+ * Access Token 을 생성하고, 전달받은 토큰의 서명/만료 여부를 검증하며,
+ * 토큰 내부의 사용자 식별자(userId)를 추출하는 역할을 한다.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtTokenProvider {

@@ -24,6 +24,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 회원가입, 로그인, 학교 인증 재요청 등
+ * 사용자 인증/가입 관련 비즈니스 로직을 처리하는 서비스.
+ *
+ * 사용자 생성, 비밀번호 검증, 학교 조회, 인증 요청 생성,
+ * JWT 발급까지 인증 흐름 전반을 담당한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -37,26 +44,26 @@ public class AuthService {
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
 
-    // 회원가입
+    // 회원가입 처리
     public SignUpResponseDTO join(UserRequestDTO.SignUp request, String studentIdImageUrl) {
 
         // 이메일 / 닉네임 중복 검사
         validateSignUpRequest(request);
 
-        //이메일 인증을 거쳤는지
+        // 이메일 인증 완료 여부 확인
         smsVerificationService.verifyTokenOrThrow(
                 request.getVerificationToken(),
                 request.getEmail()
         );
 
-        //학교 조회
+        // 학교 조회
         School school = getSchoolByName(request.getSchool());
 
-        //유저 생성 (본인인증 완료 상태이므로 phoneVerified=true)
+        // 유저 생성 및 저장
         User newUser = createUser(request, school, true);
         userRepository.save(newUser);
 
-        // 학교 인증 요청 생성 (학생증 업로드)
+        // 학교 인증 요청 생성
         createVerificationRequest(newUser, school, studentIdImageUrl);
 
         // JWT 발급
@@ -64,7 +71,8 @@ public class AuthService {
 
         return new SignUpResponseDTO(newUser.getId(), accessToken);
     }
-    //중복 검사
+
+    // 회원가입 시 중복 검사
     public void validateSignUpRequest(UserRequestDTO.SignUp request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserException(UserErrorStatus.EXIST_EMAIL);
@@ -74,6 +82,7 @@ public class AuthService {
         }
     }
 
+    // 학교명으로 학교 조회
     public School getSchoolByName(String schoolName) {
         if (ADMIN_SCHOOL_NAME.equals(schoolName)) {
             throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_FOR_SIGNUP);
@@ -83,7 +92,7 @@ public class AuthService {
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
     }
 
-    //유저 생성
+    // 회원가입용 User 엔티티 생성
     public User createUser(UserRequestDTO.SignUp request, School school, boolean phoneVerified) {
         return User.builder()
                 .username(request.getUsername())
@@ -105,14 +114,14 @@ public class AuthService {
                 .build();
     }
 
-    //인증 요청 생성
+    // 학교 인증 요청 생성
     public void createVerificationRequest(User user, School school, String imageUrl) {
 
         UserSchoolVerificationRequest verificationRequest = new UserSchoolVerificationRequest(imageUrl,user,school);
         verificationRequestRepository.save(verificationRequest);
     }
 
-    //로그인
+    // 로그인 처리
     @Transactional(readOnly = true)
     public LoginResponseDTO login(UserLoginDTO userLoginDTO) {
 
@@ -123,10 +132,10 @@ public class AuthService {
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
         }
 
-        // 관리자면 학교 인증 체크 패스
+        // 일반 사용자는 학교 인증 상태 확인
         if (user.getRole() == UserRole.USER) {
 
-            //  이미 인증 완료된 유저면 바로 통과
+            // 이미 인증 완료된 경우 바로 로그인 허용
             if (user.isVerified()) {
                 String accessToken = jwtTokenProvider.createAccessToken(user.getId());
                 return new LoginResponseDTO(user.getId(), accessToken);
@@ -152,39 +161,39 @@ public class AuthService {
         return new LoginResponseDTO(user.getId(), accessToken);
     }
 
-
+    // 로그아웃 처리
     @Transactional(readOnly = true)
     public void logout(){
     }
 
-    //승인 거절시 재요청
+    // 학교 인증 반려 후 재요청 처리
     public Long reapplyVerification(UserRequestDTO.VerificationReapply request) {
 
-        //유저 조회 (이메일로 본인 식별)
+        // 유저 조회
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
 
-        //비밀번호 검증 (토큰 없이 호출되므로 본인확인 필수)
+        // 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
         }
 
-        //이미 인증 완료면 재요청 불가
-        if (user.isVerified()) { // boolean verified면 Lombok getter가 isVerified()
+        // 이미 인증 완료된 경우 재요청 불가
+        if (user.isVerified()) {
             throw new UserException(UserErrorStatus.SCHOOL_VERIFICATION_ALREADY_APPROVED);
         }
 
-        //이미 PENDING 요청이 있으면 중복 방지
+        // 이미 대기 중인 요청이 있으면 재요청 불가
         boolean hasPending = verificationRequestRepository.existsByUserAndStatus(user, VerificationStatus.PENDING);
         if (hasPending) {
             throw new UserException(UserErrorStatus.SCHOOL_VERIFICATION_PENDING);
         }
 
-        //학교 조회
+        // 학교 조회
         School school = schoolRepository.findById(request.getSchoolId())
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
 
-        //새 요청 생성 (REJECTED였던 건 그대로 남기고 새 row 생성)
+        // 새 인증 요청 생성
         UserSchoolVerificationRequest newRequest =
                 UserSchoolVerificationRequest.builder()
                         .requestImageUrl(request.getStudentIdImageUrl())

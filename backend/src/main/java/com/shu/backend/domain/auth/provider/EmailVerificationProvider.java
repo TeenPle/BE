@@ -6,6 +6,12 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
+/**
+ * 이메일 인증 메시지 발송을 담당하는 구현체.
+ *
+ * VerificationMessageProvider 인터페이스를 구현하며,
+ * 전달받은 인증 메시지를 이메일 형태로 사용자에게 전송한다.
+ */
 @Component
 @RequiredArgsConstructor
 public class EmailVerificationProvider implements VerificationMessageProvider {
@@ -15,6 +21,7 @@ public class EmailVerificationProvider implements VerificationMessageProvider {
     @Value("${mail.from}")
     private String from;
 
+    // 이메일 인증 메시지 전송
     @Override
     public void send(String email, String message) {
         SimpleMailMessage mail = new SimpleMailMessage();
