@@ -16,6 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 학교 인증 요청에 대한 관리자 검토 업무를 처리하는 서비스.
+ *
+ * 관리자 측에서 인증 요청 목록/상세를 조회하고,
+ * 요청을 승인 또는 거절하며,
+ * 승인 시 최종 학교 인증 정보와 사용자 인증 상태를 반영한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,7 +31,7 @@ public class SchoolVerificationAdminService {
     private final UserSchoolVerificationRequestRepository requestRepository;
     private final UserSchoolVerificationRepository verificationRepository;
 
-    // 인증 요청 목록 조회 (상태별)
+    // 상태별 학교 인증 요청 목록 조회
     @Transactional(readOnly = true)
     public List<VerificationAdminDTO.ListItemResponse> list(VerificationStatus status) {
         return requestRepository.findByStatusOrderByRequestedAtDesc(status)
@@ -33,7 +40,7 @@ public class SchoolVerificationAdminService {
                 .toList();
     }
 
-    // 인증 요청 상세 조회
+    // 학교 인증 요청 상세 조회
     @Transactional(readOnly = true)
     public VerificationAdminDTO.DetailResponse detail(Long requestId) {
         UserSchoolVerificationRequest req = requestRepository.findWithUserAndSchoolById(requestId)
@@ -44,7 +51,7 @@ public class SchoolVerificationAdminService {
         return toDetail(req);
     }
 
-    // 인증 요청 승인 처리
+    // 학교 인증 요청 승인 처리
     public void approve(Long requestId, String adminComment) {
         Long adminUserId = getCurrentAdminUserId();
 
@@ -57,15 +64,15 @@ public class SchoolVerificationAdminService {
 
         User user = req.getUser();
 
-        // 이미 인증된 유저 방어
+        // 이미 최종 인증된 사용자면 중복 승인 방지
         if (verificationRepository.existsByUserId(user.getId())) {
             throw new GeneralException(VerificationErrorStatus.SCHOOL_VERIFICATION_STATUS_INVALID);
         }
 
-        // 요청 상태 승인으로 변경
+        // 요청 상태를 승인으로 변경
         req.approve(adminUserId, adminComment);
 
-        // 최종 학교 인증 정보 생성
+        // 최종 학교 인증 이력 저장
         verificationRepository.save(
                 UserSchoolVerification.builder()
                         .verified_at(LocalDateTime.now())
@@ -74,11 +81,11 @@ public class SchoolVerificationAdminService {
                         .build()
         );
 
-        // 유저 상태를 학교 인증 완료로 변경
+        // 사용자 학교 인증 상태 반영
         user.verifySchool();
     }
 
-    // 인증 요청 거절 처리
+    // 학교 인증 요청 거절 처리
     public void reject(Long requestId, String adminComment) {
         Long adminUserId = getCurrentAdminUserId();
 
@@ -89,18 +96,18 @@ public class SchoolVerificationAdminService {
 
         validatePending(req);
 
-        // 요청 상태 거절로 변경
+        // 요청 상태를 거절로 변경
         req.reject(adminUserId, adminComment);
     }
 
-    // PENDING 상태인지 검증
+    // 처리 가능한 대기 상태 요청인지 검증
     private void validatePending(UserSchoolVerificationRequest req) {
         if (req.getStatus() != VerificationStatus.PENDING) {
             throw new GeneralException(VerificationErrorStatus.VERIFICATION_ALREADY_PROCESSED);
         }
     }
 
-    // 목록 조회용 DTO 변환
+    // 목록 응답 DTO 변환
     private VerificationAdminDTO.ListItemResponse toListItem(UserSchoolVerificationRequest req) {
         return VerificationAdminDTO.ListItemResponse.builder()
                 .requestId(req.getId())
@@ -113,7 +120,7 @@ public class SchoolVerificationAdminService {
                 .build();
     }
 
-    // 상세 조회용 DTO 변환
+    // 상세 응답 DTO 변환
     private VerificationAdminDTO.DetailResponse toDetail(UserSchoolVerificationRequest req) {
         return VerificationAdminDTO.DetailResponse.builder()
                 .requestId(req.getId())
@@ -130,7 +137,7 @@ public class SchoolVerificationAdminService {
                 .build();
     }
 
-    // 현재 로그인한 관리자 userId 조회 (추후 SecurityContext 연동)
+    // 현재 로그인한 관리자 userId 조회
     private Long getCurrentAdminUserId() {
         return 1L;
     }
