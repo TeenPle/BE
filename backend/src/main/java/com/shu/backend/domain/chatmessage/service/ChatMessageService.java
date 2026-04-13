@@ -27,6 +27,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 채팅 메시지 전송, 조회, 읽음 처리와
+ * 이미지/알림/푸시 연동까지 담당하는 서비스.
+ *
+ * 메시지 저장과 채팅방 상태 갱신을 처리하고,
+ * 필요 시 미디어 정보와 알림 발송까지 함께 수행한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -42,6 +49,7 @@ public class ChatMessageService {
     private final NotificationService notificationService;
     private final PushService pushService;
 
+    // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
     public ChatMessageDTO.MessageResponse send(Long senderId, ChatMessageDTO.SendRequest req) {
 
