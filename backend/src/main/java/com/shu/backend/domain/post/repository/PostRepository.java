@@ -1,5 +1,6 @@
 package com.shu.backend.domain.post.repository;
 
+import com.shu.backend.domain.board.entity.Board;
 import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.enums.PostStatus;
 import jakarta.persistence.LockModeType;
@@ -184,4 +185,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Object[]> findPostRowsByIds(
             @Param("postIds") Collection<Long> postIds
     );
+
+    int countByBoard(Board board);
 }

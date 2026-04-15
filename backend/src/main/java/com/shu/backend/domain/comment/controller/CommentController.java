@@ -34,7 +34,7 @@ public class CommentController {
 
         Long userId = user.getId();
 
-        Long commentId = commentService.createComment(postId, userId, req);
+        Long commentId = commentService.createComment(userId, postId, req);
 
         return ApiResponse.of(CommentSuccessStatus.COMMENT_CREATE_SUCCESS, commentId);
     }

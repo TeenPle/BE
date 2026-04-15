@@ -46,7 +46,6 @@ public class Post extends BaseEntity {
     private Integer viewCount = 0;
 
     @Column(nullable = false)
-
     private Boolean anonymous = true;
 
     @Column(name = "like_count", nullable = false)

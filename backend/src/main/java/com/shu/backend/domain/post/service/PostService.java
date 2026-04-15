@@ -116,18 +116,15 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
 
-        // 이미 삭제된 게시글일 경우
         if (post.getPostStatus() == PostStatus.DELETED){
             throw new PostException(PostErrorStatus.POST_ALREADY_DELETED);
         }
 
-        // 해당 게시글의 작성자가 아닐 경우
-        if (!post.getUser().getId().equals(req.getUserId())){
+        if (!post.getUser().getId().equals(userId)){
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
 
-        // 글 수정 수행
-        post.update(req.getTitle(), req.getContent(),req.isAnonymous());
+        post.update(req.getTitle(), req.getContent(), req.isAnonymous());
 
         return post.getId();
     }

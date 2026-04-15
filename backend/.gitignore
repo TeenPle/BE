@@ -39,7 +39,7 @@ out/
 backend/backend/src/main/resources/application.yml
 
 #env
-.env
+src/main/resources/.env
 .env.dev
 .env.stg
 .env.prd

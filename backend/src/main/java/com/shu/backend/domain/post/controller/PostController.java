@@ -53,11 +53,11 @@ public class PostController {
     )
     @PatchMapping("/posts/{postId}")
     public ApiResponse<Long> updatePost(
-        @PathVariable Long postId,
-        @Valid @RequestBody PostUpdateRequest req
+            @PathVariable Long postId,
+            @Valid @RequestBody PostUpdateRequest req,
+            @AuthenticationPrincipal User user
     ){
-        Long id = postService.updatePost(postId, req, req.getUserId());
-
+        Long id = postService.updatePost(postId, req, user.getId());
         return ApiResponse.of(PostSuccessStatus.POST_UPDATE_SUCCESS, id);
     }
 
@@ -68,10 +68,9 @@ public class PostController {
     @DeleteMapping("/posts/{postId}")
     public ApiResponse<Long> deletePost(
             @PathVariable Long postId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal User user
     ){
-        Long id = postService.deletePost(postId, userId);
-
+        Long id = postService.deletePost(postId, user.getId());
         return ApiResponse.of(PostSuccessStatus.POST_DELETE_SUCCESS, id);
     }
 
