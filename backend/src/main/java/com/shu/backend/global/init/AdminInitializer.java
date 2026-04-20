@@ -37,8 +37,6 @@ public class AdminInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final RegionRepository regionRepository;
     private final BoardRepository boardRepository;
-
-    // 게시글 / 댓글 시드용 리포지토리 추가
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
 
@@ -46,20 +44,26 @@ public class AdminInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
 
-        // 테스트용 학교(오남고등학교) 생성 or 조회
+        System.out.println("java.version = " + System.getProperty("java.version"));
+        System.out.println("java.home = " + System.getProperty("java.home"));
+        System.out.println("javax.net.ssl.trustStore = " + System.getProperty("javax.net.ssl.trustStore"));
+
+        // 지역 생성 or 조회
+        Region adminRegion = regionRepository.findByName("의정부시")
+                .orElseGet(() -> regionRepository.save(Region.builder().name("의정부시").build()));
+
+        // 오남고등학교 생성 or 조회 (region 할당)
         School testSchool = schoolRepository.findByName(TEST_SCHOOL_NAME)
                 .orElseGet(() -> schoolRepository.save(
                         School.builder()
                                 .name(TEST_SCHOOL_NAME)
+                                .region(adminRegion)
                                 .logoImageUrl(null)
                                 .build()
                 ));
-
-        Region adminRegion = regionRepository.save(
-                Region.builder()
-                        .name("의정부시")
-                        .build()
-        );
+        if (testSchool.getRegion() == null) {
+            testSchool.updateRegion(adminRegion);
+        }
 
         // 운영자 전용 학교 생성 or 조회
         School adminSchool = schoolRepository.findByName(ADMIN_SCHOOL_NAME)
@@ -71,66 +75,61 @@ public class AdminInitializer implements CommandLineRunner {
                                 .build()
                 ));
 
-        // 운영자 학교 게시판 생성
-        createBoardIfNotExists(adminSchool, "자유게시판", "자유롭게 이야기해요", BoardScope.SCHOOL);
-        createBoardIfNotExists(adminSchool, "1학년 게시판", "1학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(adminSchool, "2학년 게시판", "2학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(adminSchool, "3학년 게시판", "3학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(adminSchool, "졸업생 게시판", "졸업생 전용 게시판", BoardScope.SCHOOL);
-        createRegionBoardIfNotExists(adminSchool.getRegion(), "지역 게시판", "같은 지역 학생들과 이야기해요");
+        // 오남고등학교 게시판 생성
+        createBoardIfNotExists(testSchool, "자유게시판", "자유롭게 이야기해요", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "1학년 게시판", "1학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "2학년 게시판", "2학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "3학년 게시판", "3학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "졸업생 게시판", "졸업생 전용 게시판", BoardScope.SCHOOL);
+        createRegionBoardIfNotExists(adminRegion, "지역 게시판", "같은 지역 학생들과 이야기해요");
 
-        // ADMIN 계정이 하나도 없으면 기본 관리자 생성
-        boolean existsAdmin = userRepository.existsByRole(UserRole.ADMIN);
+        // admin은 그대로 유지
+        User admin = userRepository.findByEmail("leejd8131@naver.com")
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .username("시스템관리자1")
+                                .email("leejd8131@naver.com")
+                                .nickname("admin1")
+                                .password(passwordEncoder.encode("dhkdrl12"))
+                                .school(adminSchool)
+                                .role(UserRole.ADMIN)
+                                .status(UserStatus.ACTIVE)
+                                .verified(true)
+                                .profileImageUrl(null)
+                                .grade(Grade.FIRST)
+                                .phoneNumber("01053468130")
+                                .gender(Gender.MALE)
+                                .build()
+                ));
 
-        User admin;
-        User admin2;
+        // admin2는 일반회원 + 오남고등학교 소속으로만 생성
+        // 이미 같은 이메일 계정이 있으면 기존 계정을 그대로 사용
+        User admin2 = userRepository.findByEmail("teenple@example.com")
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .username("카이사")
+                                .email("teenple@example.com")
+                                .nickname("카이사")
+                                .password(passwordEncoder.encode("Abcd1234!"))
+                                .school(testSchool)
+                                .role(UserRole.USER)
+                                .status(UserStatus.ACTIVE)
+                                .verified(true)
+                                .profileImageUrl(null)
+                                .grade(Grade.FIRST)
+                                .phoneNumber("01071651075")
+                                .gender(Gender.MALE)
+                                .phoneVerified(true)
+                                .build()
+                ));
 
-        if (!existsAdmin) {
-            admin = User.builder()
-                    .username("시스템관리자1")
-                    .email("leejd8131@naver.com")
-                    .nickname("admin1")
-                    .password(passwordEncoder.encode("dhkdrl12"))
-                    .school(adminSchool)
-                    .role(UserRole.ADMIN)
-                    .status(UserStatus.ACTIVE)
-                    .verified(true)
-                    .profileImageUrl(null)
-                    .grade(Grade.FIRST)
-                    .phoneNumber("01053468130")
-                    .gender(Gender.MALE)
-                    .build();
-
-            admin2 = User.builder()
-                    .username("카이사")
-                    .email("teenple@example.com")
-                    .nickname("카이사")
-                    .password(passwordEncoder.encode("Abcd1234!"))
-                    .school(adminSchool)
-                    .role(UserRole.ADMIN)
-                    .status(UserStatus.ACTIVE)
-                    .verified(true)
-                    .profileImageUrl(null)
-                    .grade(Grade.FIRST)
-                    .phoneNumber("01071651075")
-                    .gender(Gender.MALE)
-                    .build();
-
-            userRepository.save(admin);
-            userRepository.save(admin2);
-        } else {
-            admin = userRepository.findByEmail("leejd8131@naver.com").orElseThrow();
-            admin2 = userRepository.findByEmail("teenple@example.com").orElseThrow();
-        }
-
-        // =========================
-        // 오남고 테스트 유저 2명 자동 생성
-        // =========================
+        // 오남고 테스트 유저 2명
         createTestUserIfNotExists(
                 "테스트유저1",
                 "teenple1@example.com",
                 "test1",
                 "Abcd1234!",
+                "01053468131",
                 testSchool
         );
 
@@ -139,13 +138,22 @@ public class AdminInitializer implements CommandLineRunner {
                 "teenple2@example.com",
                 "test2",
                 "Abcd1234!",
+                "01053468132",
                 testSchool
         );
 
-        // =========================
-        // 운영자전용학교(adminSchool) 게시판에 시드 데이터 주입
-        // =========================
-        seedAdminSchoolPosts(adminSchool, admin, admin2);
+        // 새 오남고 테스트 학생 추가 - 닉네임 가렌
+        createTestUserIfNotExists(
+                "오남고테스트학생",
+                "garen@example.com",
+                "가렌",
+                "Abcd1234!",
+                "01053468133",
+                testSchool
+        );
+
+        // 기존 시드 게시글/댓글을 전부 오남고등학교 소속으로 생성
+        seedTestSchoolPosts(testSchool, admin2, admin);
     }
 
     /**
@@ -195,6 +203,7 @@ public class AdminInitializer implements CommandLineRunner {
             String email,
             String nickname,
             String rawPassword,
+            String phoneNumber,
             School school
     ) {
         return userRepository.findByEmail(email)
@@ -210,7 +219,7 @@ public class AdminInitializer implements CommandLineRunner {
                             .verified(true)
                             .profileImageUrl(null)
                             .grade(Grade.FIRST)
-                            .phoneNumber("01053468130")
+                            .phoneNumber(phoneNumber)
                             .gender(Gender.MALE)
                             .phoneVerified(true)
                             .build();
@@ -220,20 +229,20 @@ public class AdminInitializer implements CommandLineRunner {
     }
 
     /**
-     * 운영자전용학교 게시판별 게시글 / 댓글 시드 생성
+     * 오남고등학교 게시판별 게시글 / 댓글 시드 생성
      */
-    private void seedAdminSchoolPosts(
-            School adminSchool,
-            User admin,
-            User admin2
+    private void seedTestSchoolPosts(
+            School testSchool,
+            User writer1,
+            User writer2
     ) {
-        Board freeBoard = boardRepository.findBySchoolAndTitle(adminSchool, "자유게시판").orElseThrow();
-        Board firstBoard = boardRepository.findBySchoolAndTitle(adminSchool, "1학년 게시판").orElseThrow();
-        Board secondBoard = boardRepository.findBySchoolAndTitle(adminSchool, "2학년 게시판").orElseThrow();
-        Board thirdBoard = boardRepository.findBySchoolAndTitle(adminSchool, "3학년 게시판").orElseThrow();
-        Board alumniBoard = boardRepository.findBySchoolAndTitle(adminSchool, "졸업생 게시판").orElseThrow();
+        Board freeBoard = boardRepository.findBySchoolAndTitle(testSchool, "자유게시판").orElseThrow();
+        Board firstBoard = boardRepository.findBySchoolAndTitle(testSchool, "1학년 게시판").orElseThrow();
+        Board secondBoard = boardRepository.findBySchoolAndTitle(testSchool, "2학년 게시판").orElseThrow();
+        Board thirdBoard = boardRepository.findBySchoolAndTitle(testSchool, "3학년 게시판").orElseThrow();
+        Board alumniBoard = boardRepository.findBySchoolAndTitle(testSchool, "졸업생 게시판").orElseThrow();
 
-        seedBoardIfEmpty(freeBoard, admin, admin2,
+        seedBoardIfEmpty(freeBoard, writer1, writer2,
                 List.of(
                         new SeedPost("기숙사 <<< 오지마라", "화장실 이게 맞나 진짜로", true, 17),
                         new SeedPost("나 기상.", "25일 스킵 성공\n아래 틴붕이는 얼른 헤어질 수 있도록 하렴", true, 82),
@@ -242,7 +251,7 @@ public class AdminInitializer implements CommandLineRunner {
                 )
         );
 
-        seedBoardIfEmpty(firstBoard, admin, admin2,
+        seedBoardIfEmpty(firstBoard, writer1, writer2,
                 List.of(
                         new SeedPost("1학년 과학 수행 어때?", "자료 조사 어디까지 했냐", true, 11),
                         new SeedPost("1학년 체육대회 기대됨", "반티 뭐로 할지 고민 중", true, 6),
@@ -250,7 +259,7 @@ public class AdminInitializer implements CommandLineRunner {
                 )
         );
 
-        seedBoardIfEmpty(secondBoard, admin, admin2,
+        seedBoardIfEmpty(secondBoard, writer1, writer2,
                 List.of(
                         new SeedPost("2학년 모고 난이도 실화?", "국어 왜 이렇게 어려웠냐", true, 21),
                         new SeedPost("동아리 발표 준비 다 했냐", "PPT 아직 반밖에 못 함", false, 7),
@@ -258,7 +267,7 @@ public class AdminInitializer implements CommandLineRunner {
                 )
         );
 
-        seedBoardIfEmpty(thirdBoard, admin, admin2,
+        seedBoardIfEmpty(thirdBoard, writer1, writer2,
                 List.of(
                         new SeedPost("수시 원서 준비 어디까지 했어?", "자소서 막판 수정 중", true, 28),
                         new SeedPost("3학년 야자 분위기 빡세다", "다들 예민해진 듯", true, 10),
@@ -266,7 +275,7 @@ public class AdminInitializer implements CommandLineRunner {
                 )
         );
 
-        seedBoardIfEmpty(alumniBoard, admin, admin2,
+        seedBoardIfEmpty(alumniBoard, writer1, writer2,
                 List.of(
                         new SeedPost("졸업생 게시판 테스트 글", "졸업생 게시판도 잘 보이는지 확인", false, 3),
                         new SeedPost("대학 생활 질문 받아요", "후배들 궁금한 거 있으면 댓글 ㄱ", false, 14)
@@ -301,11 +310,8 @@ public class AdminInitializer implements CommandLineRunner {
 
             Post savedPost = postRepository.save(post);
 
-            // 게시글마다 댓글 2~3개씩 생성
             Comment c1 = createComment(savedPost, writer2, "이 글 공감됨", true, null);
             createComment(savedPost, writer1, "나도 비슷하게 느낌", true, null);
-
-            // 첫 번째 댓글에 대댓글 하나 추가
             createComment(savedPost, writer1, "특히 오늘 더 그랬음", true, c1);
         }
     }
@@ -329,8 +335,6 @@ public class AdminInitializer implements CommandLineRunner {
                 .anonymous(anonymous)
                 .build();
 
-        // ===== 중요 =====
-        // Post 엔티티 메서드명에 맞게 한 줄만 살려서 사용
         applyLikeCount(post, likeCount);
 
         return post;
@@ -359,20 +363,9 @@ public class AdminInitializer implements CommandLineRunner {
 
     /**
      * Post 엔티티에 좋아요 수 반영
-     *
-     * 네 Post 엔티티 메서드명에 맞춰 여기만 수정하면 됨.
      */
     private void applyLikeCount(Post post, int likeCount) {
-        // 예시 1)
-        // post.setLikeCount(likeCount);
-
-        // 예시 2)
-        // post.changeLikeCount(likeCount);
-
-        // 예시 3)
-        // for (int i = 0; i < likeCount; i++) {
-        //     post.increaseLikeCount();
-        // }
+        // 필요 시 post 엔티티 메서드에 맞게 반영
     }
 
     /**
