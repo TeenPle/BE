@@ -33,7 +33,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     );
 
     default List<Comment> findParentsForPostDetail(Long postId) {
-        return findParentsForPostDetail(postId, List.of(CommentStatus.ACTIVE, CommentStatus.HIDDEN));
+        // DELETED 포함 — 자식이 있으면 "삭제된 댓글입니다." 플레이스홀더로 표시해야 하므로
+        return findParentsForPostDetail(postId, List.of(CommentStatus.ACTIVE, CommentStatus.HIDDEN, CommentStatus.DELETED));
     }
 
     @Query("""

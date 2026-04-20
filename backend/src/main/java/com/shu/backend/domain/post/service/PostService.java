@@ -6,11 +6,11 @@ import com.shu.backend.domain.board.exception.BoardException;
 import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
 import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
-import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.comment.service.CommentQueryService;
 import com.shu.backend.domain.post.component.ViewCountAccumulator;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
 import com.shu.backend.domain.post.dto.PostDetailResponse;
+import com.shu.backend.domain.post.dto.PostMediaResponse;
 import com.shu.backend.domain.post.dto.PostResponse;
 import com.shu.backend.domain.post.dto.PostUpdateRequest;
 import com.shu.backend.domain.post.entity.Post;
@@ -22,6 +22,7 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,12 +48,12 @@ public class PostService {
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
     private final CommentQueryService commentQueryService;
-
+    private final PostMediaService postMediaService;
     private final ViewCountAccumulator viewCountAccumulator;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
-    public Long createPost(Long userId, Long boardId, PostCreateRequest req) {
+    public Long createPost(Long userId, Long boardId, PostCreateRequest req, List<MultipartFile> files) {
 
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
@@ -107,12 +108,17 @@ public class PostService {
                 .build();
 
         postRepository.save(post);
+
+        if (files != null && !files.isEmpty()) {
+            postMediaService.uploadAndSave(post.getId(), files, user);
+        }
+
         return post.getId();
     }
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
-    public Long updatePost(Long postId, PostUpdateRequest req, Long userId){
+    public Long updatePost(Long postId, PostUpdateRequest req, Long userId, List<MultipartFile> files){
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
 
@@ -125,6 +131,13 @@ public class PostService {
         }
 
         post.update(req.getTitle(), req.getContent(), req.isAnonymous());
+
+        postMediaService.deleteByIds(req.getDeleteMediaIds(), postId, userId);
+
+        if (files != null && !files.isEmpty()) {
+            User user = post.getUser();
+            postMediaService.uploadAndSave(postId, files, user);
+        }
 
         return post.getId();
     }
@@ -144,6 +157,7 @@ public class PostService {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
 
+        postMediaService.deleteAllByPostId(postId);
         post.delete();
 
         return post.getId();
@@ -151,24 +165,21 @@ public class PostService {
 
     // 특정 게시글 상세 조회
     @Transactional(readOnly = true)
-    public PostDetailResponse getPostDetail(Long postId) {
+    public PostDetailResponse getPostDetail(Long postId, Long currentUserId) {
 
         log.info("tx active={}, readOnly={}",
                 TransactionSynchronizationManager.isActualTransactionActive(),
                 TransactionSynchronizationManager.isCurrentTransactionReadOnly());
 
-
-        // 원자 업데이트
         Post post = postRepository.findDetailById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
 
         viewCountAccumulator.increment(postId);
 
-        //postRepository.incrementViewCount(postId);
+        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId);
+        List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
 
-        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId);
-
-        return PostDetailResponse.toDto(post, comments);
+        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId);
     }
 
     // 특정 게시판의 글 페이징 조회

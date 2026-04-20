@@ -2,6 +2,8 @@ package com.shu.backend.global.file;
 
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
+import com.shu.backend.domain.media.exception.MediaException;
+import com.shu.backend.domain.media.exception.status.MediaErrorStatus;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +59,16 @@ public class S3FileStorageService implements FileStorageService {
             throw new ChatMessageException(
                     ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL
             );
+        }
+    }
+
+    @Override
+    public String uploadPostMedia(MultipartFile file) {
+        try {
+            return upload(file, props.getPostDir());
+        } catch (Exception e) {
+            log.error("Post media upload failed", e);
+            throw new MediaException(MediaErrorStatus.POST_MEDIA_UPLOAD_FAIL);
         }
     }
 

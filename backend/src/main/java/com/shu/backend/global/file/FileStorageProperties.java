@@ -15,4 +15,5 @@ public class FileStorageProperties {
     private String studentCardDir;
     private String baseUrl;
     private String chatDir;
+    private String postDir;
 }

@@ -9,13 +9,12 @@ import org.springframework.http.HttpStatus;
 @Getter
 @AllArgsConstructor
 public enum MediaSuccessStatus implements BaseCode {
-    //예시
-    BOARD_FOUND_SUCCESS(HttpStatus.OK, "BOARD2001", "게시판 조회 성공");
+
+    POST_MEDIA_UPLOAD_SUCCESS(HttpStatus.OK, "MEDIA2000", "미디어 업로드가 완료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;
-
 
     @Override
     public ReasonDto getReasonHttpStatus() {

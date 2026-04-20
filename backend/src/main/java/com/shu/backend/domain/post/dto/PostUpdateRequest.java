@@ -1,11 +1,13 @@
 package com.shu.backend.domain.post.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -21,4 +23,6 @@ public class PostUpdateRequest {
     private String content;
 
     private boolean anonymous;
+
+    private List<Long> deleteMediaIds = Collections.emptyList();
 }

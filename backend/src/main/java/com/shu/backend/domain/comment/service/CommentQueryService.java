@@ -2,6 +2,7 @@ package com.shu.backend.domain.comment.service;
 
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.entity.Comment;
+import com.shu.backend.domain.comment.enums.CommentStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class CommentQueryService {
     private final CommentRepository commentRepository;
 
     /// 게시글 상세용 댓글 목록 조회 (부모 댓글 + 대댓글 포함)
-    public List<CommentResponse> getCommentsForPostDetail(Long postId) {
+    public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId) {
         // 1. 부모 댓글 먼저 조회
         List<Comment> parents = commentRepository.findParentsForPostDetail(postId);
 
@@ -44,11 +45,21 @@ public class CommentQueryService {
         List<CommentResponse> result = new ArrayList<>();
 
         for (Comment parent : parents) {
-            result.add(CommentResponse.toDto(parent));
+            List<Comment> allReplies = childrenMap.getOrDefault(parent.getId(), List.of());
 
-            List<Comment> replies = childrenMap.getOrDefault(parent.getId(), List.of());
-            for (Comment reply : replies) {
-                result.add(CommentResponse.toDto(reply));
+            // 삭제된 대댓글은 항상 숨김 (대댓글은 자식이 없으므로)
+            List<Comment> visibleReplies = allReplies.stream()
+                    .filter(r -> r.getCommentStatus() != CommentStatus.DELETED)
+                    .toList();
+
+            // 삭제된 부모댓글이고 보여줄 대댓글도 없으면 완전히 제외
+            if (parent.getCommentStatus() == CommentStatus.DELETED && visibleReplies.isEmpty()) {
+                continue;
+            }
+
+            result.add(CommentResponse.toDto(parent, currentUserId));
+            for (Comment reply : visibleReplies) {
+                result.add(CommentResponse.toDto(reply, currentUserId));
             }
         }
 

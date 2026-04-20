@@ -89,6 +89,7 @@ file:
   upload-dir:
     student-card: uploads/student-card   # 실제 로컬 폴더 (프로젝트 기준)
     chat: uploads/chat
+    post: uploads/post
   storage:
     bucket: local-bucket                 # 로컬에선 의미 거의 없음
     student-card-dir: student-card
@@ -121,6 +122,7 @@ management:
 #    bucket: ${FILE_BUCKET:teenple-media}
 #    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
 #    chat-dir: ${FILE_CHAT_DIR:chat}
+#    post-dir: ${FILE_POST_DIR:post}
 #    base-url: ${FILE_BASE_URL:https://cdn.teenple.com}
 
 #배포후 접근키 비밀키 삽입

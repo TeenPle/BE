@@ -1,6 +1,8 @@
 package com.shu.backend.domain.comment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shu.backend.domain.comment.entity.Comment;
+import com.shu.backend.domain.comment.enums.CommentStatus;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -9,6 +11,9 @@ import lombok.Getter;
 public class CommentResponse {
 
     private Long commentId;      // 댓글 ID
+    @JsonProperty("isMine")
+    private boolean isMine;      // 내 댓글 여부
+    private String commentStatus; // 댓글 상태 (ACTIVE, DELETED, HIDDEN)
     private String content;      // 댓글 내용
     private String author;       // 작성자 이름
     private int likeCount;       // 좋아요 수
@@ -18,7 +23,7 @@ public class CommentResponse {
     private Long parentId;       // 부모 댓글 ID (대댓글일 경우)
 
     // Comment 엔티티를 CommentResponse로 변환
-    public static CommentResponse toDto(Comment comment) {
+    public static CommentResponse toDto(Comment comment, Long currentUserId) {
 
         String content;
         String author;
@@ -39,8 +44,12 @@ public class CommentResponse {
             author = "알 수 없음";
         }
 
+        boolean isMine = comment.getUser() != null && comment.getUser().getId().equals(currentUserId);
+
         return CommentResponse.builder()
                 .commentId(comment.getId())
+                .isMine(isMine)
+                .commentStatus(comment.getCommentStatus().name())
                 .content(content)
                 .author(author)
                 .likeCount(comment.getLikeCount())

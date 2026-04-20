@@ -38,10 +38,19 @@ public class Media extends BaseEntity {
 
     public static Media ofChatMessage(String url, Long chatMessageId, MediaType mediaType, User uploader) {
         Media m = new Media();
-        // 아래는 필드 접근이 private이라면 same class 내부라 가능
         m.url = url;
         m.targetType = MediaTargetType.CHAT_MESSAGE;
         m.targetId = chatMessageId;
+        m.mediaType = mediaType;
+        m.uploader = uploader;
+        return m;
+    }
+
+    public static Media ofPost(String url, Long postId, MediaType mediaType, User uploader) {
+        Media m = new Media();
+        m.url = url;
+        m.targetType = MediaTargetType.POST;
+        m.targetId = postId;
         m.mediaType = mediaType;
         m.uploader = uploader;
         return m;

@@ -2,6 +2,8 @@ package com.shu.backend.global.file;
 
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
+import com.shu.backend.domain.media.exception.MediaException;
+import com.shu.backend.domain.media.exception.status.MediaErrorStatus;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,9 @@ public class LocalFileStorageService implements FileStorageService {
     @Value("${file.upload-dir.chat}")
     private String chatUploadDir;
 
+    @Value("${file.upload-dir.post}")
+    private String postUploadDir;
+
     @Value("${server.port}")
     private int serverPort;
 
@@ -38,6 +43,12 @@ public class LocalFileStorageService implements FileStorageService {
     public String uploadChatImage(MultipartFile file) {
         return upload(file, chatUploadDir, "/uploads/chat/",
                 () -> new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL));
+    }
+
+    @Override
+    public String uploadPostMedia(MultipartFile file) {
+        return upload(file, postUploadDir, "/uploads/post/",
+                () -> new MediaException(MediaErrorStatus.POST_MEDIA_UPLOAD_FAIL));
     }
 
     private String upload(

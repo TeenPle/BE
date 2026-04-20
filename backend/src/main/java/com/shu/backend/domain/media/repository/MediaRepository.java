@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface MediaRepository extends JpaRepository<Media, Long> {
     List<Media> findByTargetTypeAndTargetIdIn(MediaTargetType targetType, List<Long> targetIds);
+    List<Media> findByTargetTypeAndTargetId(MediaTargetType targetType, Long targetId);
 }
