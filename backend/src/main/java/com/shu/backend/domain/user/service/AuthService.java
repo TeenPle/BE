@@ -132,10 +132,12 @@ public class AuthService {
             // 이미 인증 완료된 유저면 바로 통과
             if (user.isVerified()) {
                 String accessToken = jwtTokenProvider.createAccessToken(user.getId());
+                Long schoolId = user.getSchool() != null ? user.getSchool().getId() : null;
                 return new LoginResponseDTO(
                         user.getId(),
                         accessToken,
-                        user.getRole().name()
+                        user.getRole().name(),
+                        schoolId
                 );
             }
 
@@ -156,10 +158,12 @@ public class AuthService {
         }
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId());
+        Long schoolId = user.getSchool() != null ? user.getSchool().getId() : null;
         return new LoginResponseDTO(
                 user.getId(),
                 accessToken,
-                user.getRole().name()
+                user.getRole().name(),
+                schoolId
         );
     }
 

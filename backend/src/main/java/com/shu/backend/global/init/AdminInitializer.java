@@ -48,20 +48,22 @@ public class AdminInitializer implements CommandLineRunner {
         System.out.println("java.home = " + System.getProperty("java.home"));
         System.out.println("javax.net.ssl.trustStore = " + System.getProperty("javax.net.ssl.trustStore"));
 
-        // 오남고등학교 생성 or 조회
+        // 지역 생성 or 조회
+        Region adminRegion = regionRepository.findByName("의정부시")
+                .orElseGet(() -> regionRepository.save(Region.builder().name("의정부시").build()));
+
+        // 오남고등학교 생성 or 조회 (region 할당)
         School testSchool = schoolRepository.findByName(TEST_SCHOOL_NAME)
                 .orElseGet(() -> schoolRepository.save(
                         School.builder()
                                 .name(TEST_SCHOOL_NAME)
+                                .region(adminRegion)
                                 .logoImageUrl(null)
                                 .build()
                 ));
-
-        Region adminRegion = regionRepository.save(
-                Region.builder()
-                        .name("의정부시")
-                        .build()
-        );
+        if (testSchool.getRegion() == null) {
+            testSchool.updateRegion(adminRegion);
+        }
 
         // 운영자 전용 학교 생성 or 조회
         School adminSchool = schoolRepository.findByName(ADMIN_SCHOOL_NAME)

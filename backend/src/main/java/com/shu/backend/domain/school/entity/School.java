@@ -31,4 +31,8 @@ public class School extends BaseEntity {
     public School(String name) {
         this.name = name;
     }
+
+    public void updateRegion(Region region) {
+        this.region = region;
+    }
 }

@@ -114,10 +114,10 @@ public class SchoolService {
         Board freeBoard = boardRepository.findBySchoolIdAndTitle(schoolId, boardTitle)
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
 
-        Long regionId = school.getRegion().getId();
-
         List<Board> schoolBoards = boardRepository.findBySchoolId(schoolId);
-        List<Board> regionBoards = boardRepository.findByRegionId(regionId);
+        List<Board> regionBoards = school.getRegion() != null
+                ? boardRepository.findByRegionId(school.getRegion().getId())
+                : List.of();
 
         List<BoardResponse> boardResponses = Stream.concat(schoolBoards.stream(), regionBoards.stream())
                 .map(BoardResponse::toDto)
