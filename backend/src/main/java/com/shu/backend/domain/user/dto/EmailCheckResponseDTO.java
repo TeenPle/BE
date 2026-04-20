@@ -5,9 +5,6 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class LoginResponseDTO {
-
-    private Long userId;
-    private String accessToken;
-    private String role;
+public class EmailCheckResponseDTO {
+    private boolean exists;
 }

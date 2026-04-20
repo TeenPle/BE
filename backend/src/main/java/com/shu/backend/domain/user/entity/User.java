@@ -67,10 +67,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Grade grade;
 
-    @Column(name = "class_room", nullable = false)
-    private Integer classRoom;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20,unique = true)
     private String phoneNumber;
 
     @Column(name = "phone_verified", nullable = false)

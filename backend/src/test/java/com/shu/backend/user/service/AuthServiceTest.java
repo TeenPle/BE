@@ -82,7 +82,6 @@ public class AuthServiceTest {
                 .nickname(nickname)
                 .school(schoolName)
                 .password(rawPassword)
-                .classRoom(3)
                 .gender(Gender.MALE)
                 .grade(Grade.FIRST)
                 .phoneNumber(phoneNumber)

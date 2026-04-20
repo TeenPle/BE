@@ -2,10 +2,7 @@ package com.shu.backend.domain.user.controller;
 
 import com.shu.backend.domain.school.exception.SchoolException;
 import com.shu.backend.domain.school.exception.status.SchoolErrorStatus;
-import com.shu.backend.domain.user.dto.LoginResponseDTO;
-import com.shu.backend.domain.user.dto.SignUpResponseDTO;
-import com.shu.backend.domain.user.dto.UserLoginDTO;
-import com.shu.backend.domain.user.dto.UserRequestDTO;
+import com.shu.backend.domain.user.dto.*;
 import com.shu.backend.domain.user.exception.status.UserSuccessStatus;
 import com.shu.backend.domain.user.service.AuthService;
 import com.shu.backend.global.apiPayload.ApiResponse;
@@ -18,9 +15,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -104,39 +104,80 @@ public class AuthController {
     // =================== 승인 거절시 재요청 ===================
     @Operation(
             summary = "학교 인증 재요청",
-            description = "학교 인증이 거절(REJECTED)되었거나 아직 요청이 없는 사용자가 재요청을 보냅니다. " +
-                    "로그인(액세스 토큰) 없이 이메일/비밀번호로 본인 확인 후 새 인증요청(PENDING)을 생성합니다. " +
-                    "이미 인증 완료(verified=true) 또는 심사중(PENDING)인 경우 요청이 거절됩니다."
+            description = "학교 인증이 거절(REJECTED)된 사용자가 이메일/비밀번호 본인 확인 후 학생증 이미지를 다시 업로드하여 재요청합니다."
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
-                    description = "재요청 성공"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "잘못된 요청(비밀번호 오류, 이미 인증 완료 등)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404",
-                    description = "리소스 없음(이메일/학교를 찾을 수 없음)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "409",
-                    description = "상태 충돌(이미 PENDING 요청 존재)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 오류"
-            )
-    })
-    @PostMapping("/verification/reapply")
-    public com.shu.backend.global.apiPayload.ApiResponse<Long> reapplyVerification(
-            @RequestBody @Valid UserRequestDTO.VerificationReapply req
+    @PostMapping(value = "/verification/reapply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Long> reapplyVerification(
+            @RequestPart("data") @Valid UserRequestDTO.VerificationReapply req,
+            @RequestPart("studentCard") MultipartFile studentCardImage
     ) {
-        return com.shu.backend.global.apiPayload.ApiResponse.onSuccess(
-                authService.reapplyVerification(req)
+        if (studentCardImage == null || studentCardImage.isEmpty()) {
+            throw new SchoolException(SchoolErrorStatus.REQUEST_IMAGE_REQUIRED);
+        }
+
+        String imageUrl = fileStorageService.uploadStudentCardImage(studentCardImage);
+
+        return ApiResponse.onSuccess(
+                authService.reapplyVerification(req, imageUrl)
         );
+    }
+
+    // =================== 학교 인증 재요청 정보 조회 ===================
+    @Operation(
+            summary = "학교 인증 재요청 정보 조회",
+            description = "로그인 없이 이메일/비밀번호로 본인 확인 후, 최근 반려된 인증 요청의 학교와 관리자 코멘트를 조회합니다."
+    )
+    @PostMapping("/verification/reapply-info")
+    public ApiResponse<VerificationReapplyInfoResponseDTO> getReapplyInfo(
+            @RequestBody @Valid UserRequestDTO.VerificationReapplyInfoRequest req
+    ) {
+        return ApiResponse.onSuccess(
+                authService.getReapplyInfo(req)
+        );
+    }
+
+    // =================== 이메일 존재 여부 확인 ===================
+    @Operation(
+            summary = "이메일 존재 여부 확인",
+            description = "입력한 이메일이 이미 가입된 이메일인지 확인합니다."
+    )
+    @GetMapping("/check-email")
+    public ApiResponse<EmailCheckResponseDTO> checkEmail(
+            @RequestParam("email")
+            @NotBlank(message = "이메일은 필수입니다.")
+            @Email(message = "올바른 이메일 형식이 아닙니다.")
+            String email
+    ) {
+        return ApiResponse.onSuccess(authService.checkEmailExists(email));
+    }
+
+    // =================== 전화번호 존재 여부 확인 ===================
+    @Operation(
+            summary = "전화번호 존재 여부 확인",
+            description = "입력한 전화번호가 이미 가입된 전화번호인지 확인합니다."
+    )
+    @GetMapping("/check-phone")
+    public ApiResponse<PhoneCheckResponseDTO> checkPhone(
+            @RequestParam("phoneNumber")
+            @NotBlank(message = "전화번호는 필수입니다.")
+            String phoneNumber
+    ) {
+        return ApiResponse.onSuccess(authService.checkPhoneNumberExists(phoneNumber));
+    }
+
+    // =================== 닉네임 존재 여부 확인 ===================
+    @Operation(
+            summary = "닉네임 존재 여부 확인",
+            description = "입력한 닉네임이 이미 사용 중인지 확인합니다."
+    )
+    @Validated
+    @GetMapping("/check-nickname")
+    public ApiResponse<NicknameCheckResponseDTO> checkNickname(
+            @RequestParam("nickname")
+            @NotBlank(message = "닉네임은 필수입니다.")
+            String nickname
+    ) {
+        return ApiResponse.onSuccess(authService.checkNicknameExists(nickname));
     }
 }
 

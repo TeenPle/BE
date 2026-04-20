@@ -46,7 +46,7 @@ public class UserRequestDTO {
 
         // 닉네임: 1~10자, 영어/한글만
         @NotBlank(message = "닉네임은 필수 입력입니다")
-        @Size(max = 10, message = "닉네임은 최대 10자까지 가능합니다")
+        @Size(min = 3, max = 10, message = "닉네임은 3~10자여야 합니다")
         @Pattern(regexp = "^[a-zA-Z가-힣]*$", message = "닉네임은 영어와 한글만 가능합니다")
         @Schema(description = "사용자 닉네임 (영어&한글만, 최대 10자, 중복 불가)", example = "틴플")
         private String nickname;
@@ -68,12 +68,6 @@ public class UserRequestDTO {
         @Schema(description = "학년", example = "FIRST", allowableValues = {"FIRST", "SECOND", "THIRD", "GRADUATED"})
         private Grade grade;
 
-        @NotNull(message = "반은 필수입니다.")
-        @Min(value = 1, message = "반은 1 이상이어야 합니다.")
-        @Max(value = 20, message = "반은 20 이하여야 합니다.") // 학교마다 다르면 50 등으로 조정
-        @Schema(description = "반", example = "3")
-        private Integer classRoom;
-
         // 휴대폰 번호 (01012345678)
         @NotBlank(message = "휴대폰 번호는 필수입니다.")
         @Pattern(regexp = "^010\\d{8}$", message = "휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.")
@@ -89,11 +83,26 @@ public class UserRequestDTO {
     @Getter
     @Setter
     @NoArgsConstructor
+    public static class VerificationReapplyInfoRequest {
+        @NotBlank
+        private String email;
+
+        @NotBlank
+        private String password;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
     public static class VerificationReapply {
-        @NotBlank private String email;
-        @NotBlank private String password;
-        @NotNull  private Long schoolId;
-        @NotBlank private String studentIdImageUrl;
+        @NotBlank
+        private String email;
+
+        @NotBlank
+        private String password;
+
+        @NotNull
+        private Long schoolId;
     }
 
 }

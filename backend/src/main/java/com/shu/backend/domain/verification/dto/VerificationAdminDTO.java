@@ -51,6 +51,9 @@ public class VerificationAdminDTO {
         @Schema(description = "유저 ID", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long userId;
 
+        @Schema(description = "유저 이름", example = "홍길동", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String userName;
+
         @Schema(description = "유저 이메일", example = "test@naver.com", requiredMode = Schema.RequiredMode.REQUIRED)
         private String userEmail;
 
@@ -65,13 +68,13 @@ public class VerificationAdminDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "VerificationRequestDetail", description = "인증 요청 상세")
+    @Schema(name = "VerificationRequestDetailResponse", description = "인증 요청 상세 응답")
     public static class DetailResponse {
 
         @Schema(description = "인증 요청 ID", example = "12", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long requestId;
 
-        @Schema(description = "학생증/재학증명서 이미지 URL", example = "https://.../studentcard.png", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "요청 이미지 URL", example = "http://localhost:8080/uploads/verification/abc.png", requiredMode = Schema.RequiredMode.REQUIRED)
         private String requestImageUrl;
 
         @Schema(description = "요청 상태", example = "PENDING", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -84,6 +87,9 @@ public class VerificationAdminDTO {
         @Schema(description = "유저 ID", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long userId;
 
+        @Schema(description = "유저 이름", example = "홍길동", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String userName;
+
         @Schema(description = "유저 이메일", example = "test@naver.com", requiredMode = Schema.RequiredMode.REQUIRED)
         private String userEmail;
 
@@ -94,13 +100,13 @@ public class VerificationAdminDTO {
         private String schoolName;
 
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        @Schema(description = "처리 시각(PENDING이면 null)", example = "2025-12-14 16:10:00", nullable = true)
+        @Schema(description = "처리 시각", example = "2025-12-14 16:00:00")
         private LocalDateTime processedAt;
 
-        @Schema(description = "처리 관리자 ID(PENDING이면 null)", example = "100", nullable = true)
+        @Schema(description = "처리한 관리자 ID", example = "1")
         private Long processedBy;
 
-        @Schema(description = "관리자 코멘트(PENDING이면 null)", example = "이미지 확인 완료", nullable = true)
+        @Schema(description = "관리자 코멘트", example = "학생증 확인 완료")
         private String adminComment;
     }
 

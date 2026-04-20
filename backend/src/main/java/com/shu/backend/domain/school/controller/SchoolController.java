@@ -51,7 +51,23 @@ public class SchoolController {
                 .toList();
 
         return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, responses);
+    }
 
+    @Operation(
+            summary = "학교 검색",
+            description = "회원가입 시 학교명을 기반으로 학교를 검색합니다."
+    )
+    @GetMapping(value = "/api/schools/search")
+    public ApiResponse<List<SchoolResponse>> searchSchools(
+            @RequestParam String keyword
+    ){
+        List<School> schools = schoolService.searchSchools(keyword);
+
+        List<SchoolResponse> responses = schools.stream()
+                .map(SchoolResponse::toDto)
+                .toList();
+
+        return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, responses);
     }
 
     @Operation(
@@ -69,6 +85,5 @@ public class SchoolController {
         SchoolDetailResponse response = schoolService.getSchoolDetail(schoolId, "자유게시판", pageable);
 
         return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, response);
-
     }
 }

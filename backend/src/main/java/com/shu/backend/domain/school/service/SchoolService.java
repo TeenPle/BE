@@ -9,7 +9,6 @@ import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.board.service.BoardService;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.dto.PostResponse;
-import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.repository.PostRepository;
 import com.shu.backend.domain.post.service.PostService;
 import com.shu.backend.domain.region.entity.Region;
@@ -23,14 +22,12 @@ import com.shu.backend.domain.school.exception.SchoolException;
 import com.shu.backend.domain.school.exception.status.SchoolErrorStatus;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.query.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -70,7 +67,6 @@ public class SchoolService {
 
         schoolRepository.save(school);
 
-        // 학교 생성 + 해당 학교 기본 게시판 5개 생성
         boardRepository.saveAll(List.of(
                 Board.builder().title("자유게시판").description("자유롭게 이야기해요").school(school).scope(BoardScope.SCHOOL).build(),
                 Board.builder().title("1학년 게시판").description("1학년 전용 게시판").school(school).scope(BoardScope.SCHOOL).build(),
@@ -97,6 +93,17 @@ public class SchoolService {
     }
 
     /*
+    학교명으로 학교 검색
+     */
+    public List<School> searchSchools(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_NAME);
+        }
+
+        return schoolRepository.findSchoolsByName(keyword.trim());
+    }
+
+    /*
     특정 학교 상세정보 조회 (기본으로 자유게시판 조회)
      */
     public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable) {
@@ -116,7 +123,6 @@ public class SchoolService {
                 .map(BoardResponse::toDto)
                 .toList();
 
-        // 변경: Slice<Post> → Slice<PostResponse>
         Slice<PostResponse> postSlice = postService.getPostsByBoardId(freeBoard.getId(), pageable);
 
         return new SchoolDetailResponse(
@@ -127,6 +133,4 @@ public class SchoolService {
                 postSlice.hasNext()
         );
     }
-
-
 }

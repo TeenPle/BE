@@ -21,5 +21,12 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
             "ORDER BY s.name ASC")
     List<School> findSchoolsByRegionAndName(@Param("regionId") Long regionId, @Param("keyword") String keyword);
 
+    // 학교명(keyword)으로 전체 학교 검색
+    @Query("SELECT s FROM School s " +
+            "WHERE (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%')) " +
+            "ORDER BY s.name ASC")
+    List<School> findSchoolsByName(@Param("keyword") String keyword);
+
+
     boolean existsByRegionIdAndName(Long id, String name);
 }
