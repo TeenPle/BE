@@ -70,9 +70,21 @@ public class PostMediaService {
 
     private MediaType resolveMediaType(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType != null && contentType.startsWith("video/")) {
-            return MediaType.VIDEO;
+        if (contentType != null) {
+            if (contentType.startsWith("image/")) return MediaType.IMAGE;
+            if (contentType.startsWith("video/")) return MediaType.VIDEO;
         }
-        return MediaType.IMAGE;
+        String filename = file.getOriginalFilename();
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
+                lower.endsWith(".png") || lower.endsWith(".gif") || lower.endsWith(".webp")) {
+                return MediaType.IMAGE;
+            }
+            if (lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".avi")) {
+                return MediaType.VIDEO;
+            }
+        }
+        return MediaType.DOCUMENT;
     }
 }

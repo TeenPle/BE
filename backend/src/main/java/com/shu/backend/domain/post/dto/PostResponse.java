@@ -4,6 +4,8 @@ import com.shu.backend.domain.post.entity.Post;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class PostResponse {
@@ -20,6 +22,27 @@ public class PostResponse {
     private Long userId;   // 사용자 ID
     private String username; // 사용자 이름
     private int commentCount; // 댓글 수 (선택적)
+    @Builder.Default
+    private List<PostMediaResponse> mediaList = List.of();
+
+    // 미디어를 덧붙인 복사본 반환
+    public PostResponse withMedia(List<PostMediaResponse> mediaList) {
+        return PostResponse.builder()
+                .id(this.id)
+                .title(this.title)
+                .content(this.content)
+                .postStatus(this.postStatus)
+                .viewCount(this.viewCount)
+                .anonymous(this.anonymous)
+                .likeCount(this.likeCount)
+                .dislikeCount(this.dislikeCount)
+                .boardId(this.boardId)
+                .userId(this.userId)
+                .username(this.username)
+                .commentCount(this.commentCount)
+                .mediaList(mediaList)
+                .build();
+    }
 
     // Post 엔티티를 PostResponse로 변환하는 메서드
     public static PostResponse toDto(Post post, int commentCount) {

@@ -34,8 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
+import com.shu.backend.domain.media.entity.Media;
+import com.shu.backend.domain.media.enums.MediaTargetType;
+import com.shu.backend.domain.media.repository.MediaRepository;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +53,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final CommentQueryService commentQueryService;
     private final PostMediaService postMediaService;
+    private final MediaRepository mediaRepository;
     private final ViewCountAccumulator viewCountAccumulator;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
@@ -202,6 +207,8 @@ public class PostService {
                 .map(PostResponse::fromRow)
                 .toList();
 
+        content = attachMediaToResponses(content);
+
         return new SliceImpl<>(content, pageable, hasNext);
     }
 
@@ -249,8 +256,27 @@ public class PostService {
                 .map(PostResponse::fromRow)
                 .toList();
 
+        content = attachMediaToResponses(content);
+
         Pageable responsePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         return new SliceImpl<>(content, responsePageable, hasNext);
+    }
+
+    private List<PostResponse> attachMediaToResponses(List<PostResponse> posts) {
+        if (posts.isEmpty()) return posts;
+
+        List<Long> postIds = posts.stream().map(PostResponse::getId).toList();
+        List<Media> allMedia = mediaRepository.findByTargetTypeAndTargetIdIn(MediaTargetType.POST, postIds);
+
+        Map<Long, List<PostMediaResponse>> mediaByPostId = allMedia.stream()
+                .collect(Collectors.groupingBy(
+                        Media::getTargetId,
+                        Collectors.mapping(PostMediaResponse::from, Collectors.toList())
+                ));
+
+        return posts.stream()
+                .map(p -> p.withMedia(mediaByPostId.getOrDefault(p.getId(), List.of())))
+                .toList();
     }
 
 }
