@@ -3,6 +3,7 @@ package com.shu.backend.global.security;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.jwt.JwtAuthenticationFilter;
 import com.shu.backend.global.jwt.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +22,6 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
-    //passwordEncoder 등록 — 비밀번호 암호화용
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -47,7 +47,25 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 추가
+                // 인증 실패(토큰 없음/만료/무효) → 401 JSON
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"isSuccess\":false,\"code\":\"AUTH4113\",\"message\":\"인증이 필요합니다.\"}"
+                            );
+                        })
+                        // 권한 부족(인증은 됐으나 ROLE 미충족) → 403 JSON
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"isSuccess\":false,\"code\":\"COMMON403\",\"message\":\"접근 권한이 없습니다.\"}"
+                            );
+                        })
+                )
+
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider, userRepository),
                         UsernamePasswordAuthenticationFilter.class

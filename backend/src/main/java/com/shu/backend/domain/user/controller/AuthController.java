@@ -89,15 +89,29 @@ public class AuthController {
     }
 
 
+    // =================== 토큰 갱신 ===================
+    @Operation(
+            summary = "Access Token 갱신",
+            description = "Refresh Token으로 새 Access Token과 Refresh Token을 발급합니다. (Rotation 방식)"
+    )
+    @PostMapping("/refresh")
+    public ApiResponse<TokenRefreshResponseDTO> refresh(
+            @RequestBody @Valid TokenRefreshRequestDTO request
+    ) {
+        TokenRefreshResponseDTO result = authService.refresh(request.getRefreshToken());
+        return ApiResponse.of(UserSuccessStatus.USER_TOKEN_REFRESH_SUCCESS, result);
+    }
+
     // =================== 로그아웃 ===================
     @Operation(
             summary = "로그아웃",
-            description = "현재 액세스 토큰을 기반으로 로그아웃을 수행합니다. " +
-                    "JWT를 서버에 저장하지 않는 구조이므로, 실제 토큰 제거는 클라이언트에서 수행해야 합니다."
+            description = "Refresh Token을 서버에서 즉시 무효화합니다."
     )
     @PostMapping("/logout")
-    public ApiResponse<Void> logout() {
-        // TODO: 나중에 Redis 블랙리스트 쓰면 여기에서 토큰 추가 처리
+    public ApiResponse<Void> logout(
+            @RequestBody @Valid TokenRefreshRequestDTO request
+    ) {
+        authService.logout(request.getRefreshToken());
         return ApiResponse.of(UserSuccessStatus.USER_LOGOUT_SUCCESS, null);
     }
 

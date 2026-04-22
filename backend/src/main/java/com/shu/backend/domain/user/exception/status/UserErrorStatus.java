@@ -28,6 +28,10 @@ public enum UserErrorStatus implements BaseErrorCode {
     SCHOOL_VERIFICATION_PENDING(HttpStatus.FORBIDDEN, "USER4032", "학교 인증 심사 중입니다. 인증 완료 후 로그인 가능합니다."),
     SCHOOL_VERIFICATION_REJECTED(HttpStatus.FORBIDDEN, "USER4033", "학교 인증이 거절되었습니다."),
 
+    // =================== Refresh Token ===================
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4120", "유효하지 않은 Refresh Token입니다."),
+    EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4121", "Refresh Token이 만료되었습니다. 다시 로그인해주세요."),
+
     // =================== 500 ===================
     USER_STUDENT_CARD_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "USER5000", "학생증 이미지 업로드에 실패했습니다."),
     SCHOOL_VERIFICATION_STATUS_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "USER5001", "잘못된 인증 상태입니다. 관리자에게 문의해주세요.");
