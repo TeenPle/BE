@@ -187,4 +187,25 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     );
 
     int countByBoard(Board board);
+
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.likeCount,
+            p.createdAt,
+            (
+                select count(c.id)
+                from Comment c
+                where c.post.id = p.id
+                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+            )
+        from Post p
+        where p.user.id = :userId
+          and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED
+        order by p.id desc
+    """)
+    List<Object[]> findMyPostRows(@Param("userId") Long userId, Pageable pageable);
 }

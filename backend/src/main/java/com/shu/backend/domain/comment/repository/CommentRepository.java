@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -63,4 +65,18 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 """)
     List<Comment> findChildrenByParentIds(List<Long> parentIds);
 
+    @Query("""
+        select
+            c.id,
+            c.content,
+            c.post.id,
+            c.post.title,
+            c.likeCount,
+            c.createdAt
+        from Comment c
+        where c.user.id = :userId
+          and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+        order by c.id desc
+    """)
+    List<Object[]> findMyCommentRows(@Param("userId") Long userId, Pageable pageable);
 }

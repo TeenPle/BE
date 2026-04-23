@@ -83,6 +83,19 @@ public class User extends BaseEntity {
         this.phoneVerified = true;
     }
 
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void deactivate() {
+        this.status = UserStatus.DELETED;
+    }
 }
