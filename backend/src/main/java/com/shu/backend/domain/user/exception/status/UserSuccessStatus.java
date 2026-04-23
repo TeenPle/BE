@@ -22,6 +22,14 @@ public enum UserSuccessStatus implements BaseCode {
     // User
     USER_FOUND(HttpStatus.OK, "USER2002", "사용자 조회 성공"),
 
+    // Profile
+    USER_PROFILE_SUCCESS(HttpStatus.OK, "USER2020", "프로필 조회 성공"),
+    USER_NICKNAME_UPDATE_SUCCESS(HttpStatus.OK, "USER2021", "닉네임 변경 성공"),
+    USER_PASSWORD_UPDATE_SUCCESS(HttpStatus.OK, "USER2022", "비밀번호 변경 성공"),
+    USER_MY_POSTS_SUCCESS(HttpStatus.OK, "USER2023", "내 게시글 조회 성공"),
+    USER_MY_COMMENTS_SUCCESS(HttpStatus.OK, "USER2024", "내 댓글 조회 성공"),
+    USER_DELETE_SUCCESS(HttpStatus.OK, "USER2025", "회원 탈퇴 성공"),
+
     // Verification
     VERIFICATION_APPROVED(HttpStatus.OK, "VERI2001", "학교 인증 승인 완료");
 
