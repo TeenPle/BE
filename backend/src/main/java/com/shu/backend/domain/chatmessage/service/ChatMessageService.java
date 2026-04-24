@@ -18,6 +18,7 @@ import com.shu.backend.domain.notification.service.NotificationService;
 import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class ChatMessageService {
 
     private final NotificationService notificationService;
     private final PushService pushService;
+    private final UserSettingRepository userSettingRepository;
 
     // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
@@ -132,21 +134,22 @@ public class ChatMessageService {
                 senderId
         );
 
-        //푸시 알림 전송
         if (notificationId != null) {
-            try {
-                pushService.sendToUser(
-                        receiverId,
-                        "새 채팅",
-                        notiMsg,
-                        Map.of(
-                                "notificationId", String.valueOf(notificationId),
-                                "type", NotificationType.CHAT.name(),
-                                "targetType", NotificationTargetType.CHAT_MSG.name(),
-                                "targetId", String.valueOf(room.getId())
-                        )
-                );
-            } catch (Exception ignore) {
+            var setting = userSettingRepository.findByUserId(receiverId).orElse(null);
+            if (setting != null && setting.isChatNotificationEnabled()) {
+                try {
+                    pushService.sendToUser(
+                            receiverId,
+                            "새 채팅",
+                            notiMsg,
+                            Map.of(
+                                    "notificationId", String.valueOf(notificationId),
+                                    "type", NotificationType.CHAT.name(),
+                                    "targetType", NotificationTargetType.CHAT_MSG.name(),
+                                    "targetId", String.valueOf(room.getId())
+                            )
+                    );
+                } catch (Exception ignore) {}
             }
         }
 

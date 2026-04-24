@@ -3,10 +3,13 @@ package com.shu.backend.domain.reaction.service;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
+import com.shu.backend.domain.notification.enums.NotificationTargetType;
+import com.shu.backend.domain.notification.enums.NotificationType;
 import com.shu.backend.domain.notification.service.NotificationService;
 import com.shu.backend.domain.post.exception.PostException;
 import com.shu.backend.domain.post.exception.status.PostErrorStatus;
 import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.reaction.dto.ReactionApplyRequest;
 import com.shu.backend.domain.reaction.dto.ReactionApplyResponse;
 import com.shu.backend.domain.reaction.entity.Reaction;
@@ -15,7 +18,10 @@ import com.shu.backend.domain.reaction.enums.ReactionTargetType;
 import com.shu.backend.domain.reaction.exception.ReactionException;
 import com.shu.backend.domain.reaction.exception.status.ReactionErrorStatus;
 import com.shu.backend.domain.reaction.repository.ReactionRepository;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -30,6 +36,8 @@ public class ReactionService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
+    private final PushService pushService;
+    private final UserSettingRepository userSettingRepository;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -70,22 +78,60 @@ public class ReactionService {
 
         int likeCount;
         int dislikeCount;
+        Long ownerUserId;
 
-        // reaction 반영 후의 해당 게시글/댓글 최신 좋아요, 싫어요 개수 조회
-        if (targetType == ReactionTargetType.COMMENT){
+        if (targetType == ReactionTargetType.COMMENT) {
             var c = commentRepository.findById(targetId)
                     .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
             likeCount = c.getLikeCount();
             dislikeCount = c.getDislikeCount();
-        }
-        else if (targetType == ReactionTargetType.POST){
+            ownerUserId = c.getUser().getId();
+        } else if (targetType == ReactionTargetType.POST) {
             var p = postRepository.findById(targetId)
                     .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
             likeCount = p.getLikeCount();
             dislikeCount = p.getDislikeCount();
-        }
-        else {
+            ownerUserId = p.getUser().getId();
+        } else {
             throw new ReactionException(ReactionErrorStatus.UNSUPPORTED_TARGET_TYPE);
+        }
+
+        // 좋아요가 새로 적용됐고, 자신의 글/댓글이 아닌 경우에만 알림 발송
+        if (changed && action == ReactionAction.LIKE && !ownerUserId.equals(userId)) {
+            NotificationType notiType = (targetType == ReactionTargetType.POST)
+                    ? NotificationType.POST_LIKE : NotificationType.COMMENT_LIKE;
+            NotificationTargetType notiTargetType = (targetType == ReactionTargetType.POST)
+                    ? NotificationTargetType.POST : NotificationTargetType.COMMENT;
+            String notiMsg = (targetType == ReactionTargetType.POST)
+                    ? "내 글에 좋아요가 눌렸습니다." : "내 댓글에 좋아요가 눌렸습니다.";
+
+            Long notificationId = notificationService.create(
+                    notiType,
+                    notiTargetType,
+                    targetId,
+                    notiMsg,
+                    ownerUserId,
+                    userId
+            );
+
+            if (notificationId != null) {
+                var setting = userSettingRepository.findByUserId(ownerUserId).orElse(null);
+                if (setting != null && setting.isLikeNotificationEnabled()) {
+                    try {
+                        pushService.sendToUser(
+                                ownerUserId,
+                                "새 좋아요",
+                                notiMsg,
+                                Map.of(
+                                        "notificationId", String.valueOf(notificationId),
+                                        "type", notiType.name(),
+                                        "targetType", notiTargetType.name(),
+                                        "targetId", String.valueOf(targetId)
+                                )
+                        );
+                    } catch (Exception ignore) {}
+                }
+            }
         }
 
         return ReactionApplyResponse.builder()

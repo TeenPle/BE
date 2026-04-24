@@ -6,4 +6,5 @@ public interface FileStorageService {
     String uploadStudentCardImage(MultipartFile file);
     String uploadChatImage(MultipartFile file);
     String uploadPostMedia(MultipartFile file);
+    String uploadProfileImage(MultipartFile file);
 }

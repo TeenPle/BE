@@ -92,7 +92,7 @@ public class AdminInitializer implements CommandLineRunner {
                                 .nickname("admin1")
                                 .password(passwordEncoder.encode("dhkdrl12"))
                                 .school(adminSchool)
-                                .role(UserRole.ADMIN)
+                                .role(UserRole.ADMIN) 
                                 .status(UserStatus.ACTIVE)
                                 .verified(true)
                                 .profileImageUrl(null)
