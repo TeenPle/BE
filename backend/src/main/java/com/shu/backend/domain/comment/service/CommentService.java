@@ -19,6 +19,7 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class CommentService {
 
     private final NotificationService notificationService;
     private final PushService pushService;
+    private final UserSettingRepository userSettingRepository;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -100,22 +102,22 @@ public class CommentService {
                     actorId
             );
 
-            //푸시 발송 (푸시 실패해도 댓글 생성은 성공해야 하므로 try-catch 권장)
             if (notificationId != null) {
-                try {
-                    pushService.sendToUser(
-                            receiverUserId,
-                            "새 댓글",
-                            "내 글에 댓글이 달렸습니다.",
-                            Map.of(
-                                    "notificationId", String.valueOf(notificationId),
-                                    "type", NotificationType.COMMENT.name(),
-                                    "targetType", NotificationTargetType.POST.name(),
-                                    "targetId", String.valueOf(post.getId())
-                            )
-                    );
-                } catch (Exception ignore) {
-                    // 로깅만 하거나 모니터링 전송 권장
+                var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
+                if (setting != null && setting.isCommentNotificationEnabled()) {
+                    try {
+                        pushService.sendToUser(
+                                receiverUserId,
+                                "새 댓글",
+                                "내 글에 댓글이 달렸습니다.",
+                                Map.of(
+                                        "notificationId", String.valueOf(notificationId),
+                                        "type", NotificationType.COMMENT.name(),
+                                        "targetType", NotificationTargetType.POST.name(),
+                                        "targetId", String.valueOf(post.getId())
+                                )
+                        );
+                    } catch (Exception ignore) {}
                 }
             }
 
@@ -129,29 +131,29 @@ public class CommentService {
 
             Long notificationId = notificationService.create(
                     NotificationType.REPLY,
-                    NotificationTargetType.COMMENT,
-                    parent.getId(),
+                    NotificationTargetType.POST,
+                    post.getId(),
                     "내 댓글에 대댓글이 달렸습니다.",
                     receiverUserId,
                     actorId
             );
 
-            // 2) 푸시 발송
             if (notificationId != null) {
-                try {
-                    pushService.sendToUser(
-                            receiverUserId,
-                            "새 답글",
-                            "내 댓글에 대댓글이 달렸습니다.",
-                            Map.of(
-                                    "notificationId", String.valueOf(notificationId),
-                                    "type", NotificationType.REPLY.name(),
-                                    "targetType", NotificationTargetType.COMMENT.name(),
-                                    "targetId", String.valueOf(parent.getId())
-                            )
-                    );
-                } catch (Exception ignore) {
-                    // 로깅만 하거나 모니터링 전송 권장
+                var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
+                if (setting != null && setting.isReplyNotificationEnabled()) {
+                    try {
+                        pushService.sendToUser(
+                                receiverUserId,
+                                "새 답글",
+                                "내 댓글에 대댓글이 달렸습니다.",
+                                Map.of(
+                                        "notificationId", String.valueOf(notificationId),
+                                        "type", NotificationType.REPLY.name(),
+                                        "targetType", NotificationTargetType.POST.name(),
+                                        "targetId", String.valueOf(post.getId())
+                                )
+                        );
+                    } catch (Exception ignore) {}
                 }
             }
 

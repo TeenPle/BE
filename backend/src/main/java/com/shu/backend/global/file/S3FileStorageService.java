@@ -72,6 +72,16 @@ public class S3FileStorageService implements FileStorageService {
         }
     }
 
+    @Override
+    public String uploadProfileImage(MultipartFile file) {
+        try {
+            return upload(file, "profile");
+        } catch (Exception e) {
+            log.error("Profile image upload failed", e);
+            throw new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL);
+        }
+    }
+
     /**
      * 공통 S3 업로드 로직
      * - 예외는 상위 메서드에서 도메인 예외로 변환

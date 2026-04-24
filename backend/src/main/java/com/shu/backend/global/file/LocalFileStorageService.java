@@ -30,6 +30,9 @@ public class LocalFileStorageService implements FileStorageService {
     @Value("${file.upload-dir.post}")
     private String postUploadDir;
 
+    @Value("${file.upload-dir.profile:uploads/profile}")
+    private String profileUploadDir;
+
     @Value("${server.port}")
     private int serverPort;
 
@@ -49,6 +52,12 @@ public class LocalFileStorageService implements FileStorageService {
     public String uploadPostMedia(MultipartFile file) {
         return upload(file, postUploadDir, "/uploads/post/",
                 () -> new MediaException(MediaErrorStatus.POST_MEDIA_UPLOAD_FAIL));
+    }
+
+    @Override
+    public String uploadProfileImage(MultipartFile file) {
+        return upload(file, profileUploadDir, "/uploads/profile/",
+                () -> new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL));
     }
 
     private String upload(

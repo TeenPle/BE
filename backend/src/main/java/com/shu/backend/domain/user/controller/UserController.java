@@ -9,8 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -76,6 +78,29 @@ public class UserController {
         return ApiResponse.of(
                 UserSuccessStatus.USER_MY_COMMENTS_SUCCESS,
                 userService.getMyComments(user.getId(), page, size)
+        );
+    }
+
+    @Operation(summary = "프로필 이미지 변경")
+    @PatchMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<String> updateProfileImage(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile file
+    ) {
+        String imageUrl = userService.updateProfileImage(user.getId(), file);
+        return ApiResponse.of(UserSuccessStatus.USER_PROFILE_SUCCESS, imageUrl);
+    }
+
+    @Operation(summary = "내가 공감한 글 목록")
+    @GetMapping("/me/liked-posts")
+    public ApiResponse<List<UserDTO.MyPostResponse>> getLikedPosts(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ApiResponse.of(
+                UserSuccessStatus.USER_MY_POSTS_SUCCESS,
+                userService.getLikedPosts(user.getId(), page, size)
         );
     }
 

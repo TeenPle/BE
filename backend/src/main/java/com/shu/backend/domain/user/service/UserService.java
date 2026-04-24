@@ -2,18 +2,22 @@ package com.shu.backend.domain.user.service;
 
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import com.shu.backend.domain.user.dto.UserDTO;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.exception.GeneralException;
+import com.shu.backend.global.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -23,6 +27,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final ReactionRepository reactionRepository;
+    private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
@@ -98,6 +104,32 @@ public class UserService {
                 .postTitle((String) r[3])
                 .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
                 .createdAt((LocalDateTime) r[5])
+                .build()
+        ).toList();
+    }
+
+    @Transactional
+    public String updateProfileImage(Long userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
+        String imageUrl = fileStorageService.uploadProfileImage(file);
+        user.updateProfileImageUrl(imageUrl);
+        return imageUrl;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDTO.MyPostResponse> getLikedPosts(Long userId, int page, int size) {
+        List<Long> postIds = reactionRepository.findLikedPostIds(userId, PageRequest.of(page, size));
+        if (postIds.isEmpty()) return Collections.emptyList();
+
+        List<Object[]> rows = postRepository.findPostRowsByIds(postIds);
+        return rows.stream().map(r -> UserDTO.MyPostResponse.builder()
+                .postId((Long) r[0])
+                .title((String) r[1])
+                .content((String) r[2])
+                .postStatus(r[3] instanceof Enum<?> e ? e.name() : String.valueOf(r[3]))
+                .likeCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
+                .commentCount(r[11] == null ? 0 : ((Number) r[11]).intValue())
                 .build()
         ).toList();
     }
