@@ -53,8 +53,8 @@ public class PushTokenController {
                     """
     )
     @DeleteMapping("/all")
-    public int deactivateAll(@AuthenticationPrincipal User user) {
-        return pushTokenService.deactivateAll(user.getId());
+    public ApiResponse<Integer> deactivateAll(@AuthenticationPrincipal User user) {
+        return ApiResponse.onSuccess(pushTokenService.deactivateAll(user.getId()));
     }
 
     @Operation(
@@ -68,7 +68,7 @@ public class PushTokenController {
                     """
     )
     @DeleteMapping
-    public int deactivateOne(@RequestParam String token) {
-        return pushTokenService.deactivateByToken(token);
+    public ApiResponse<Integer> deactivateOne(@RequestParam String token) {
+        return ApiResponse.onSuccess(pushTokenService.deactivateByToken(token));
     }
 }

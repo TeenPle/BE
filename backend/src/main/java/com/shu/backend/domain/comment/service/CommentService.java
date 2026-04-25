@@ -104,7 +104,8 @@ public class CommentService {
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
-                if (setting != null && setting.isCommentNotificationEnabled()) {
+                // setting이 없으면 기본값(모든 알림 허용)으로 간주
+                if (setting == null || setting.isCommentNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 receiverUserId,
@@ -140,7 +141,8 @@ public class CommentService {
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
-                if (setting != null && setting.isReplyNotificationEnabled()) {
+                // setting이 없으면 기본값(모든 알림 허용)으로 간주
+                if (setting == null || setting.isReplyNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 receiverUserId,

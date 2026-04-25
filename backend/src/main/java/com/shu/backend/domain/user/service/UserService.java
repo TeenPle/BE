@@ -122,14 +122,15 @@ public class UserService {
         List<Long> postIds = reactionRepository.findLikedPostIds(userId, PageRequest.of(page, size));
         if (postIds.isEmpty()) return Collections.emptyList();
 
-        List<Object[]> rows = postRepository.findPostRowsByIds(postIds);
+        List<Object[]> rows = postRepository.findLikedPostRows(postIds);
         return rows.stream().map(r -> UserDTO.MyPostResponse.builder()
                 .postId((Long) r[0])
                 .title((String) r[1])
                 .content((String) r[2])
                 .postStatus(r[3] instanceof Enum<?> e ? e.name() : String.valueOf(r[3]))
-                .likeCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
-                .commentCount(r[11] == null ? 0 : ((Number) r[11]).intValue())
+                .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
+                .createdAt((LocalDateTime) r[5])
+                .commentCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
                 .build()
         ).toList();
     }
