@@ -14,6 +14,8 @@ import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.RefreshTokenRepository;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.usersetting.entity.UserSetting;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.domain.verification.entity.UserSchoolVerificationRequest;
 import com.shu.backend.domain.verification.repository.UserSchoolVerificationRequestRepository;
 import com.shu.backend.domain.verification.status.VerificationStatus;
@@ -35,6 +37,7 @@ public class AuthService {
     private final SchoolRepository schoolRepository;
     private final UserSchoolVerificationRequestRepository verificationRequestRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserSettingRepository userSettingRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
@@ -54,6 +57,8 @@ public class AuthService {
         School school = getSchoolByName(request.getSchool());
         User newUser = createUser(request, school, true);
         userRepository.save(newUser);
+        // 회원가입 시 알림 설정 기본값으로 자동 생성 (없으면 푸시 발송 조건에서 누락됨)
+        userSettingRepository.save(UserSetting.create(newUser));
         createVerificationRequest(newUser, school, studentIdImageUrl);
 
         String accessToken = jwtTokenProvider.createAccessToken(newUser.getId());

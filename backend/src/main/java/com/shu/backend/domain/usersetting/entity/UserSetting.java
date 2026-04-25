@@ -57,9 +57,15 @@ public class UserSetting extends BaseEntity {
 
     //=== 생성 메서드 ===//
     public static UserSetting create(User user) {
-        UserSetting setting = new UserSetting();
-        setting.user = user;
-        return setting;
+        // @Builder.Default는 builder()를 통해서만 기본값이 적용되므로 no-args 생성자 대신 builder 사용
+        return UserSetting.builder()
+                .user(user)
+                .allowPush(true)
+                .allowCommentNotification(true)
+                .allowReplyNotification(true)
+                .allowLikeNotification(true)
+                .allowChatNotification(true)
+                .build();
     }
 
     //=== 업데이트(부분 업데이트 지원) ===//

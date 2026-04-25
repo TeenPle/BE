@@ -186,6 +186,27 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("postIds") Collection<Long> postIds
     );
 
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.likeCount,
+            p.createdAt,
+            (
+                select count(c.id)
+                from Comment c
+                where c.post.id = p.id
+                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+            )
+        from Post p
+        where p.id in :postIds
+          and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED
+        order by p.id desc
+    """)
+    List<Object[]> findLikedPostRows(@Param("postIds") Collection<Long> postIds);
+
     int countByBoard(Board board);
 
     @Query("""

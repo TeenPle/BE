@@ -116,7 +116,8 @@ public class ReactionService {
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(ownerUserId).orElse(null);
-                if (setting != null && setting.isLikeNotificationEnabled()) {
+                // setting이 없으면 기본값(모든 알림 허용)으로 간주
+                if (setting == null || setting.isLikeNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 ownerUserId,
