@@ -103,6 +103,11 @@ file:
 firebase:
   service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:keys/firebase-service-account.json}
 
+neis:
+  api:
+    key: ${NEIS_API_KEY:ba98d662b2e94b12abca400f988234c9}
+    base-url: https://open.neis.go.kr/hub
+
 viewcount:
   mode: PESSIMISTIC
 
@@ -138,3 +143,4 @@ cloud:
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
     region:
       static: ${AWS_REGION:ap-northeast-2}
+

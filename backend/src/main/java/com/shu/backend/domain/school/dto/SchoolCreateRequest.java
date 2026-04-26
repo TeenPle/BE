@@ -15,9 +15,12 @@ public class SchoolCreateRequest {
     @NotNull
     private String name;
 
-
     @NotNull
     private Long regionId;
+
+    private String neisOfficeCode;
+
+    private String neisSchoolCode;
 
 
 }

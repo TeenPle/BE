@@ -26,6 +26,12 @@ public class School extends BaseEntity {
     @JoinColumn(name = "region_id")
     private Region region;
 
+    @Column(name = "neis_office_code", length = 10)
+    private String neisOfficeCode;
+
+    @Column(name = "neis_school_code", length = 20)
+    private String neisSchoolCode;
+
 
     @Builder
     public School(String name) {
@@ -34,5 +40,10 @@ public class School extends BaseEntity {
 
     public void updateRegion(Region region) {
         this.region = region;
+    }
+
+    public void updateNeisCodes(String neisOfficeCode, String neisSchoolCode) {
+        this.neisOfficeCode = neisOfficeCode;
+        this.neisSchoolCode = neisSchoolCode;
     }
 }

@@ -2,11 +2,14 @@ package com.shu.backend.domain.school.controller;
 
 import com.shu.backend.domain.school.dto.SchoolCreateRequest;
 import com.shu.backend.domain.school.dto.SchoolDetailResponse;
+import com.shu.backend.domain.school.dto.SchoolNeisUpdateRequest;
 import com.shu.backend.domain.school.dto.SchoolResponse;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.exception.status.SchoolSuccessStatus;
 import com.shu.backend.domain.school.service.SchoolService;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.neis.NeisSyncResult;
+import com.shu.backend.global.neis.NeisSchoolSyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +26,7 @@ import java.util.List;
 public class SchoolController {
 
     private final SchoolService schoolService;
+    private final NeisSchoolSyncService neisSchoolSyncService;
 
     @Operation(
             summary = "학교생성",
@@ -85,5 +89,29 @@ public class SchoolController {
         SchoolDetailResponse response = schoolService.getSchoolDetail(schoolId, "자유게시판", pageable);
 
         return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, response);
+    }
+
+    @Operation(
+            summary = "학교 NEIS 코드 등록",
+            description = "학교의 NEIS 시도교육청코드와 행정표준코드를 수동으로 등록합니다."
+    )
+    @PatchMapping("/admin/schools/{schoolId}/neis")
+    public ApiResponse<Void> updateNeisCodes(
+            @PathVariable Long schoolId,
+            @Valid @RequestBody SchoolNeisUpdateRequest request
+    ) {
+        schoolService.updateNeisCodes(schoolId, request);
+        return ApiResponse.of(SchoolSuccessStatus.SCHOOL_CREATE_SUCCESS, null);
+    }
+
+    @Operation(
+            summary = "전체 학교 NEIS 코드 일괄 자동 동기화",
+            description = "NEIS 코드가 없는 모든 학교를 학교명으로 NEIS API에서 검색해 자동 등록합니다. " +
+                    "동명 학교가 2개 이상이면 ambiguous 카운트에 집계되며 수동 등록이 필요합니다."
+    )
+    @PostMapping("/admin/schools/sync-neis")
+    public ApiResponse<NeisSyncResult> syncAllNeisCodes() {
+        NeisSyncResult result = neisSchoolSyncService.syncAllMissing();
+        return ApiResponse.onSuccess(result);
     }
 }

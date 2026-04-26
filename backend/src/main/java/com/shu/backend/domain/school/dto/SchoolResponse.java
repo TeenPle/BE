@@ -12,10 +12,16 @@ public class SchoolResponse {
 
     private String name;
 
+    private String neisOfficeCode;
+
+    private String neisSchoolCode;
+
     public static SchoolResponse toDto(School school) {
         return SchoolResponse.builder()
                 .id(school.getId())
                 .name(school.getName())
+                .neisOfficeCode(school.getNeisOfficeCode())
+                .neisSchoolCode(school.getNeisSchoolCode())
                 .build();
     }
 }
