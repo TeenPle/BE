@@ -29,4 +29,8 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
 
     boolean existsByRegionIdAndName(Long id, String name);
+
+    // NEIS 코드가 미등록된 학교 전체 조회
+    @Query("SELECT s FROM School s WHERE s.neisOfficeCode IS NULL OR s.neisSchoolCode IS NULL")
+    List<School> findAllWithoutNeisCodes();
 }

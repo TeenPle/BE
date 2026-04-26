@@ -17,6 +17,7 @@ import com.shu.backend.domain.region.exception.status.RegionErrorStatus;
 import com.shu.backend.domain.region.repository.RegionRepository;
 import com.shu.backend.domain.school.dto.SchoolCreateRequest;
 import com.shu.backend.domain.school.dto.SchoolDetailResponse;
+import com.shu.backend.domain.school.dto.SchoolNeisUpdateRequest;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.exception.SchoolException;
 import com.shu.backend.domain.school.exception.status.SchoolErrorStatus;
@@ -63,6 +64,8 @@ public class SchoolService {
         School school = School.builder()
                 .name(schoolCreateRequest.getName())
                 .region(region)
+                .neisOfficeCode(schoolCreateRequest.getNeisOfficeCode())
+                .neisSchoolCode(schoolCreateRequest.getNeisSchoolCode())
                 .build();
 
         schoolRepository.save(school);
@@ -90,6 +93,16 @@ public class SchoolService {
             return schoolRepository.findByRegionIdOrderByNameAsc(regionId);
         }
         return schoolRepository.findSchoolsByRegionAndName(regionId, keyword);
+    }
+
+    /*
+    학교 NEIS 코드 업데이트
+     */
+    @Transactional
+    public void updateNeisCodes(Long schoolId, SchoolNeisUpdateRequest request) {
+        School school = schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+        school.updateNeisCodes(request.getNeisOfficeCode(), request.getNeisSchoolCode());
     }
 
     /*

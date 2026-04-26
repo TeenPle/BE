@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtTokenProvider.validateToken(token)) {
                     Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
-                    userRepository.findById(userId).ifPresent(user -> {
+                    userRepository.findByIdWithSchoolAndRegion(userId).ifPresent(user -> {
                         List<SimpleGrantedAuthority> authorities =
                                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
