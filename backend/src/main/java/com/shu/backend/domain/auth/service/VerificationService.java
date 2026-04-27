@@ -27,15 +27,7 @@ public class VerificationService {
     public String sendCode(String target) {
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
         codeStore.save(target, code);
-        provider.send(
-                target,
-                "[Teenple] 이메일 인증번호 안내\n\n"
-                        + "안녕하세요, Teenple입니다.\n"
-                        + "회원가입을 위한 인증번호는 아래와 같습니다.\n\n"
-                        + code + "\n\n"
-                        + "인증번호는 5분간 유효합니다.\n"
-                        + "요청하지 않은 경우 본 메일을 무시해주세요."
-        );
+        provider.send(target, code);
         return code;
     }
 

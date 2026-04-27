@@ -15,7 +15,7 @@ public enum UserErrorStatus implements BaseErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER4000", "존재하지 않는 사용자입니다."),
     EXIST_EMAIL(HttpStatus.NOT_FOUND, "USER4001", "이미 존재하는 이메일입니다."),
     EXIST_NICKNAME(HttpStatus.NOT_FOUND, "USER4002", "이미 존재하는 닉네임입니다."),
-    EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "USER4003", "이미 존재하는 이메일입니다."),
+    EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "USER4003", "존재하지 않는 이메일입니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "USER4004", "비밀번호가 일치하지 않습니다."),
     SCHOOL_VERIFICATION_ALREADY_APPROVED(HttpStatus.BAD_REQUEST, "USER4005", "이미 학교 인증이 완료된 사용자입니다."),
     SAME_NICKNAME(HttpStatus.BAD_REQUEST, "USER4006", "현재와 동일한 닉네임입니다."),

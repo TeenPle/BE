@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-@Service
+//@Service
 @RequiredArgsConstructor
 public class LocalFileStorageService implements FileStorageService {
 
@@ -58,6 +58,17 @@ public class LocalFileStorageService implements FileStorageService {
     public String uploadProfileImage(MultipartFile file) {
         return upload(file, profileUploadDir, "/uploads/profile/",
                 () -> new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL));
+    }
+
+    @Override
+    public void deleteStudentCardImage(String key) {
+        // 로컬 환경에서는 삭제하지 않음 (개발용)
+    }
+
+    @Override
+    public String generateStudentCardPresignedUrl(String key) {
+        // 로컬 환경에서는 key를 그대로 반환 (개발용)
+        return key;
     }
 
     private String upload(

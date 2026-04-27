@@ -9,7 +9,11 @@ import com.shu.backend.domain.verification.repository.UserSchoolVerificationRepo
 import com.shu.backend.domain.verification.repository.UserSchoolVerificationRequestRepository;
 import com.shu.backend.domain.verification.status.VerificationStatus;
 import com.shu.backend.global.exception.GeneralException;
+import com.shu.backend.global.file.FileStorageService;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,7 @@ import java.util.List;
  * 요청을 승인 또는 거절하며,
  * 승인 시 최종 학교 인증 정보와 사용자 인증 상태를 반영한다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,6 +35,7 @@ public class SchoolVerificationAdminService {
 
     private final UserSchoolVerificationRequestRepository requestRepository;
     private final UserSchoolVerificationRepository verificationRepository;
+    private final FileStorageService fileStorageService;
 
     // 상태별 학교 인증 요청 목록 조회
     @Transactional(readOnly = true)
@@ -48,7 +54,12 @@ public class SchoolVerificationAdminService {
                         new GeneralException(VerificationErrorStatus.VERIFICATION_REQUEST_NOT_FOUND)
                 );
 
-        return toDetail(req);
+        // 승인/거절 완료된 요청은 이미지가 파기되어 있으므로 빈 문자열 반환
+        String presignedUrl = req.getStatus() == VerificationStatus.PENDING
+                ? fileStorageService.generateStudentCardPresignedUrl(req.getRequestImageUrl())
+                : "";
+
+        return toDetail(req, presignedUrl);
     }
 
     // 학교 인증 요청 승인 처리
@@ -71,6 +82,9 @@ public class SchoolVerificationAdminService {
 
         // 요청 상태를 승인으로 변경
         req.approve(adminUserId, adminComment);
+
+        // 승인 완료 후 S3에서 학생증 이미지 삭제
+        fileStorageService.deleteStudentCardImage(req.getRequestImageUrl());
 
         // 최종 학교 인증 이력 저장
         verificationRepository.save(
@@ -98,6 +112,9 @@ public class SchoolVerificationAdminService {
 
         // 요청 상태를 거절로 변경
         req.reject(adminUserId, adminComment);
+
+        // 거절 후 S3에서 학생증 이미지 삭제
+        fileStorageService.deleteStudentCardImage(req.getRequestImageUrl());
     }
 
     // 처리 가능한 대기 상태 요청인지 검증
@@ -122,10 +139,10 @@ public class SchoolVerificationAdminService {
     }
 
     // 상세 응답 DTO 변환
-    private VerificationAdminDTO.DetailResponse toDetail(UserSchoolVerificationRequest req) {
+    private VerificationAdminDTO.DetailResponse toDetail(UserSchoolVerificationRequest req, String presignedUrl) {
         return VerificationAdminDTO.DetailResponse.builder()
                 .requestId(req.getId())
-                .requestImageUrl(req.getRequestImageUrl())
+                .requestImageUrl(presignedUrl)
                 .status(req.getStatus())
                 .requestedAt(req.getRequestedAt())
                 .userId(req.getUser().getId())
@@ -141,6 +158,8 @@ public class SchoolVerificationAdminService {
 
     // 현재 로그인한 관리자 userId 조회
     private Long getCurrentAdminUserId() {
-        return 1L;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User admin = (User) auth.getPrincipal();
+        return admin.getId();
     }
 }

@@ -92,6 +92,9 @@ dependencies {
 	//SMTP 이메일 인증
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+	//Thymeleaf (이메일 HTML 템플릿)
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
 	//.env 세팅
 	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }

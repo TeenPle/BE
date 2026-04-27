@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
@@ -27,7 +28,6 @@ public class S3Config {
 
     @Bean
     public S3Client s3Client() {
-
         AwsBasicCredentials credentials =
                 AwsBasicCredentials.create(accessKey, secretKey);
 
@@ -36,6 +36,19 @@ public class S3Config {
                 .endpointOverride(
                         URI.create("https://s3.ap-northeast-2.amazonaws.com")
                 )
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(credentials)
+                )
+                .build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner() {
+        AwsBasicCredentials credentials =
+                AwsBasicCredentials.create(accessKey, secretKey);
+
+        return S3Presigner.builder()
+                .region(Region.AP_NORTHEAST_2)
                 .credentialsProvider(
                         StaticCredentialsProvider.create(credentials)
                 )
