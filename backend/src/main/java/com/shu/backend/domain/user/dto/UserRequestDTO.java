@@ -83,43 +83,6 @@ public class UserRequestDTO {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class FindEmail {
-        @NotBlank
-        private String username;
-
-        @NotBlank
-        @Pattern(regexp = "^010\\d{8}$", message = "휴대폰 번호는 010으로 시작하는 11자리 숫자여야 합니다.")
-        private String phoneNumber;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class PasswordSendCode {
-        @NotBlank
-        @Email(message = "이메일 형식이 올바르지 않습니다.")
-        private String email;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class ResetPassword {
-        @NotBlank
-        private String verificationToken;
-
-        @NotBlank
-        @Size(min = 8, max = 20, message = "비밀번호는 8~20자여야 합니다.")
-        @Pattern(
-                regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,20}$",
-                message = "비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다."
-        )
-        private String newPassword;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
     public static class VerificationReapplyInfoRequest {
         @NotBlank
         private String email;

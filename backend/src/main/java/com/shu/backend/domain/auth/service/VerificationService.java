@@ -32,6 +32,16 @@ public class VerificationService {
     }
 
     /**
+     * 비밀번호 재설정용 인증번호 발송
+     */
+    public String sendPasswordResetCode(String target) {
+        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
+        codeStore.save(target, code);
+        provider.sendPasswordReset(target, code);
+        return code;
+    }
+
+    /**
      *  Redis에 저장되어있는 인증코드와 맞는지 확인
      */
     public String verifyCode(String target, String code) {

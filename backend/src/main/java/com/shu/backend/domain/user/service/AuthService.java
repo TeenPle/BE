@@ -258,12 +258,12 @@ public class AuthService {
 
     // 아이디(이메일) 찾기
     @Transactional(readOnly = true)
-    public FindEmailResponseDTO findEmail(String username, String phoneNumber) {
-        String normalized = normalizePhoneNumber(phoneNumber);
+    public FindEmailResponseDTO findEmail(FindEmailRequestDTO request) {
+        String normalized = normalizePhoneNumber(request.getPhoneNumber());
         User user = userRepository.findByPhoneNumber(normalized)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
-        if (!user.getUsername().equals(username)) {
+        if (!user.getUsername().equals(request.getUsername())) {
             throw new UserException(UserErrorStatus.USER_NOT_FOUND);
         }
 
@@ -275,22 +275,22 @@ public class AuthService {
         if (!userRepository.existsByEmail(email)) {
             throw new UserException(UserErrorStatus.EMAIL_NOT_FOUND);
         }
-        smsVerificationService.sendCode(email);
+        smsVerificationService.sendPasswordResetCode(email);
     }
 
     // 비밀번호 재설정
     @Transactional
-    public void resetPassword(String verificationToken, String newPassword) {
-        String email = smsVerificationService.consumeToken(verificationToken);
+    public void resetPassword(ResetPasswordRequestDTO request) {
+        String email = smsVerificationService.consumeToken(request.getVerificationToken());
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
 
-        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.SAME_PASSWORD);
         }
 
-        user.updatePassword(passwordEncoder.encode(newPassword));
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
     // =================== private ===================
