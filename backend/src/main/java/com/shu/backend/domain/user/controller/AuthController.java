@@ -63,13 +63,13 @@ public class AuthController {
             throw new SchoolException(SchoolErrorStatus.REQUEST_IMAGE_REQUIRED);
         }
 
-        // 실제 스토리지(S3/로컬 등)에 업로드 후 URL 반환
-        String imageUrl = fileStorageService.uploadStudentCardImage(studentCardImage);
+        // 프라이빗 버킷에 업로드 후 S3 key 반환
+        String imageKey = fileStorageService.uploadStudentCardImage(studentCardImage);
 
-        log.info("이미지 URL = {}", imageUrl);
+        log.info("학생증 S3 key = {}", imageKey);
 
         // 회원가입 + 인증요청 생성 + 토큰 발급
-        SignUpResponseDTO result = authService.join(request, imageUrl);
+        SignUpResponseDTO result = authService.join(request, imageKey);
 
         return ApiResponse.of(UserSuccessStatus.USER_SIGNUP_SUCCESS, result);
     }
@@ -129,10 +129,10 @@ public class AuthController {
             throw new SchoolException(SchoolErrorStatus.REQUEST_IMAGE_REQUIRED);
         }
 
-        String imageUrl = fileStorageService.uploadStudentCardImage(studentCardImage);
+        String imageKey = fileStorageService.uploadStudentCardImage(studentCardImage);
 
         return ApiResponse.onSuccess(
-                authService.reapplyVerification(req, imageUrl)
+                authService.reapplyVerification(req, imageKey)
         );
     }
 

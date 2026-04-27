@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
@@ -89,16 +89,16 @@ websocket:
   endpoint: ${WS_ENDPOINT:/ws/chat}
   allowed-origins: ${WS_ALLOWED_ORIGINS:*}  # 개발 단계 / 운영 시 실제 도메인만 허용
 
-# 로컬 파일 저장용 설정 (배포 후 비활성화)
-file:
-  upload-dir:
-    student-card: uploads/student-card   # 실제 로컬 폴더 (프로젝트 기준)
-    chat: uploads/chat
-    post: uploads/post
-  storage:
-    bucket: local-bucket                 # 로컬에선 의미 거의 없음
-    student-card-dir: student-card
-    base-url: http://localhost:8080/uploads
+## 로컬 파일 저장용 설정 (배포 후 비활성화)
+#file:
+#  upload-dir:
+#    student-card: uploads/student-card   # 실제 로컬 폴더 (프로젝트 기준)
+#    chat: uploads/chat
+#    post: uploads/post
+#  storage:
+#    bucket: local-bucket                 # 로컬에선 의미 거의 없음
+#    student-card-dir: student-card
+#    base-url: http://localhost:8080/uploads
 
 firebase:
   service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:keys/firebase-service-account.json}
@@ -126,14 +126,15 @@ management:
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
 
-##  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
-#file:
-#  storage:
-#    bucket: ${FILE_BUCKET:teenple-media}
-#    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
-#    chat-dir: ${FILE_CHAT_DIR:chat}
-#    post-dir: ${FILE_POST_DIR:post}
-#    base-url: ${FILE_BASE_URL:https://cdn.teenple.com}
+#  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
+file:
+  storage:
+    bucket: ${FILE_BUCKET:teenple-media}
+    student-card-bucket: ${FILE_STUDENT_CARD_BUCKET:teenple-student-card}
+    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
+    chat-dir: ${FILE_CHAT_DIR:chat}
+    post-dir: ${FILE_POST_DIR:post}
+    base-url: ${FILE_BASE_URL:https://cdn.teenple.com}
 
 #배포후 접근키 비밀키 삽입
 cloud:

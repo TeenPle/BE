@@ -8,119 +8,150 @@ import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.UUID;
 
-// 배포 후 LocalFileStorageService -> S3FileStorageService 변경
 @Slf4j
-//@Service
+@Service
 @RequiredArgsConstructor
 public class S3FileStorageService implements FileStorageService {
 
-    // AWS S3 Client (S3Config에서 Bean 등록)
     private final S3Client s3Client;
-
-    // 파일 스토리지 설정 값 (bucket, dir, base-url)
+    private final S3Presigner s3Presigner;
     private final FileStorageProperties props;
 
-    /**
-     * 학생증 이미지 업로드
-     * - 실패 시 UserException 발생
-     */
+    // 학생증 presigned URL 만료 시간 (15분)
+    private static final Duration STUDENT_CARD_PRESIGNED_EXPIRY = Duration.ofMinutes(15);
+
+    // 학생증 이미지 업로드 → 프라이빗 버킷에 저장, S3 key 반환
     @Override
     public String uploadStudentCardImage(MultipartFile file) {
         try {
-            return upload(file, props.getStudentCardDir());
+            return uploadToStudentCardBucket(file);
         } catch (Exception e) {
-            log.error("Student card upload failed", e);
-            throw new UserException(
-                    UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL
-            );
+            log.error("학생증 업로드 실패", e);
+            throw new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL);
         }
     }
 
-    /**
-     * 채팅 이미지 업로드
-     * - 실패 시 ChatMessageException 발생
-     */
+    // 채팅 이미지 업로드
     @Override
     public String uploadChatImage(MultipartFile file) {
         try {
             return upload(file, props.getChatDir());
         } catch (Exception e) {
-            log.error("Chat image upload failed", e);
-            throw new ChatMessageException(
-                    ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL
-            );
+            log.error("채팅 이미지 업로드 실패", e);
+            throw new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL);
         }
     }
 
+    // 게시글 미디어 업로드
     @Override
     public String uploadPostMedia(MultipartFile file) {
         try {
             return upload(file, props.getPostDir());
         } catch (Exception e) {
-            log.error("Post media upload failed", e);
+            log.error("게시글 미디어 업로드 실패", e);
             throw new MediaException(MediaErrorStatus.POST_MEDIA_UPLOAD_FAIL);
         }
     }
 
+    // 프로필 이미지 업로드
     @Override
     public String uploadProfileImage(MultipartFile file) {
         try {
             return upload(file, "profile");
         } catch (Exception e) {
-            log.error("Profile image upload failed", e);
+            log.error("프로필 이미지 업로드 실패", e);
             throw new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL);
         }
     }
 
-    /**
-     * 공통 S3 업로드 로직
-     * - 예외는 상위 메서드에서 도메인 예외로 변환
-     */
-    private String upload(MultipartFile file, String dir) throws IOException {
-
-        // 원본 파일명에서 확장자 추출
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-
-        if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-
-        // S3 객체 key 생성
-        // 예) chat/uuid.jpg, student-card/uuid.png
-        String key = dir + "/" + UUID.randomUUID() + ext;
-
-        // S3 PutObject 요청 생성
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(props.getBucket())
-                .key(key)
-                .contentType(file.getContentType())
+    // 학생증 presigned URL 발급 (15분 유효)
+    @Override
+    public String generateStudentCardPresignedUrl(String key) {
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(STUDENT_CARD_PRESIGNED_EXPIRY)
+                .getObjectRequest(
+                        GetObjectRequest.builder()
+                                .bucket(props.getStudentCardBucket())
+                                .key(key)
+                                .build()
+                )
                 .build();
 
-        log.info("bucket = {}", props.getBucket());
-        log.info("dir = {}", dir);
-        log.info("key = {}", key);
+        String url = s3Presigner.presignGetObject(presignRequest).url().toString();
+        log.info("학생증 presigned URL 발급: key={}", key);
+        return url;
+    }
 
-        // S3 업로드 실행
+    // 학생증 이미지 삭제 (프라이빗 버킷)
+    @Override
+    public void deleteStudentCardImage(String key) {
+        if (key == null || key.isBlank()) {
+            log.warn("학생증 삭제 생략 — key가 비어있음");
+            return;
+        }
+        s3Client.deleteObject(
+                DeleteObjectRequest.builder()
+                        .bucket(props.getStudentCardBucket())
+                        .key(key)
+                        .build()
+        );
+        log.info("학생증 S3 삭제 완료: key={}", key);
+    }
+
+    // 학생증 전용 업로드 (프라이빗 버킷, key만 반환)
+    private String uploadToStudentCardBucket(MultipartFile file) throws IOException {
+        String key = props.getStudentCardDir() + "/" + UUID.randomUUID() + extractExt(file);
+
         s3Client.putObject(
-                putObjectRequest,
-                RequestBody.fromInputStream(
-                        file.getInputStream(),
-                        file.getSize()
-                )
+                PutObjectRequest.builder()
+                        .bucket(props.getStudentCardBucket())
+                        .key(key)
+                        .contentType(file.getContentType())
+                        .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
 
-        // 업로드된 파일 접근 URL 반환
+        log.info("학생증 업로드 완료: bucket={}, key={}", props.getStudentCardBucket(), key);
+        return key;
+    }
+
+    // 퍼블릭 버킷 공통 업로드 (URL 반환)
+    private String upload(MultipartFile file, String dir) throws IOException {
+        String key = dir + "/" + UUID.randomUUID() + extractExt(file);
+
+        s3Client.putObject(
+                PutObjectRequest.builder()
+                        .bucket(props.getBucket())
+                        .key(key)
+                        .contentType(file.getContentType())
+                        .build(),
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+        );
+
+        log.info("파일 업로드 완료: bucket={}, key={}", props.getBucket(), key);
         return props.getBaseUrl() + "/" + key;
+    }
+
+    // 파일 확장자 추출
+    private String extractExt(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name != null && name.contains(".")) {
+            return name.substring(name.lastIndexOf("."));
+        }
+        return "";
     }
 }

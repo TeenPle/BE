@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class FileStorageProperties {
 
     private String bucket;
+    private String studentCardBucket;
     private String studentCardDir;
     private String baseUrl;
     private String chatDir;
