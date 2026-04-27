@@ -256,6 +256,46 @@ public class AuthService {
         return new NicknameCheckResponseDTO(exists);
     }
 
+    // 이메일 찾기 (이름 + 휴대폰 번호 → 마스킹된 이메일)
+    @Transactional(readOnly = true)
+    public FindEmailResponseDTO findEmail(FindEmailRequestDTO request) {
+        String normalizedPhone = normalizePhoneNumber(request.getPhoneNumber());
+        User user = userRepository.findByUsernameAndPhoneNumber(request.getUsername(), normalizedPhone)
+                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        return new FindEmailResponseDTO(maskEmail(user.getEmail()));
+    }
+
+    // 비밀번호 찾기 - 이메일 존재 확인 후 인증코드 발송
+    @Transactional(readOnly = true)
+    public void sendPasswordResetCode(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw new UserException(UserErrorStatus.EMAIL_NOT_FOUND);
+        }
+        smsVerificationService.sendPasswordResetCode(email);
+    }
+
+    // 비밀번호 재설정 - 인증 토큰 검증 후 비밀번호 변경
+    public void resetPassword(ResetPasswordRequestDTO request) {
+        String email = smsVerificationService.consumeTokenAndGetEmail(request.getVerificationToken());
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new UserException(UserErrorStatus.SAME_PASSWORD);
+        }
+
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
+    private String maskEmail(String email) {
+        int atIdx = email.indexOf('@');
+        if (atIdx <= 2) return email;
+        String local = email.substring(0, atIdx);
+        String domain = email.substring(atIdx);
+        return local.substring(0, 2) + "*".repeat(local.length() - 2) + domain;
+    }
+
     // =================== private ===================
 
     private LoginResponseDTO buildLoginResponse(User user) {

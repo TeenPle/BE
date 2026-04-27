@@ -22,12 +22,22 @@ public class VerificationService {
 
 
     /**
-     * 이메일로 코드를 발생하는 함수
+     * 이메일로 코드를 발생하는 함수 (회원가입용)
      */
     public String sendCode(String target) {
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
         codeStore.save(target, code);
         provider.send(target, code);
+        return code;
+    }
+
+    /**
+     * 비밀번호 재설정용 인증번호 발송
+     */
+    public String sendPasswordResetCode(String target) {
+        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
+        codeStore.save(target, code);
+        provider.sendPasswordReset(target, code);
         return code;
     }
 
@@ -46,6 +56,18 @@ public class VerificationService {
         tokenStore.save(token, target);
 
         return token;
+    }
+
+    /**
+     * 비밀번호 재설정용 - 토큰을 소비하고 연결된 이메일 반환
+     */
+    public String consumeTokenAndGetEmail(String token) {
+        String email = tokenStore.get(token);
+        if (email == null) {
+            throw new UserException(UserErrorStatus.VERIFICATION_TOKEN_INVALID_OR_EXPIRED);
+        }
+        tokenStore.consume(token);
+        return email;
     }
 
     /**

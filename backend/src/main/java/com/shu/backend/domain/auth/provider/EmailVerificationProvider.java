@@ -26,20 +26,30 @@ public class EmailVerificationProvider implements VerificationMessageProvider {
     @Value("${mail.from}")
     private String from;
 
-    // 인증번호 HTML 이메일 발송
+    // 회원가입 인증번호 이메일 발송
     @Override
     public void send(String email, String code) {
+        sendEmail(email, code, "email/verification-code", "[Teenple] 이메일 인증번호 안내");
+    }
+
+    // 비밀번호 재설정 인증번호 이메일 발송
+    @Override
+    public void sendPasswordReset(String email, String code) {
+        sendEmail(email, code, "email/password-reset-code", "[Teenple] 비밀번호 재설정 인증번호 안내");
+    }
+
+    private void sendEmail(String email, String code, String template, String subject) {
         try {
             Context context = new Context();
             context.setVariable("code", code);
 
-            String htmlContent = templateEngine.process("email/verification-code", context);
+            String htmlContent = templateEngine.process(template, context);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(from);
             helper.setTo(email);
-            helper.setSubject("[Teenple] 이메일 인증번호 안내");
+            helper.setSubject(subject);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
