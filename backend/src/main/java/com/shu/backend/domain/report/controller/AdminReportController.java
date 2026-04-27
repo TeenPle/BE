@@ -8,6 +8,8 @@ import com.shu.backend.domain.report.enums.ReportStatus;
 import com.shu.backend.domain.report.exception.status.ReportSuccessStatus;
 import com.shu.backend.domain.report.service.ReportService;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.domain.warning.dto.WarningDTO;
+import com.shu.backend.domain.warning.service.WarningService;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminReportController {
 
     private final ReportService reportService;
+    private final WarningService warningService;
 
     @Operation(
             summary = "신고 목록 조회",
@@ -47,6 +50,19 @@ public class AdminReportController {
                 ReportSuccessStatus.REPORT_LIST_SUCCESS,
                 reports.map(ReportSummaryResponse::from));
 
+    }
+
+    @Operation(
+            summary = "신고 상세 조회",
+            description = "신고된 게시글/댓글 내용, 신고자/피신고자 닉네임 포함 상세 정보를 반환합니다."
+    )
+    @GetMapping("/{reportId}")
+    public ApiResponse<ReportSummaryResponse.DetailResponse> getReportDetail(
+            @PathVariable Long reportId
+    ) {
+        return ApiResponse.of(
+                ReportSuccessStatus.REPORT_LIST_SUCCESS,
+                reportService.getReportDetail(reportId));
     }
 
     @Operation(
@@ -77,9 +93,20 @@ public class AdminReportController {
             @PathVariable Long reportId
     ) {
         Long id = reportService.reject(admin.getId(), reportId);
-
         return ApiResponse.of(ReportSuccessStatus.REPORT_REJECT_SUCCESS, id);
     }
 
-
+    @Operation(
+            summary = "경고 발령",
+            description = "신고를 WARNED 처리하고 피신고자에게 경고를 발령합니다. 관리자 코멘트가 경고 팝업에 노출됩니다."
+    )
+    @PostMapping("/{reportId}/warn")
+    public ApiResponse<Long> warnReport(
+            @AuthenticationPrincipal User admin,
+            @PathVariable Long reportId,
+            @Valid @RequestBody WarningDTO.IssueRequest req
+    ) {
+        Long warningId = warningService.issue(admin.getId(), reportId, req.getAdminComment());
+        return ApiResponse.onSuccess(warningId);
+    }
 }

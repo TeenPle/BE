@@ -16,4 +16,6 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
     Page<Penalty> findAllByUserId(Long userId, Pageable pageable);
 
     boolean existsByUserIdAndExpiresAtAfter(Long userId, LocalDateTime now);
+
+    Page<Penalty> findAll(Pageable pageable);
 }

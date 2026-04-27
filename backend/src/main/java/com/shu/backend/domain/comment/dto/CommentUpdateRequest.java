@@ -8,4 +8,6 @@ public class CommentUpdateRequest {
 
     @NotBlank
     private String content;
+
+    private boolean anonymous;
 }

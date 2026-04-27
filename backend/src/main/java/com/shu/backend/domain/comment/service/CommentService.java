@@ -187,7 +187,7 @@ public class CommentService {
             throw new CommentException(CommentErrorStatus.COMMENT_FORBIDDEN);
         }
 
-        comment.updateContent(req.getContent());
+        comment.update(req.getContent(), req.isAnonymous());
 
         return commentId;
     }

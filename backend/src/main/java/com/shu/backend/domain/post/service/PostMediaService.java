@@ -78,7 +78,7 @@ public class PostMediaService {
         if (filename != null) {
             String lower = filename.toLowerCase();
             if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
-                lower.endsWith(".png") || lower.endsWith(".gif") || lower.endsWith(".webp")) {
+                    lower.endsWith(".png") || lower.endsWith(".gif") || lower.endsWith(".webp")) {
                 return MediaType.IMAGE;
             }
             if (lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".avi")) {

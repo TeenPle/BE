@@ -144,4 +144,3 @@ cloud:
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
     region:
       static: ${AWS_REGION:ap-northeast-2}
-

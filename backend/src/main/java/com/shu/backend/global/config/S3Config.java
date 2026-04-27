@@ -31,6 +31,9 @@ public class S3Config {
         AwsBasicCredentials credentials =
                 AwsBasicCredentials.create(accessKey, secretKey);
 
+        System.out.println("cloud.aws.region.static = " + region);
+        System.out.println("cloud.aws.credentials.access-key startsWith = " + accessKey.substring(0, 4));
+
         return S3Client.builder()
                 .region(Region.AP_NORTHEAST_2)
                 .endpointOverride(

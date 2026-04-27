@@ -4,13 +4,12 @@ import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
+import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,50 +18,80 @@ import java.util.stream.Collectors;
 public class CommentQueryService {
 
     private final CommentRepository commentRepository;
+    private final ReactionRepository reactionRepository;
 
-    /// 게시글 상세용 댓글 목록 조회 (부모 댓글 + 대댓글 포함)
     public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId) {
-        // 1. 부모 댓글 먼저 조회
         List<Comment> parents = commentRepository.findParentsForPostDetail(postId);
 
         if (parents.isEmpty()) {
             return List.of();
         }
 
-        // 2. 부모 댓글 ID 목록 추출
-        List<Long> parentIds = parents.stream()
-                .map(Comment::getId)
-                .toList();
-
-        // 3. 대댓글 한 번에 조회
+        List<Long> parentIds = parents.stream().map(Comment::getId).toList();
         List<Comment> children = commentRepository.findChildrenByParentIds(parentIds);
 
-        // 4. 부모 ID 기준으로 대댓글 그룹핑
         Map<Long, List<Comment>> childrenMap = children.stream()
                 .collect(Collectors.groupingBy(comment -> comment.getParent().getId()));
 
-        // 5. 부모 댓글 뒤에 대댓글이 이어지는 평면 리스트 구성
-        List<CommentResponse> result = new ArrayList<>();
+        // Collect all visible comments for batch reaction lookup and anonymous numbering
+        List<Comment> allVisible = new ArrayList<>();
+        Map<Long, List<Comment>> parentToVisibleReplies = new LinkedHashMap<>();
 
         for (Comment parent : parents) {
             List<Comment> allReplies = childrenMap.getOrDefault(parent.getId(), List.of());
-
-            // 삭제된 대댓글은 항상 숨김 (대댓글은 자식이 없으므로)
             List<Comment> visibleReplies = allReplies.stream()
                     .filter(r -> r.getCommentStatus() != CommentStatus.DELETED)
                     .toList();
 
-            // 삭제된 부모댓글이고 보여줄 대댓글도 없으면 완전히 제외
             if (parent.getCommentStatus() == CommentStatus.DELETED && visibleReplies.isEmpty()) {
                 continue;
             }
 
-            result.add(CommentResponse.toDto(parent, currentUserId));
+            allVisible.add(parent);
+            allVisible.addAll(visibleReplies);
+            parentToVisibleReplies.put(parent.getId(), visibleReplies);
+        }
+
+        // Batch fetch liked comment IDs for current user
+        Set<Long> likedCommentIds = Set.of();
+        if (currentUserId != null && !allVisible.isEmpty()) {
+            List<Long> allCommentIds = allVisible.stream().map(Comment::getId).toList();
+            likedCommentIds = reactionRepository.findLikedCommentIds(currentUserId, allCommentIds);
+        }
+
+        // Build anonymous numbering: same user gets same number within this post
+        // Post author (if anonymous) gets number 0 treated as special — here we just assign sequential numbers
+        Map<Long, Integer> userAnonNumberMap = new LinkedHashMap<>();
+
+        // Flatten in display order to assign numbers in order of first appearance
+        for (Comment c : allVisible) {
+            if (c.getAnonymous() && c.getUser() != null) {
+                userAnonNumberMap.computeIfAbsent(c.getUser().getId(), k -> userAnonNumberMap.size() + 1);
+            }
+        }
+
+        // Build final response list
+        List<CommentResponse> result = new ArrayList<>();
+
+        for (Comment parent : parents) {
+            List<Comment> visibleReplies = parentToVisibleReplies.get(parent.getId());
+            if (visibleReplies == null) continue; // was excluded above
+
+            result.add(toDto(parent, currentUserId, likedCommentIds, userAnonNumberMap));
             for (Comment reply : visibleReplies) {
-                result.add(CommentResponse.toDto(reply, currentUserId));
+                result.add(toDto(reply, currentUserId, likedCommentIds, userAnonNumberMap));
             }
         }
 
         return result;
+    }
+
+    private CommentResponse toDto(Comment comment, Long currentUserId, Set<Long> likedCommentIds, Map<Long, Integer> userAnonNumberMap) {
+        boolean likedByMe = likedCommentIds.contains(comment.getId());
+        int anonNumber = 0;
+        if (comment.getAnonymous() && comment.getUser() != null) {
+            anonNumber = userAnonNumberMap.getOrDefault(comment.getUser().getId(), 0);
+        }
+        return CommentResponse.toDto(comment, currentUserId, likedByMe, anonNumber);
     }
 }

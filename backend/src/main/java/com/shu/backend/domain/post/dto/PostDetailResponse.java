@@ -38,7 +38,7 @@ public class PostDetailResponse {
                 .likeCount(post.getLikeCount())
                 .dislikeCount(post.getDislikeCount())
                 .postStatus(post.getPostStatus().name())
-                .username(post.getUser().getUsername())
+                .username(post.getUser().getNickname())
                 .comments(comments)
                 .mediaList(mediaList)
                 .build();

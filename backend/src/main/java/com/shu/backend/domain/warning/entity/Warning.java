@@ -1,14 +1,10 @@
-package com.shu.backend.domain.penalty.entity;
+package com.shu.backend.domain.warning.entity;
 
-import com.shu.backend.domain.penalty.enums.PenaltyStatus;
 import com.shu.backend.domain.report.entity.Report;
-import com.shu.backend.domain.report.enums.ReportReason;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -16,27 +12,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "penalty",
+        name = "warning",
         indexes = {
-                @Index(name = "idx_penalty_user_expires", columnList = "user_id,expires_at")
+                @Index(name = "idx_warning_user_read", columnList = "user_id,is_read")
         }
 )
-public class Penalty extends BaseEntity {
+public class Warning extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ReportReason reason;
-
-    @Column(nullable = false)
-    private LocalDateTime expiresAt;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private PenaltyStatus status = PenaltyStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -45,4 +30,15 @@ public class Penalty extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_id", nullable = false)
     private Report report;
+
+    @Column(length = 500)
+    private String adminComment;
+
+    @Builder.Default
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
+
+    public void markAsRead() {
+        this.isRead = true;
+    }
 }

@@ -2,14 +2,12 @@ package com.shu.backend.domain.penalty.service;
 
 import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.entity.Penalty;
+import com.shu.backend.domain.penalty.enums.PenaltyStatus;
 import com.shu.backend.domain.penalty.repository.PenaltyRepository;
 import com.shu.backend.domain.report.entity.Report;
 import com.shu.backend.domain.report.exception.ReportException;
 import com.shu.backend.domain.report.exception.status.ReportErrorStatus;
 import com.shu.backend.domain.report.repository.ReportRepository;
-import com.shu.backend.domain.user.entity.User;
-import com.shu.backend.domain.user.exception.UserException;
-import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,15 +15,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PenaltyService {
 
+    private static final DateTimeFormatter ISO_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
     private final PenaltyRepository penaltyRepository;
     private final ReportRepository reportRepository;
 
+    @Transactional
     public Long create(Long reportId, int penaltyDays){
 
         Report report = reportRepository.findById(reportId)
@@ -41,6 +44,7 @@ public class PenaltyService {
                 .report(report)
                 .user(report.getReportedUser())
                 .reason(report.getReportReason())
+                .status(PenaltyStatus.ACTIVE)
                 .expiresAt(expiresAt)
                 .build();
 
@@ -51,22 +55,23 @@ public class PenaltyService {
         return penaltyRepository.findTop1ByUserIdAndExpiresAtAfterOrderByExpiresAtDesc(myId, LocalDateTime.now())
                 .map(p -> PenaltyDTO.MyActiveResponse.builder()
                         .penalized(true)
-                        .expiresAt(p.getExpiresAt())
+                        .expiresAt(p.getExpiresAt().format(ISO_FMT))
                         .reason(p.getReason().name())
                         .reportId(p.getReport().getId())
                         .build())
                 .orElseGet(() -> PenaltyDTO.MyActiveResponse.builder()
                         .penalized(false)
-                        .expiresAt(null)
-                        .reason(null)
-                        .reportId(null)
                         .build());
     }
 
 
-    //유저별 제재 이력 ㅎ조회
     public Page<PenaltyDTO.SummaryResponse> getPenaltiesByUser(Long userId, Pageable pageable) {
         return penaltyRepository.findAllByUserId(userId, pageable)
+                .map(PenaltyDTO.SummaryResponse::from);
+    }
+
+    public Page<PenaltyDTO.SummaryResponse> getAllPenalties(Pageable pageable) {
+        return penaltyRepository.findAll(pageable)
                 .map(PenaltyDTO.SummaryResponse::from);
     }
 

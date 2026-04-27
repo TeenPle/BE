@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -146,6 +147,19 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         //    return super.handleMissingPathVariable(ex, headers, status, request);
         return handleExceptionInternalFalse(
                 ex, ErrorStatus._BAD_REQUEST, headers, HttpStatus.BAD_REQUEST, request, message);
+    }
+
+    // 제재된 사용자 접근 거부 (403)
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<Object> authorizationDenied(AuthorizationDeniedException e, WebRequest request) {
+        return handleExceptionInternalFalse(
+                e,
+                ErrorStatus._FORBIDDEN,
+                HttpHeaders.EMPTY,
+                HttpStatus.FORBIDDEN,
+                request,
+                "제재 중으로 해당 기능을 사용할 수 없습니다."
+        );
     }
 
     //위에서 처리하지 않은 모든 예외 (서버 에러)
