@@ -49,6 +49,18 @@ public class VerificationService {
     }
 
     /**
+     * 토큰을 소비하고 연결된 이메일 반환 (비밀번호 재설정용)
+     */
+    public String consumeToken(String token) {
+        String email = tokenStore.get(token);
+        if (email == null) {
+            throw new UserException(UserErrorStatus.VERIFICATION_TOKEN_INVALID_OR_EXPIRED);
+        }
+        tokenStore.consume(token);
+        return email;
+    }
+
+    /**
      * 인증을 거치지 않을경우 예외를 발생
      */
     public void verifyTokenOrThrow(String token, String target) {

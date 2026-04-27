@@ -28,6 +28,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByRole(UserRole role);
 
+    Optional<User> findByPhoneNumber(String phoneNumber);
+
     @Query("""
     select u from User u
     join fetch u.school s

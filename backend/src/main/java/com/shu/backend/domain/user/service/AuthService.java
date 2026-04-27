@@ -256,6 +256,43 @@ public class AuthService {
         return new NicknameCheckResponseDTO(exists);
     }
 
+    // 아이디(이메일) 찾기
+    @Transactional(readOnly = true)
+    public FindEmailResponseDTO findEmail(String username, String phoneNumber) {
+        String normalized = normalizePhoneNumber(phoneNumber);
+        User user = userRepository.findByPhoneNumber(normalized)
+                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+
+        if (!user.getUsername().equals(username)) {
+            throw new UserException(UserErrorStatus.USER_NOT_FOUND);
+        }
+
+        return new FindEmailResponseDTO(maskEmail(user.getEmail()));
+    }
+
+    // 비밀번호 재설정 인증번호 발송
+    public void sendPasswordResetCode(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw new UserException(UserErrorStatus.EMAIL_NOT_FOUND);
+        }
+        smsVerificationService.sendCode(email);
+    }
+
+    // 비밀번호 재설정
+    @Transactional
+    public void resetPassword(String verificationToken, String newPassword) {
+        String email = smsVerificationService.consumeToken(verificationToken);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new UserException(UserErrorStatus.SAME_PASSWORD);
+        }
+
+        user.updatePassword(passwordEncoder.encode(newPassword));
+    }
+
     // =================== private ===================
 
     private LoginResponseDTO buildLoginResponse(User user) {
@@ -280,5 +317,13 @@ public class AuthService {
 
     private String normalizePhoneNumber(String phoneNumber) {
         return phoneNumber.replaceAll("[^0-9]", "");
+    }
+
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 2) return email;
+        String local = email.substring(0, atIndex);
+        String domain = email.substring(atIndex);
+        return local.substring(0, 2) + "*".repeat(local.length() - 2) + domain;
     }
 }

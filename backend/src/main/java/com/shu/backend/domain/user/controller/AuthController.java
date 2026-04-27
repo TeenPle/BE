@@ -193,5 +193,46 @@ public class AuthController {
     ) {
         return ApiResponse.onSuccess(authService.checkNicknameExists(nickname));
     }
+
+    // =================== 아이디 찾기 ===================
+    @Operation(
+            summary = "아이디(이메일) 찾기",
+            description = "이름과 전화번호로 가입된 이메일(마스킹)을 반환합니다."
+    )
+    @PostMapping("/find-email")
+    public ApiResponse<FindEmailResponseDTO> findEmail(
+            @RequestBody @Valid UserRequestDTO.FindEmail request
+    ) {
+        return ApiResponse.of(
+                UserSuccessStatus.USER_FIND_EMAIL_SUCCESS,
+                authService.findEmail(request.getUsername(), request.getPhoneNumber())
+        );
+    }
+
+    // =================== 비밀번호 재설정 인증번호 발송 ===================
+    @Operation(
+            summary = "비밀번호 재설정 인증번호 발송",
+            description = "입력한 이메일이 가입된 경우 인증번호를 발송합니다."
+    )
+    @PostMapping("/password/send-code")
+    public ApiResponse<Void> sendPasswordResetCode(
+            @RequestBody @Valid UserRequestDTO.PasswordSendCode request
+    ) {
+        authService.sendPasswordResetCode(request.getEmail());
+        return ApiResponse.of(UserSuccessStatus.USER_PASSWORD_RESET_CODE_SENT, null);
+    }
+
+    // =================== 비밀번호 재설정 ===================
+    @Operation(
+            summary = "비밀번호 재설정",
+            description = "이메일 인증 토큰과 새 비밀번호로 비밀번호를 재설정합니다."
+    )
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(
+            @RequestBody @Valid UserRequestDTO.ResetPassword request
+    ) {
+        authService.resetPassword(request.getVerificationToken(), request.getNewPassword());
+        return ApiResponse.of(UserSuccessStatus.USER_PASSWORD_RESET_SUCCESS, null);
+    }
 }
 
