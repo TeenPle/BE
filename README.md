@@ -3,7 +3,11 @@
 고등학생이 자신의 학교를 인증하고 참여할 수 있는  
 **학교 전용 익명 커뮤니티 TeenPle**(Teenage Place)의 **백엔드 레포지토리**입니다.
 
-본 저장소는 인증, 게시판, 채팅, 통계 등 SHU의 핵심 서버 기능을 담당합니다.
+본 저장소는 인증, 게시판, 채팅, 통계 등 TeenPle의 핵심 서버 기능을 담당합니다.
+
+<div align="center">
+  <img width="380" alt="TeenPle Poster" src="https://github.com/user-attachments/assets/32a46079-7c57-42dc-83c8-bef7ee8c14ad" />
+</div>
 
 ---
 
@@ -34,7 +38,7 @@
 
 ### Database
 
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Amazon Aurora](https://img.shields.io/badge/Amazon%20Aurora-527FFF?style=for-the-badge&logo=amazonaws&logoColor=white)
 ![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white)
 
 ### Infrastructure & CI/CD
@@ -171,7 +175,7 @@ backend
 ### 3️⃣ Body Rule
 
 - 한 줄 **72자 이하**
-- “무엇을, 왜 변경했는지” 중심
+- "무엇을, 왜 변경했는지" 중심
 - 양은 자유롭게 작성
 - 선택이지만 가급적 작성 권장
 
@@ -192,12 +196,14 @@ backend
 
 #### 예시
 
+```
 Feat: Add user signup feature
 
-회원가입 기능 구현  
+회원가입 기능 구현
 JWT 기반 인증 구조 초안 작성
 
 Resolves: #12
+```
 
 ---
 
@@ -205,25 +211,16 @@ Resolves: #12
 
 <table>
   <tr>
-    <!-- 홍왕기 -->
     <td align="center" width="200">
       <a href="https://github.com/hongwangki">
         <img src="./assets/team/develop.png" width="150">
         <br><b>홍왕기</b>
       </a>
     </td>
-    <!-- 강현민 -->
     <td align="center" width="200">
       <a href="https://github.com/rkddk7165">
         <img src="./assets/team/develop2.png" width="150">
         <br><b>강현민</b>
-      </a>
-    </td>
-    <!-- 이승복 -->
-    <td align="center" width="200">
-      <a href="https://github.com/lsb530">
-        <img src="./assets/team/develop1.png" width="150">
-        <br><b>이승복</b>
       </a>
     </td>
   </tr>
