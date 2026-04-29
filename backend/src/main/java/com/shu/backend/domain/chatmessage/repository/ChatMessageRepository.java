@@ -12,4 +12,10 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @EntityGraph(attributePaths = "sender")
     List<ChatMessage> findTop50ByChatRoomIdAndIdLessThanOrderByIdDesc(Long roomId, Long lastId);
+
+    // 미읽음 개수 계산: lastReadId 이후 메시지 수
+    long countByChatRoomIdAndIdGreaterThanAndSenderIdNot(Long chatRoomId, Long id, Long senderId);
+
+    // 한 번도 읽지 않은 경우: 룸 전체 상대방 메시지 수
+    long countByChatRoomIdAndSenderIdNot(Long chatRoomId, Long senderId);
 }

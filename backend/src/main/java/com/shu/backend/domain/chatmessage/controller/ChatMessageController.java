@@ -3,6 +3,7 @@ package com.shu.backend.domain.chatmessage.controller;
 import com.shu.backend.domain.chatmessage.dto.ChatMessageDTO;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageSuccessStatus;
 import com.shu.backend.domain.chatmessage.service.ChatMessageService;
+import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +22,7 @@ public class ChatMessageController {
     private final ChatMessageService chatMessageService;
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatRoomRepository chatRoomRepository;
 
     // =================== 채팅방 메시지 조회 (입장 시) ===================
     @Operation(
@@ -58,6 +60,19 @@ public class ChatMessageController {
             @RequestBody @Valid ChatMessageDTO.ReadRequest request
     ) {
         chatMessageService.read(user.getId(), roomId, request.getMessageId());
+
+        // 읽음 처리 후 상대방에게 실시간 알림 (카카오톡 "1" 사라지게)
+        messagingTemplate.convertAndSend(
+                "/sub/chat/rooms/" + roomId,
+                ApiResponse.of(ChatMessageSuccessStatus.CHAT_MESSAGE_READ_SUCCESS,
+                        ChatMessageDTO.ReadReceiptBroadcast.builder()
+                                .type("READ_RECEIPT")
+                                .readerId(user.getId())
+                                .lastReadMessageId(request.getMessageId())
+                                .build())
+        );
+        publishRoomUpdated(user.getId(), roomId);
+
         return ApiResponse.of(ChatMessageSuccessStatus.CHAT_MESSAGE_READ_SUCCESS, "OK");
     }
 
@@ -95,8 +110,28 @@ public class ChatMessageController {
                 "/sub/chat/rooms/" + roomId,
                 ApiResponse.of(ChatMessageSuccessStatus.CHAT_MESSAGE_SEND_SUCCESS, result)
         );
+        publishRoomUpdatedToParticipants(roomId);
 
         return ApiResponse.of(ChatMessageSuccessStatus.CHAT_MESSAGE_SEND_SUCCESS, result);
     }
-}
 
+    private void publishRoomUpdatedToParticipants(Long roomId) {
+        chatRoomRepository.findById(roomId).ifPresent(room -> {
+            publishRoomUpdated(room.getUser1Id(), room.getId());
+            publishRoomUpdated(room.getUser2Id(), room.getId());
+        });
+    }
+
+    private void publishRoomUpdated(Long userId, Long roomId) {
+        // 목록 갱신 이벤트만 보내고 실제 목록 데이터는 기존 REST API로 다시 가져온다.
+        // 이벤트 payload 부분 업데이트보다 정렬/미읽음 수 불일치 위험이 낮아 배포 환경에 더 안정적이다.
+        messagingTemplate.convertAndSend(
+                "/sub/chat/users/" + userId + "/rooms",
+                ApiResponse.of(ChatMessageSuccessStatus.CHAT_MESSAGE_SEND_SUCCESS,
+                        ChatMessageDTO.RoomUpdatedBroadcast.builder()
+                                .type("ROOM_UPDATED")
+                                .roomId(roomId)
+                                .build())
+        );
+    }
+}

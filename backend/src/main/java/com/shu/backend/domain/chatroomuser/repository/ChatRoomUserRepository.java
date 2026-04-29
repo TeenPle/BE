@@ -9,6 +9,6 @@ import java.util.Optional;
 public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long> {
     Optional<ChatRoomUser> findByChatRoomIdAndUserId(Long chatRoomId, Long userId);
 
-    // 내 방 목록 (숨김X, 차단X)
-    List<ChatRoomUser> findByUserIdAndHiddenFalseAndBlockedAtIsNull(Long userId);
+    // 내 방 목록 (숨김X). 차단한 방도 목록에 남겨 입력 비활성화/차단 해제를 제공한다.
+    List<ChatRoomUser> findByUserIdAndHiddenFalse(Long userId);
 }

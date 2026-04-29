@@ -14,7 +14,7 @@ public enum ChatMessageErrorStatus implements BaseErrorCode {
     //예시
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "CHATMSG4001", "채팅방을 찾을 수 없습니다."),
     NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "CHATMSG4002", "채팅방 참여자가 아닙니다."),
-    CHAT_BLOCKED(HttpStatus.FORBIDDEN, "CHATMSG4003", "차단 상태에서는 채팅할 수 없습니다."),
+    CHAT_BLOCKED(HttpStatus.FORBIDDEN, "CHATMSG4003", "차단된 채팅방에서는 메시지를 보낼 수 없습니다."),
     INVALID_MESSAGE_TYPE(HttpStatus.BAD_REQUEST, "CHATMSG4004", "유효하지 않은 메시지 타입입니다."),
     IMAGE_URL_REQUIRED(HttpStatus.BAD_REQUEST, "CHATMSG4005", "이미지 메시지에는 imageUrl이 필요합니다."),
 

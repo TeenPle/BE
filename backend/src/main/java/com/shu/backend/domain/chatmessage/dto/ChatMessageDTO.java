@@ -59,6 +59,39 @@ public class ChatMessageDTO {
     public static class MessageListResponse {
         private Long roomId;
         private List<MessageResponse> messages;
+        // 상대방이 마지막으로 읽은 메시지 ID (카카오톡 "1" 표시 기준)
+        private Long otherLastReadMessageId;
+        // 내가 차단했거나 상대가 나를 차단한 상태면 입력창을 잠근다.
+        private boolean blocked;
+        private boolean blockedByMe;
+        private boolean blockedByOther;
+    }
+
+    // =================== 읽음 영수증 (STOMP 브로드캐스트용) ===================
+    @Getter
+    @Builder
+    public static class ReadReceiptBroadcast {
+        private String type; // "READ_RECEIPT" 고정
+        private Long readerId;
+        private Long lastReadMessageId;
+    }
+
+    // =================== 전송 실패 알림 (STOMP 브로드캐스트용) ===================
+    @Getter
+    @Builder
+    public static class SendErrorBroadcast {
+        private String type; // "SEND_ERROR" 고정
+        private Long senderId;
+        private String code;
+        private String message;
+    }
+
+    // =================== 채팅방 목록 갱신 알림 (STOMP 브로드캐스트용) ===================
+    @Getter
+    @Builder
+    public static class RoomUpdatedBroadcast {
+        private String type; // "ROOM_UPDATED" 고정
+        private Long roomId;
     }
 
     // =================== 읽음 처리 ===================
