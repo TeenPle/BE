@@ -12,4 +12,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @EntityGraph(attributePaths = "sender")
     List<ChatMessage> findTop50ByChatRoomIdAndIdLessThanOrderByIdDesc(Long roomId, Long lastId);
+
+    long countByChatRoomId(Long chatRoomId);
+
+    long countByChatRoomIdAndIdGreaterThan(Long chatRoomId, Long lastMessageId);
 }

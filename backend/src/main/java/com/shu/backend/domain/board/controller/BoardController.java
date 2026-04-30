@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +27,8 @@ public class BoardController {
             summary = "게시판 생성",
             description = "관리자 권한으로 게시판을 생성할 수 있습니다."
     )
-    @PostMapping(value = "/admin/boards", consumes = "application/json", produces = "application/json")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/api/admin/boards", consumes = "application/json", produces = "application/json")
     public ApiResponse<Long> createBoard(
             @Valid @RequestBody BoardCreateRequest request) {
 

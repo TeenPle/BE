@@ -96,6 +96,28 @@ public class S3FileStorageService implements FileStorageService {
         return url;
     }
 
+    // 퍼블릭 버킷 파일 삭제 (프로필 이미지, 게시글 미디어 등)
+    @Override
+    public void deletePublicFile(String url) {
+        if (url == null || url.isBlank()) return;
+        String key = extractKeyFromUrl(url);
+        if (key == null) {
+            log.warn("퍼블릭 파일 삭제 생략 — key 추출 실패: url={}", url);
+            return;
+        }
+        try {
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(props.getBucket())
+                            .key(key)
+                            .build()
+            );
+            log.info("퍼블릭 S3 파일 삭제 완료: key={}", key);
+        } catch (Exception e) {
+            log.warn("퍼블릭 S3 파일 삭제 실패 (무시): key={}, err={}", key, e.getMessage());
+        }
+    }
+
     // 학생증 이미지 삭제 (프라이빗 버킷)
     @Override
     public void deleteStudentCardImage(String key) {
@@ -129,7 +151,7 @@ public class S3FileStorageService implements FileStorageService {
         return key;
     }
 
-    // 퍼블릭 버킷 공통 업로드 (URL 반환)
+    // 퍼블릭 버킷 공통 업로드 (S3 public URL 반환)
     private String upload(MultipartFile file, String dir) throws IOException {
         String key = dir + "/" + UUID.randomUUID() + extractExt(file);
 
@@ -142,8 +164,16 @@ public class S3FileStorageService implements FileStorageService {
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
 
-        log.info("파일 업로드 완료: bucket={}, key={}", props.getBucket(), key);
-        return props.getBaseUrl() + "/" + key;
+        String url = String.format("https://%s.s3.%s.amazonaws.com/%s", props.getBucket(), props.getRegion(), key);
+        log.info("파일 업로드 완료: bucket={}, key={}, url={}", props.getBucket(), key, url);
+        return url;
+    }
+
+    // S3 URL에서 오브젝트 key 추출 (https://{bucket}.s3.{region}.amazonaws.com/{key})
+    private String extractKeyFromUrl(String url) {
+        int idx = url.indexOf(".amazonaws.com/");
+        if (idx < 0) return null;
+        return url.substring(idx + ".amazonaws.com/".length());
     }
 
     // 파일 확장자 추출

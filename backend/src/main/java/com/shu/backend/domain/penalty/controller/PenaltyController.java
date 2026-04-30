@@ -3,6 +3,7 @@ package com.shu.backend.domain.penalty.controller;
 import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.service.PenaltyService;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +33,8 @@ public class PenaltyController {
             description = "현재 로그인한 사용자가 제재 중인지(만료 전) 여부와 만료 시각을 조회합니다."
     )
     @GetMapping("/me")
-    public PenaltyDTO.MyActiveResponse myActive(@AuthenticationPrincipal User user) {
-        return penaltyService.getMyActivePenalty(user.getId());
+    public ApiResponse<PenaltyDTO.MyActiveResponse> myActive(@AuthenticationPrincipal User user) {
+        return ApiResponse.onSuccess(penaltyService.getMyActivePenalty(user.getId()));
     }
 
     @Operation(
@@ -41,12 +42,12 @@ public class PenaltyController {
             description = "현재 로그인한 사용자의 제재 이력을 페이지 단위로 조회합니다. (설정 화면용)"
     )
     @GetMapping("/me/history")
-    public Page<PenaltyDTO.SummaryResponse> myHistory(
+    public ApiResponse<Page<PenaltyDTO.SummaryResponse>> myHistory(
             @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return penaltyService.getPenaltiesByUser(user.getId(), pageable);
+        return ApiResponse.onSuccess(penaltyService.getPenaltiesByUser(user.getId(), pageable));
     }
 }

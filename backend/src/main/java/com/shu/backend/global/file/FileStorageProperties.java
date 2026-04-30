@@ -17,4 +17,5 @@ public class FileStorageProperties {
     private String baseUrl;
     private String chatDir;
     private String postDir;
+    private String region;
 }

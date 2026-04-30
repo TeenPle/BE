@@ -10,34 +10,32 @@ import lombok.Getter;
 @Builder
 public class CommentResponse {
 
-    private Long commentId;      // 댓글 ID
+    private Long commentId;
     @JsonProperty("isMine")
-    private boolean isMine;      // 내 댓글 여부
-    private String commentStatus; // 댓글 상태 (ACTIVE, DELETED, HIDDEN)
-    private String content;      // 댓글 내용
-    private String author;       // 작성자 이름
-    private int likeCount;       // 좋아요 수
-    private int dislikeCount;    // 싫어요 수
-    private boolean anonymous;   // 익명 여부
-    private int depth;           // 대댓글 깊이
-    private Long parentId;       // 부모 댓글 ID (대댓글일 경우)
+    private boolean isMine;
+    private String commentStatus;
+    private String content;
+    private String author;
+    private int likeCount;
+    private int dislikeCount;
+    @JsonProperty("likedByMe")
+    private boolean likedByMe;
+    private boolean anonymous;
+    private int depth;
+    private Long parentId;
 
-    // Comment 엔티티를 CommentResponse로 변환
-    public static CommentResponse toDto(Comment comment, Long currentUserId) {
-
+    public static CommentResponse toDto(Comment comment, Long currentUserId, boolean likedByMe, int anonymousNumber) {
         String content;
         String author;
 
-        //댓글 상태 처리
         switch (comment.getCommentStatus()) {
             case DELETED -> content = "삭제된 댓글입니다.";
             case HIDDEN -> content = "블라인드 처리된 댓글입니다.";
             default -> content = comment.getContent();
         }
 
-        //익명 여부에 따른 author 반환
         if (comment.getAnonymous()) {
-            author = "익명";
+            author = anonymousNumber > 0 ? "익명" + anonymousNumber : "익명";
         } else if (comment.getUser() != null) {
             author = comment.getUser().getNickname();
         } else {
@@ -54,6 +52,7 @@ public class CommentResponse {
                 .author(author)
                 .likeCount(comment.getLikeCount())
                 .dislikeCount(comment.getDislikeCount())
+                .likedByMe(likedByMe)
                 .anonymous(comment.getAnonymous())
                 .depth(comment.getDepth())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)

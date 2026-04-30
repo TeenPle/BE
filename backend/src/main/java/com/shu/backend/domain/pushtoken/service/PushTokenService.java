@@ -1,7 +1,6 @@
 package com.shu.backend.domain.pushtoken.service;
 
 import com.shu.backend.domain.pushtoken.dto.PushTokenDTO;
-import com.shu.backend.domain.pushtoken.entity.PushToken;
 import com.shu.backend.domain.pushtoken.exception.PushTokenException;
 import com.shu.backend.domain.pushtoken.exception.status.PushTokenErrorStatus;
 import com.shu.backend.domain.pushtoken.repository.PushTokenRepository;
@@ -24,11 +23,9 @@ public class PushTokenService {
             throw new PushTokenException(PushTokenErrorStatus.INVALID_TOKEN);
         }
 
-        PushToken pt = pushTokenRepository.findByToken(token)
-                .orElseGet(() -> pushTokenRepository.save(PushToken.create(userId, token, req.getPlatform())));
-
-        // 이미 존재하는 토큰이면 소유자/플랫폼/활성 상태 갱신
-        pt.activate(userId, req.getPlatform());
+        // DB 레벨 upsert: 없으면 INSERT, 있으면 userId/platform/is_active 갱신
+        // 동시 요청으로 인한 race condition이 발생하지 않음
+        pushTokenRepository.upsert(userId, token, req.getPlatform().name());
 
         return new PushTokenDTO.RegisterResponse(true);
     }

@@ -10,6 +10,8 @@ import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.domain.user.exception.UserException;
+import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,8 +49,10 @@ public class ChatRoomService {
                     // 정규화된 두 사용자 기준으로 DM 방 생성
                     ChatRoom created = chatRoomRepository.save(ChatRoom.ofDm(u1, u2));
 
-                    User me = userRepository.getReferenceById(myId);
-                    User other = userRepository.getReferenceById(otherId);
+                    User me = userRepository.findById(myId)
+                            .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+                    User other = userRepository.findById(otherId)
+                            .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
                     // 최초 생성 시 양쪽 사용자 모두 숨김 상태로 참여 정보 생성
                     chatRoomUserRepository.save(ChatRoomUser.createHidden(created, me));
@@ -85,14 +89,18 @@ public class ChatRoomService {
             // 1:1 채팅 기준 상대방 ID 계산
             Long otherId = room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
 
-            // 마지막 메시지 미리보기(MVP 단계 문자열 처리)
-            String preview = (room.getLastMessageId() == null) ? "" : "(마지막 메시지)";
+            // 실제 마지막 메시지 미리보기
+            String preview = room.getLastMessagePreview() != null ? room.getLastMessagePreview() : "";
 
-            // 미읽음 여부 계산(MVP 단계 0/1 처리)
+            // 실제 미읽음 메시지 수 계산
             long unread = 0L;
             if (room.getLastMessageId() != null) {
                 Long lastRead = cru.getLastReadMessageId();
-                unread = (lastRead == null) ? 1L : (room.getLastMessageId() > lastRead ? 1L : 0L);
+                if (lastRead == null) {
+                    unread = chatMessageRepository.countByChatRoomId(room.getId());
+                } else if (room.getLastMessageId() > lastRead) {
+                    unread = chatMessageRepository.countByChatRoomIdAndIdGreaterThan(room.getId(), lastRead);
+                }
             }
 
             return ChatRoomDTO.RoomListItem.builder()

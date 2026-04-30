@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     Optional<Reaction> findByUserIdAndTargetTypeAndTargetId(Long userId, ReactionTargetType targetType, Long targetId);
@@ -22,4 +23,14 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
         order by r.id desc
     """)
     List<Long> findLikedPostIds(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        select r.targetId
+        from Reaction r
+        where r.userId = :userId
+          and r.targetType = com.shu.backend.domain.reaction.enums.ReactionTargetType.COMMENT
+          and r.targetId in :commentIds
+          and r.liked = true
+    """)
+    Set<Long> findLikedCommentIds(@Param("userId") Long userId, @Param("commentIds") List<Long> commentIds);
 }

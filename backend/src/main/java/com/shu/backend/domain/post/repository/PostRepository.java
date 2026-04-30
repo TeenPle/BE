@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -83,7 +84,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from Comment c
                 where c.post.id = p.id
                    and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            )
+            ),
+            u.profileImageUrl
         from Post p
         join p.board b
         join p.user u
@@ -110,7 +112,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from Comment c
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            )
+            ),
+            u.profileImageUrl
         from Post p
         join p.board b
         join p.user u
@@ -175,7 +178,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from Comment c
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            )
+            ),
+            u.profileImageUrl
         from Post p
         join p.board b
         join p.user u
@@ -208,6 +212,42 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Object[]> findLikedPostRows(@Param("postIds") Collection<Long> postIds);
 
     int countByBoard(Board board);
+
+    // 최근 N일간 특정 학교의 게시글을 좋아요 많은 순으로 조회 (이번 주 인기글)
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.viewCount,
+            p.anonymous,
+            p.likeCount,
+            p.dislikeCount,
+            b.id,
+            u.id,
+            u.username,
+            (
+                select count(c.id)
+                from Comment c
+                where c.post.id = p.id
+                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+            ),
+            u.profileImageUrl
+        from Post p
+        join p.board b
+        join p.user u
+        where b.school.id = :schoolId
+          and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and p.createdAt >= :since
+        order by p.likeCount desc
+    """)
+    List<Object[]> findHotPostRowsBySchoolId(
+            @Param("schoolId") Long schoolId,
+            @Param("since") LocalDateTime since,
+            Pageable pageable
+    );
 
     @Query("""
         select

@@ -65,8 +65,9 @@ public class Comment extends BaseEntity {
 
     //private Integer reportCount = 0;
 
-    public void updateContent(String content) {
+    public void update(String content, boolean anonymous) {
         this.content = content;
+        this.anonymous = anonymous;
     }
 
     public void softDelete() {

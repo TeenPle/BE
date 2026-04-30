@@ -1,6 +1,7 @@
 package com.shu.backend.global.websocket;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -15,10 +16,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WsJwtChannelInterceptor wsJwtChannelInterceptor;
 
+    @Value("${websocket.allowed-origins}")
+    private String allowedOriginsRaw;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] origins = allowedOriginsRaw.split(",");
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*"); // 배포 시 도메인 제한 추천
+                .setAllowedOriginPatterns(origins);
     }
 
     @Override

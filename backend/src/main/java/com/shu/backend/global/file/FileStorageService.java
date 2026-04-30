@@ -8,5 +8,6 @@ public interface FileStorageService {
     String uploadPostMedia(MultipartFile file);
     String uploadProfileImage(MultipartFile file);
     void deleteStudentCardImage(String key);
+    void deletePublicFile(String url);
     String generateStudentCardPresignedUrl(String key);
 }

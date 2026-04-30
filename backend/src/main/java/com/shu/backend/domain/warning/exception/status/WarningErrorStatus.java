@@ -1,6 +1,4 @@
-package com.shu.backend.domain.post.exception.status;
-
-
+package com.shu.backend.domain.warning.exception.status;
 
 import com.shu.backend.global.apiPayload.code.BaseErrorCode;
 import com.shu.backend.global.apiPayload.code.ErrorReasonDto;
@@ -10,14 +8,11 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
-public enum PostErrorStatus implements BaseErrorCode {
-    //400
-    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "POST4000", "존재하지 않는 게시글입니다."),
-    NO_PERMISSION_TO_WRITE(HttpStatus.BAD_REQUEST, "POST4001", "글 작성 권한이 없습니다."),
-    POST_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "POST4002", "이미 삭제된 게시글입니다."),
-    SEARCH_KEYWORD_TOO_LONG(HttpStatus.BAD_REQUEST, "POST4003", "검색어는 100자 이하로 입력해주세요.");
+public enum WarningErrorStatus implements BaseErrorCode {
 
-
+    WARNING_NOT_FOUND(HttpStatus.NOT_FOUND, "WARNING4040", "경고 정보를 찾을 수 없습니다."),
+    WARNING_ALREADY_ISSUED(HttpStatus.CONFLICT, "WARNING4090", "이미 경고가 발령된 신고입니다."),
+    WARNING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "WARNING4030", "해당 경고에 접근할 권한이 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

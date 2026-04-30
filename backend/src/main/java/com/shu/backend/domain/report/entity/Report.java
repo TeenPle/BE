@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
         ),
         indexes = {
                 @Index(name = "idx_report_target", columnList = "target_type,target_id"),
-                @Index(name = "idx_report_processed_created", columnList = "is_processed,created_at")
+                @Index(name = "idx_report_status_created", columnList = "status,created_at")
         }
 )
 @Entity
@@ -76,6 +76,12 @@ public class Report extends BaseEntity {
 
     public void reject(User handler) {
         this.status = ReportStatus.REJECTED;
+        this.processedAt = LocalDateTime.now();
+        this.handledBy = handler;
+    }
+
+    public void warn(User handler) {
+        this.status = ReportStatus.WARNED;
         this.processedAt = LocalDateTime.now();
         this.handledBy = handler;
     }

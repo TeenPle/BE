@@ -3,16 +3,18 @@ package com.shu.backend.domain.report.service;
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
 import com.shu.backend.domain.chatmessage.repository.ChatMessageRepository;
+import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
-import com.shu.backend.domain.penalty.entity.Penalty;
 import com.shu.backend.domain.penalty.repository.PenaltyRepository;
 import com.shu.backend.domain.penalty.service.PenaltyService;
+import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.exception.PostException;
 import com.shu.backend.domain.post.exception.status.PostErrorStatus;
 import com.shu.backend.domain.post.repository.PostRepository;
 import com.shu.backend.domain.report.dto.ReportDTO;
+import com.shu.backend.domain.report.dto.ReportSummaryResponse;
 import com.shu.backend.domain.report.entity.Report;
 import com.shu.backend.domain.report.enums.ReportStatus;
 import com.shu.backend.domain.report.enums.TargetType;
@@ -23,7 +25,6 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,11 +33,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ReportService {
+
+    private static final DateTimeFormatter ISO_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
@@ -115,6 +120,40 @@ public class ReportService {
 
     public Page<Report> getReports(ReportStatus status, Pageable pageable){
         return reportRepository.findAllByStatus(status, pageable);
+    }
+
+    public ReportSummaryResponse.DetailResponse getReportDetail(Long reportId) {
+        Report r = reportRepository.findById(reportId)
+                .orElseThrow(() -> new ReportException(ReportErrorStatus.REPORT_NOT_FOUND));
+
+        String targetContent = resolveTargetContent(r.getTargetType(), r.getTargetId());
+
+        return ReportSummaryResponse.DetailResponse.builder()
+                .reportId(r.getId())
+                .reporterId(r.getReporter().getId())
+                .reporterNickname(r.getReporter().getNickname())
+                .reportedUserId(r.getReportedUser().getId())
+                .reportedUserNickname(r.getReportedUser().getNickname())
+                .targetType(r.getTargetType().name())
+                .targetId(r.getTargetId())
+                .targetContent(targetContent)
+                .reportReason(r.getReportReason().name())
+                .status(r.getStatus().name())
+                .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
+                .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
+                .build();
+    }
+
+    private String resolveTargetContent(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case POST -> postRepository.findById(targetId)
+                    .map(p -> "[제목] " + p.getTitle() + "\n" + p.getContent())
+                    .orElse("(삭제된 게시글)");
+            case COMMENT -> commentRepository.findById(targetId)
+                    .map(Comment::getContent)
+                    .orElse("(삭제된 댓글)");
+            default -> "";
+        };
     }
 
     //타입을 보고 타겟 객체와 id 조회

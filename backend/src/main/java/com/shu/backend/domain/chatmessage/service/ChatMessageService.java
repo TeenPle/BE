@@ -117,7 +117,10 @@ public class ChatMessageService {
         }
 
         // 채팅방 요약 필드 갱신 (방 목록 최신순 정렬/미리보기용)
-        room.updateLastMessage(saved.getId(), saved.getCreatedAt());
+        String preview = (type == ChatMessage.MessageType.TEXT)
+                ? summarize(req.getContent(), 50)
+                : "사진을 보냈습니다.";
+        room.updateLastMessage(saved.getId(), saved.getCreatedAt(), preview);
 
         String notiMsg = (type == ChatMessage.MessageType.TEXT)
                 ? "새 메시지: " + summarize(req.getContent(), 20)

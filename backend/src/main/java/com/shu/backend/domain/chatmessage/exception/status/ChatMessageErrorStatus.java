@@ -23,6 +23,8 @@ public enum ChatMessageErrorStatus implements BaseErrorCode {
     INVALID_WS_TOKEN(HttpStatus.UNAUTHORIZED, "CHATMSG4011", "유효하지 않은 WebSocket 토큰입니다."),
     WS_NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "CHATMSG4012", "채팅방 구독 권한이 없습니다."),
 
+    MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "CHATMSG4006", "메시지는 2000자 이하로 입력해주세요."),
+
     CHAT_IMAGE_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "CHATMSG5001", "채팅 이미지 업로드에 실패했습니다.");
 
 

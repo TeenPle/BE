@@ -37,6 +37,7 @@ import org.springframework.util.StringUtils;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaTargetType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -214,11 +215,12 @@ public class PostService {
 
     public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, String keyword, Pageable pageable) {
         if (!StringUtils.hasText(keyword)) {
-            // 빈 키워드 허용 정책은 팀 기준에 맞춰 조정 가능(에러/빈 결과)
             return new SliceImpl<>(List.of(), pageable, false);
         }
-        if (schoolId == null || regionId == null) {
-            // 인증/프로필 세팅이 안 된 상태를 방어
+        if (keyword.trim().length() > 100) {
+            throw new PostException(PostErrorStatus.SEARCH_KEYWORD_TOO_LONG);
+        }
+        if (schoolId == null) {
             return new SliceImpl<>(List.of(), pageable, false);
         }
 
@@ -260,6 +262,16 @@ public class PostService {
 
         Pageable responsePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         return new SliceImpl<>(content, responsePageable, hasNext);
+    }
+
+    // 최근 3일간 해당 학교의 좋아요 많은 게시글 조회 (이번 주 인기글)
+    public List<PostResponse> getHotPosts(Long schoolId, int size) {
+        int safeSize = Math.min(Math.max(size, 1), 20);
+        LocalDateTime since = LocalDateTime.now().minusDays(3);
+        Pageable pageable = PageRequest.of(0, safeSize);
+        List<Object[]> rows = postRepository.findHotPostRowsBySchoolId(schoolId, since, pageable);
+        List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
+        return attachMediaToResponses(content);
     }
 
     private List<PostResponse> attachMediaToResponses(List<PostResponse> posts) {
