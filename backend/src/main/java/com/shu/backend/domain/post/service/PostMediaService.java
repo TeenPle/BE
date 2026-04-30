@@ -51,12 +51,14 @@ public class PostMediaService {
             }
         }
 
+        mediaList.forEach(m -> fileStorageService.deletePublicFile(m.getUrl()));
         mediaRepository.deleteAll(mediaList);
     }
 
     @Transactional
     public void deleteAllByPostId(Long postId) {
         List<Media> mediaList = mediaRepository.findByTargetTypeAndTargetId(MediaTargetType.POST, postId);
+        mediaList.forEach(m -> fileStorageService.deletePublicFile(m.getUrl()));
         mediaRepository.deleteAll(mediaList);
     }
 

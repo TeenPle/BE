@@ -48,6 +48,9 @@ public class ChatRoom extends BaseEntity {
     @Column(name = "last_message_at")
     private LocalDateTime lastMessageAt;
 
+    @Column(name = "last_message_preview", length = 100)
+    private String lastMessagePreview;
+
     @Builder
     private ChatRoom(Long user1Id, Long user2Id, String displayName) {
         this.user1Id = user1Id;
@@ -65,9 +68,11 @@ public class ChatRoom extends BaseEntity {
                 .build();
     }
 
-    public void updateLastMessage(Long messageId, LocalDateTime messageAt) {
+    public void updateLastMessage(Long messageId, LocalDateTime messageAt, String preview) {
         this.lastMessageId = messageId;
         this.lastMessageAt = messageAt;
+        this.lastMessagePreview = preview != null && preview.length() > 100
+                ? preview.substring(0, 100) : preview;
     }
 
     public void rename(String name) {

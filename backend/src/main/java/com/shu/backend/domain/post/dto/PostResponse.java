@@ -21,6 +21,7 @@ public class PostResponse {
     private Long boardId;  // 게시판 ID
     private Long userId;   // 사용자 ID
     private String username; // 사용자 이름
+    private String authorProfileImageUrl; // 작성자 프로필 이미지 URL (익명이면 null)
     private int commentCount; // 댓글 수 (선택적)
     @Builder.Default
     private List<PostMediaResponse> mediaList = List.of();
@@ -39,6 +40,7 @@ public class PostResponse {
                 .boardId(this.boardId)
                 .userId(this.userId)
                 .username(this.username)
+                .authorProfileImageUrl(this.authorProfileImageUrl)
                 .commentCount(this.commentCount)
                 .mediaList(mediaList)
                 .build();
@@ -83,6 +85,13 @@ public class PostResponse {
         // JPA count는 Long으로 오는 경우가 일반적
         int commentCount = (r[11] == null) ? 0 : ((Number) r[11]).intValue();
 
+        // 익명 게시글이면 프로필 이미지 null, 아니면 URL 검증 후 반환
+        String rawProfileUrl = (r.length > 12) ? (String) r[12] : null;
+        String authorProfileImageUrl = null;
+        if (Boolean.FALSE.equals(anonymous) && rawProfileUrl != null && rawProfileUrl.startsWith("http")) {
+            authorProfileImageUrl = rawProfileUrl;
+        }
+
         return PostResponse.builder()
                 .id(id)
                 .title(title)
@@ -95,6 +104,7 @@ public class PostResponse {
                 .boardId(boardId)
                 .userId(userId)
                 .username(username)
+                .authorProfileImageUrl(authorProfileImageUrl)
                 .commentCount(commentCount)
                 .build();
     }

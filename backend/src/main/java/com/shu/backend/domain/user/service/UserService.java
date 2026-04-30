@@ -112,8 +112,12 @@ public class UserService {
     public String updateProfileImage(Long userId, MultipartFile file) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
+        String oldUrl = user.getProfileImageUrl();
         String imageUrl = fileStorageService.uploadProfileImage(file);
         user.updateProfileImageUrl(imageUrl);
+        if (oldUrl != null && oldUrl.startsWith("http")) {
+            fileStorageService.deletePublicFile(oldUrl);
+        }
         return imageUrl;
     }
 

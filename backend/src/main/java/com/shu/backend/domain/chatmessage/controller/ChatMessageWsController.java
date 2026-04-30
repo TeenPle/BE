@@ -32,6 +32,15 @@ public class ChatMessageWsController {
 
         Long senderId = Long.valueOf(principal.getName());
 
+        if (request.getType() == ChatMessageDTO.MessageType.TEXT) {
+            if (request.getContent() == null || request.getContent().isBlank()) {
+                throw new ChatMessageException(ChatMessageErrorStatus.INVALID_MESSAGE_TYPE);
+            }
+            if (request.getContent().length() > 2000) {
+                throw new ChatMessageException(ChatMessageErrorStatus.MESSAGE_TOO_LONG);
+            }
+        }
+
         ChatMessageDTO.MessageResponse result = chatMessageService.send(senderId, request);
 
         messagingTemplate.convertAndSend(

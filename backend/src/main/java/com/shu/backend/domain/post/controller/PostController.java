@@ -4,6 +4,8 @@ import com.shu.backend.domain.post.dto.PostCreateRequest;
 import com.shu.backend.domain.post.dto.PostDetailResponse;
 import com.shu.backend.domain.post.dto.PostResponse;
 import com.shu.backend.domain.post.dto.PostUpdateRequest;
+import com.shu.backend.domain.post.exception.PostException;
+import com.shu.backend.domain.post.exception.status.PostErrorStatus;
 import com.shu.backend.domain.post.exception.status.PostSuccessStatus;
 import com.shu.backend.domain.post.service.PostService;
 import com.shu.backend.domain.user.entity.User;
@@ -107,14 +109,29 @@ public class PostController {
         return ApiResponse.onSuccess(postResponses);
     }
 
+    @Operation(summary = "이번 주 인기글 조회", description = "최근 3일간 해당 학교의 좋아요 많은 순 상위 게시글을 조회합니다.")
+    @GetMapping("/schools/{schoolId}/posts/hot")
+    public ApiResponse<List<PostResponse>> getHotPosts(
+            @PathVariable Long schoolId,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        List<PostResponse> hotPosts = postService.getHotPosts(schoolId, size);
+        return ApiResponse.onSuccess(hotPosts);
+    }
+
     @GetMapping("/search")
     public ApiResponse<Slice<PostResponse>> searchPosts(
             @RequestParam String keyword,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal User user
     ) {
+        if (user.getSchool() == null) {
+            throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
+        }
         Long schoolId = user.getSchool().getId();
-        Long regionId = 1L;
+        Long regionId = (user.getSchool().getRegion() != null)
+                ? user.getSchool().getRegion().getId()
+                : null;
 
         Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable);
         return ApiResponse.onSuccess(postResponses);

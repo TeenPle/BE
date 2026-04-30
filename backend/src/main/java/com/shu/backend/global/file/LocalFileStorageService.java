@@ -66,6 +66,11 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     @Override
+    public void deletePublicFile(String url) {
+        // 로컬 환경에서는 삭제하지 않음 (개발용)
+    }
+
+    @Override
     public String generateStudentCardPresignedUrl(String key) {
         // 로컬 환경에서는 key를 그대로 반환 (개발용)
         return key;

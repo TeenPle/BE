@@ -23,11 +23,16 @@ public class PostDetailResponse {
     private int dislikeCount;
     private String postStatus;
     private String username;
+    private String authorProfileImageUrl;
     private List<CommentResponse> comments;
     private List<PostMediaResponse> mediaList;
 
 
     public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId) {
+        String profileImageUrl = post.getAnonymous() ? null : post.getUser().getProfileImageUrl();
+        if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
+            profileImageUrl = null;
+        }
         return PostDetailResponse.builder()
                 .postId(post.getId())
                 .isMine(post.getUser().getId().equals(currentUserId))
@@ -39,6 +44,7 @@ public class PostDetailResponse {
                 .dislikeCount(post.getDislikeCount())
                 .postStatus(post.getPostStatus().name())
                 .username(post.getUser().getNickname())
+                .authorProfileImageUrl(profileImageUrl)
                 .comments(comments)
                 .mediaList(mediaList)
                 .build();
