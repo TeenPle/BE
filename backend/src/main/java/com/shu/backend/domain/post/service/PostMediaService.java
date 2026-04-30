@@ -9,6 +9,7 @@ import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.post.dto.PostMediaResponse;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.moderation.ImageModerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,13 @@ public class PostMediaService {
 
     private final MediaRepository mediaRepository;
     private final FileStorageService fileStorageService;
+    private final ImageModerationService imageModerationService;
 
     @Transactional
     public List<PostMediaResponse> uploadAndSave(Long postId, List<MultipartFile> files, User uploader) {
+        // 모든 파일을 먼저 검사 — 하나라도 부적절하면 전체 업로드 중단
+        files.forEach(imageModerationService::check);
+
         return files.stream()
                 .map(file -> {
                     String url = fileStorageService.uploadPostMedia(file);

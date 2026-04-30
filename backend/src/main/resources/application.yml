@@ -68,14 +68,14 @@ logging:
     root: INFO
     org.springframework.boot.autoconfigure: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: trace
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE   # 바인딩 값 출력
+    org.hibernate.orm.jdbc.bind: warn
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
     org.springframework.web: INFO
-    com.shu.backend: DEBUG      # 프로젝트 패키지 기준
+    com.shu.backend: DEBUG
     p6spy: INFO
 
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}        # 1시간 (ms)
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}    # 7일 (ms)
 
@@ -111,14 +111,24 @@ neis:
 viewcount:
   mode: PESSIMISTIC
 
+moderation:
+  image:
+    # Rekognition 카테고리별 차단 신뢰도 임계값 (0~100, 이 값 이상이면 차단)
+    nudity-threshold: 50
+    suggestive-threshold: 80
+    violence-threshold: 70
+    disturbing-threshold: 70
+    drugs-threshold: 70
+    hate-threshold: 70
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
   metrics:
     distribution:
       percentiles-histogram:

@@ -8,6 +8,7 @@ import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
 import com.shu.backend.domain.post.component.ViewCountAccumulator;
+import com.shu.backend.global.moderation.ContentModerationService;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
 import com.shu.backend.domain.post.dto.PostDetailResponse;
 import com.shu.backend.domain.post.dto.PostMediaResponse;
@@ -56,6 +57,7 @@ public class PostService {
     private final PostMediaService postMediaService;
     private final MediaRepository mediaRepository;
     private final ViewCountAccumulator viewCountAccumulator;
+    private final ContentModerationService contentModerationService;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -104,6 +106,8 @@ public class PostService {
         String title = req.getTitle().trim();
         String content = req.getContent().trim();
 
+        contentModerationService.checkPost(title, content);
+
         Post post = Post.builder()
                 .title(title)
                 .content(content)
@@ -135,6 +139,8 @@ public class PostService {
         if (!post.getUser().getId().equals(userId)){
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
+
+        contentModerationService.checkPost(req.getTitle(), req.getContent());
 
         post.update(req.getTitle(), req.getContent(), req.isAnonymous());
 

@@ -62,9 +62,10 @@ dependencies {
 	//annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	//annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 
-	//AWS S3
-	implementation platform('software.amazon.awssdk:bom:2.25.26')  // 최신 버전
+	//AWS S3 + Rekognition
+	implementation platform('software.amazon.awssdk:bom:2.25.26')
 	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:rekognition'
 
 	//redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'

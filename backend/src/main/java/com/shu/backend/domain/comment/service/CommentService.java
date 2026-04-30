@@ -1,5 +1,6 @@
 package com.shu.backend.domain.comment.service;
 
+import com.shu.backend.global.moderation.ContentModerationService;
 import com.shu.backend.domain.comment.dto.CommentCreateRequest;
 import com.shu.backend.domain.comment.dto.CommentUpdateRequest;
 import com.shu.backend.domain.comment.entity.Comment;
@@ -39,12 +40,14 @@ public class CommentService {
     private final NotificationService notificationService;
     private final PushService pushService;
     private final UserSettingRepository userSettingRepository;
+    private final ContentModerationService contentModerationService;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
     public Long createComment(Long userId, Long postId, CommentCreateRequest req){
 
         validateContent(req.getContent());
+        contentModerationService.checkComment(req.getContent());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
@@ -179,6 +182,7 @@ public class CommentService {
     public Long updateComment(Long commentId, Long userId, CommentUpdateRequest req){
 
         validateContent(req.getContent());
+        contentModerationService.checkComment(req.getContent());
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
