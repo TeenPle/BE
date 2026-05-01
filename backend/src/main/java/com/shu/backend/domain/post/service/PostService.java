@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaTargetType;
@@ -103,8 +104,8 @@ public class PostService {
             throw new BoardException(BoardErrorStatus.INVALID_BOARD_SCOPE);
         }
 
-        String title = req.getTitle().trim();
-        String content = req.getContent().trim();
+        String title = HtmlUtils.htmlEscape(req.getTitle().trim());
+        String content = HtmlUtils.htmlEscape(req.getContent().trim());
 
         contentModerationService.checkPost(title, content);
 
@@ -140,9 +141,11 @@ public class PostService {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
 
-        contentModerationService.checkPost(req.getTitle(), req.getContent());
+        String title = HtmlUtils.htmlEscape(req.getTitle().trim());
+        String content = HtmlUtils.htmlEscape(req.getContent().trim());
+        contentModerationService.checkPost(title, content);
 
-        post.update(req.getTitle(), req.getContent(), req.isAnonymous());
+        post.update(title, content, req.isAnonymous());
 
         postMediaService.deleteByIds(req.getDeleteMediaIds(), postId, userId);
 
@@ -245,8 +248,12 @@ public class PostService {
                 slicePageable
         );*/
 
-        // Phase 1: ID만 가져오기
-        List<Long> ids = postRepository.findSearchPostIds(keyword, schoolId, regionId, slicePageable);
+        // Phase 1: ID만 가져오기 (LIKE 와일드카드 이스케이프)
+        String escapedKeyword = keyword.trim()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        List<Long> ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, regionId, slicePageable);
 
         boolean hasNext = ids.size() > pageable.getPageSize();
         if (hasNext) {

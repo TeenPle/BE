@@ -119,8 +119,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.user u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and (
-                p.title like concat('%', :keyword, '%')
-             or p.content like concat('%', :keyword, '%')
+                p.title like concat('%', :keyword, '%') escape '\\'
+             or p.content like concat('%', :keyword, '%') escape '\\'
           )
           and (
                 (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
@@ -142,8 +142,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.board b
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and (
-                p.title like concat('%', :keyword, '%')
-             or p.content like concat('%', :keyword, '%')
+                p.title like concat('%', :keyword, '%') escape '\\'
+             or p.content like concat('%', :keyword, '%') escape '\\'
           )
           and (
                 (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)

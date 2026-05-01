@@ -23,6 +23,7 @@ import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.util.HtmlUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,7 @@ public class CommentService {
 
         validateContent(req.getContent());
         contentModerationService.checkComment(req.getContent());
+        String safeContent = HtmlUtils.htmlEscape(req.getContent());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
@@ -72,7 +74,7 @@ public class CommentService {
         boolean anonymous = req.getAnonymous();
 
         Comment comment = Comment.builder()
-                .content(req.getContent())
+                .content(safeContent)
                 .anonymous(anonymous)
                 .post(post)
                 .user(user)
@@ -183,6 +185,7 @@ public class CommentService {
 
         validateContent(req.getContent());
         contentModerationService.checkComment(req.getContent());
+        String safeContent = HtmlUtils.htmlEscape(req.getContent());
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
@@ -191,7 +194,7 @@ public class CommentService {
             throw new CommentException(CommentErrorStatus.COMMENT_FORBIDDEN);
         }
 
-        comment.update(req.getContent(), req.isAnonymous());
+        comment.update(safeContent, req.isAnonymous());
 
         return commentId;
     }
