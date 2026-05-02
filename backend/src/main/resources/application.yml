@@ -89,6 +89,13 @@ websocket:
   endpoint: ${WS_ENDPOINT:/ws/chat}
   allowed-origins: ${WS_ALLOWED_ORIGINS:*}  # 개발 단계 / 운영 시 실제 도메인만 허용
 
+chat:
+  realtime:
+    redis-channel: ${CHAT_REALTIME_REDIS_CHANNEL:chat:realtime}
+  image:
+    moderation:
+      min-confidence: ${CHAT_IMAGE_MODERATION_MIN_CONFIDENCE:80}
+
 ## 로컬 파일 저장용 설정 (배포 후 비활성화)
 #file:
 #  upload-dir:
@@ -134,7 +141,7 @@ file:
     student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
     chat-dir: ${FILE_CHAT_DIR:chat}
     post-dir: ${FILE_POST_DIR:post}
-    base-url: ${FILE_BASE_URL:https://cdn.teenple.com}
+    base-url: ${FILE_BASE_URL:https://teenple-media.s3.ap-northeast-2.amazonaws.com}
 
 #배포후 접근키 비밀키 삽입
 cloud:
@@ -144,4 +151,3 @@ cloud:
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
     region:
       static: ${AWS_REGION:ap-northeast-2}
-

@@ -2,9 +2,9 @@ package com.shu.backend.domain.chatmessage.controller;
 
 import com.shu.backend.domain.chatmessage.dto.ChatMessageDTO;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageSuccessStatus;
+import com.shu.backend.domain.chatmessage.service.ChatImageService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
-import com.shu.backend.global.file.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,14 +22,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/chat")
 public class ChatMediaController {
 
-    private final FileStorageService fileStorageService;
+    private final ChatImageService chatImageService;
 
     @Operation(
             summary = "채팅 이미지 업로드",
             description = """
                     채팅에서 사용할 이미지를 업로드합니다.
-                    업로드 성공 시 이미지 접근 URL을 반환하며,
-                    반환된 imageUrl을 WebSocket 메시지 전송 시 사용합니다.
+                    업로드 성공 시 mediaId와 이미지 URL을 반환합니다.
+                    클라이언트는 IMAGE 메시지 전송 시 mediaId를 함께 보내야 합니다.
                     """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
@@ -67,10 +67,9 @@ public class ChatMediaController {
             )
             @RequestPart("file") MultipartFile file
     ) {
-        String url = fileStorageService.uploadChatImage(file);
         return ApiResponse.of(
                 ChatMessageSuccessStatus.CHAT_IMAGE_UPLOAD_SUCCESS,
-                new ChatMessageDTO.UploadImageResponse(url)
+                chatImageService.upload(user.getId(), file)
         );
     }
 }

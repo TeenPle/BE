@@ -6,11 +6,11 @@ import com.shu.backend.domain.chatroom.exception.status.ChatRoomSuccessStatus;
 import com.shu.backend.domain.chatroom.service.ChatRoomService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.websocket.ChatRealtimePublisher;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatRealtimePublisher realtimePublisher;
 
     @Operation(
             summary = "1:1 DM 채팅방 생성/조회",
@@ -66,7 +66,7 @@ public class ChatRoomController {
             @PathVariable Long roomId
     ) {
         chatRoomService.leave(user.getId(), roomId);
-        publishRoomUpdated(user.getId(), roomId);
+        publishRoomListUpdated(user.getId(), roomId);
         return ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_LEAVE_SUCCESS, "OK");
     }
 
@@ -112,13 +112,26 @@ public class ChatRoomController {
         return ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_REPORT_SUCCESS, "OK");
     }
 
-    private void publishRoomUpdated(Long userId, Long roomId) {
-        // 목록과 채팅방 상세가 REST로 최신 상태를 다시 가져오도록 가벼운 변경 신호만 보낸다.
-        messagingTemplate.convertAndSend(
+    private void publishRoomListUpdated(Long userId, Long roomId) {
+        realtimePublisher.publish(
                 "/sub/chat/users/" + userId + "/rooms",
                 ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_LIST_SUCCESS,
                         ChatMessageDTO.RoomUpdatedBroadcast.builder()
-                                .type("ROOM_UPDATED")
+                                .eventType("ROOM_LIST_UPDATED")
+                                .type("ROOM_LIST_UPDATED")
+                                .roomId(roomId)
+                                .build())
+        );
+    }
+
+    private void publishRoomStateUpdated(Long userId, Long roomId) {
+        // 차단/차단 해제처럼 상세 입력 상태가 바뀌는 이벤트만 ROOM_STATE_UPDATED로 보낸다.
+        realtimePublisher.publish(
+                "/sub/chat/users/" + userId + "/rooms",
+                ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_LIST_SUCCESS,
+                        ChatMessageDTO.RoomUpdatedBroadcast.builder()
+                                .eventType("ROOM_STATE_UPDATED")
+                                .type("ROOM_STATE_UPDATED")
                                 .roomId(roomId)
                                 .build())
         );
@@ -127,6 +140,6 @@ public class ChatRoomController {
     private void publishRoomUpdatedToParticipants(Long roomId) {
         // 차단/차단 해제는 양쪽 입력 가능 상태가 바뀌므로 두 사용자에게 즉시 알린다.
         chatRoomService.getParticipantIds(roomId)
-                .forEach(userId -> publishRoomUpdated(userId, roomId));
+                .forEach(userId -> publishRoomStateUpdated(userId, roomId));
     }
 }

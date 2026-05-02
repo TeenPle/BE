@@ -48,8 +48,13 @@ public class S3FileStorageService implements FileStorageService {
     // 채팅 이미지 업로드
     @Override
     public String uploadChatImage(MultipartFile file) {
+        return uploadChatImageFile(file).url();
+    }
+
+    @Override
+    public StoredFile uploadChatImageFile(MultipartFile file) {
         try {
-            return upload(file, props.getChatDir());
+            return uploadFile(file, props.getChatDir());
         } catch (Exception e) {
             log.error("채팅 이미지 업로드 실패", e);
             throw new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL);
@@ -112,6 +117,21 @@ public class S3FileStorageService implements FileStorageService {
         log.info("학생증 S3 삭제 완료: key={}", key);
     }
 
+    @Override
+    public void deletePublicFile(String key) {
+        if (key == null || key.isBlank()) {
+            log.warn("퍼블릭 파일 삭제 생략 — key가 비어있음");
+            return;
+        }
+        s3Client.deleteObject(
+                DeleteObjectRequest.builder()
+                        .bucket(props.getBucket())
+                        .key(key)
+                        .build()
+        );
+        log.info("퍼블릭 S3 삭제 완료: bucket={}, key={}", props.getBucket(), key);
+    }
+
     // 학생증 전용 업로드 (프라이빗 버킷, key만 반환)
     private String uploadToStudentCardBucket(MultipartFile file) throws IOException {
         String key = props.getStudentCardDir() + "/" + UUID.randomUUID() + extractExt(file);
@@ -131,19 +151,24 @@ public class S3FileStorageService implements FileStorageService {
 
     // 퍼블릭 버킷 공통 업로드 (URL 반환)
     private String upload(MultipartFile file, String dir) throws IOException {
+        return uploadFile(file, dir).url();
+    }
+
+    private StoredFile uploadFile(MultipartFile file, String dir) throws IOException {
         String key = dir + "/" + UUID.randomUUID() + extractExt(file);
+        String contentType = file.getContentType();
 
         s3Client.putObject(
                 PutObjectRequest.builder()
                         .bucket(props.getBucket())
                         .key(key)
-                        .contentType(file.getContentType())
+                        .contentType(contentType)
                         .build(),
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
 
         log.info("파일 업로드 완료: bucket={}, key={}", props.getBucket(), key);
-        return props.getBaseUrl() + "/" + key;
+        return new StoredFile(props.getBucket(), key, props.getBaseUrl() + "/" + key, contentType);
     }
 
     // 파일 확장자 추출

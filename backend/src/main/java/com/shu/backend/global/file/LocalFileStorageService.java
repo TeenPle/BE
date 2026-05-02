@@ -44,7 +44,12 @@ public class LocalFileStorageService implements FileStorageService {
 
     @Override
     public String uploadChatImage(MultipartFile file) {
-        return upload(file, chatUploadDir, "/uploads/chat/",
+        return uploadChatImageFile(file).url();
+    }
+
+    @Override
+    public StoredFile uploadChatImageFile(MultipartFile file) {
+        return uploadStored(file, chatUploadDir, "/uploads/chat/",
                 () -> new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_UPLOAD_FAIL));
     }
 
@@ -62,6 +67,11 @@ public class LocalFileStorageService implements FileStorageService {
 
     @Override
     public void deleteStudentCardImage(String key) {
+        // 로컬 환경에서는 삭제하지 않음 (개발용)
+    }
+
+    @Override
+    public void deletePublicFile(String key) {
         // 로컬 환경에서는 삭제하지 않음 (개발용)
     }
 
@@ -100,5 +110,16 @@ public class LocalFileStorageService implements FileStorageService {
         } catch (IOException e) {
             throw onFail.get();
         }
+    }
+
+    private StoredFile uploadStored(
+            MultipartFile file,
+            String uploadDir,
+            String publicPath,
+            java.util.function.Supplier<RuntimeException> onFail
+    ) {
+        String url = upload(file, uploadDir, publicPath, onFail);
+        String key = publicPath.replaceFirst("^/uploads/", "").replaceFirst("^/", "") + url.substring(url.lastIndexOf('/') + 1);
+        return new StoredFile("local", key, url, file.getContentType());
     }
 }

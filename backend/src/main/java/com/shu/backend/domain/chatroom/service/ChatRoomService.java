@@ -94,13 +94,34 @@ public class ChatRoomService {
                 .stream()
                 .collect(Collectors.toMap(ChatMessage::getId, m -> m));
 
+        List<Long> roomIds = mine.stream()
+                .map(cru -> cru.getChatRoom().getId())
+                .toList();
+
+        Map<String, ChatRoomUser> chatRoomUserMap = roomIds.isEmpty()
+                ? Map.of()
+                : chatRoomUserRepository.findByChatRoomIdIn(roomIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        cru -> cru.getChatRoom().getId() + ":" + cru.getUser().getId(),
+                        cru -> cru
+                ));
+
+        Map<Long, Long> unreadMap = roomIds.isEmpty()
+                ? Map.of()
+                : chatMessageRepository.countUnreadByRoomIds(roomIds, myId)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
         List<ChatRoomDTO.RoomListItem> items = mine.stream().map(cru -> {
             ChatRoom room = cru.getChatRoom();
             Long otherId = room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
             boolean blockedByMe = cru.isBlocked();
-            boolean blockedByOther = chatRoomUserRepository.findByChatRoomIdAndUserId(room.getId(), otherId)
-                    .map(ChatRoomUser::isBlocked)
-                    .orElse(false);
+            ChatRoomUser otherCru = chatRoomUserMap.get(room.getId() + ":" + otherId);
+            boolean blockedByOther = otherCru != null && otherCru.isBlocked();
 
             // 실제 마지막 메시지 내용으로 미리보기
             String preview = "";
@@ -113,19 +134,7 @@ public class ChatRoomService {
                 }
             }
 
-            // 실제 미읽음 개수 계산 (이진값이 아닌 실제 카운트)
-            long unread = 0L;
-            if (room.getLastMessageId() != null) {
-                Long lastRead = cru.getLastReadMessageId();
-                if (lastRead == null) {
-                    // 한 번도 읽지 않은 경우: 상대방 메시지만 미읽음으로 계산
-                    unread = chatMessageRepository.countByChatRoomIdAndSenderIdNot(room.getId(), myId);
-                } else if (room.getLastMessageId() > lastRead) {
-                    // 마지막 읽은 메시지 이후 상대방 메시지만 미읽음으로 계산
-                    unread = chatMessageRepository
-                            .countByChatRoomIdAndIdGreaterThanAndSenderIdNot(room.getId(), lastRead, myId);
-                }
-            }
+            long unread = unreadMap.getOrDefault(room.getId(), 0L);
 
             return ChatRoomDTO.RoomListItem.builder()
                     .roomId(room.getId())

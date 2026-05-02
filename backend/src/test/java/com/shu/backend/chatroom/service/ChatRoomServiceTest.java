@@ -160,6 +160,12 @@ class ChatFeatureServiceTest {
 
         when(chatRoomUserRepository.findByUserIdAndHiddenFalse(myId))
                 .thenReturn(new ArrayList<>(List.of(cru1, cru3, cru2)));
+        when(chatRoomUserRepository.findByChatRoomIdIn(List.of(2L, 1L, 3L)))
+                .thenReturn(List.of());
+        when(chatMessageRepository.findAllById(List.of()))
+                .thenReturn(List.of());
+        when(chatMessageRepository.countUnreadByRoomIds(List.of(2L, 1L, 3L), myId))
+                .thenReturn(List.of());
 
         ChatRoomDTO.RoomListResponse res = chatRoomService.getMyRooms(myId);
 

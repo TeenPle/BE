@@ -19,6 +19,7 @@ public class ChatMessageDTO {
         private Long roomId;
         private MessageType type;
         private String content;   // TEXT
+        private Long mediaId;     // IMAGE
         private String imageUrl;  // IMAGE
     }
 
@@ -26,6 +27,7 @@ public class ChatMessageDTO {
     @Getter
     @AllArgsConstructor
     public static class UploadImageResponse {
+        private Long mediaId;
         private String imageUrl;
     }
 
@@ -42,6 +44,14 @@ public class ChatMessageDTO {
         private List<MediaItem> medias;
 
         private LocalDateTime createdAt;
+    }
+
+    // =================== 메시지 생성 이벤트 (STOMP 브로드캐스트용) ===================
+    @Getter
+    @Builder
+    public static class MessageCreatedBroadcast {
+        private String eventType; // "MESSAGE_CREATED" 고정
+        private MessageResponse message;
     }
 
     // =================== 미디어 ===================
@@ -71,6 +81,7 @@ public class ChatMessageDTO {
     @Getter
     @Builder
     public static class ReadReceiptBroadcast {
+        private String eventType; // "READ_RECEIPT" 고정
         private String type; // "READ_RECEIPT" 고정
         private Long readerId;
         private Long lastReadMessageId;
@@ -80,6 +91,7 @@ public class ChatMessageDTO {
     @Getter
     @Builder
     public static class SendErrorBroadcast {
+        private String eventType; // "SEND_ERROR" 고정
         private String type; // "SEND_ERROR" 고정
         private Long senderId;
         private String code;
@@ -90,7 +102,8 @@ public class ChatMessageDTO {
     @Getter
     @Builder
     public static class RoomUpdatedBroadcast {
-        private String type; // "ROOM_UPDATED" 고정
+        private String eventType; // "ROOM_LIST_UPDATED" 또는 "ROOM_STATE_UPDATED"
+        private String type; // 기존 클라이언트 호환용
         private Long roomId;
     }
 

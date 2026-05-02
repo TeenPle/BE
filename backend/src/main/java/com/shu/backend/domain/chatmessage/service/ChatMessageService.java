@@ -10,7 +10,6 @@ import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
 import com.shu.backend.domain.media.entity.Media;
-import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.notification.enums.NotificationTargetType;
 import com.shu.backend.domain.notification.enums.NotificationType;
@@ -85,10 +84,10 @@ public class ChatMessageService {
         // 요청 타입(TEXT/IMAGE) 변환 및 검증
         ChatMessage.MessageType type = mapType(req.getType());
 
-        // IMAGE 메시지는 imageUrl 필수
+        // IMAGE 메시지는 업로드/검수 완료된 mediaId 필수
         if (type == ChatMessage.MessageType.IMAGE) {
-            if (req.getImageUrl() == null || req.getImageUrl().isBlank()) {
-                throw new ChatMessageException(ChatMessageErrorStatus.IMAGE_URL_REQUIRED);
+            if (req.getMediaId() == null) {
+                throw new ChatMessageException(ChatMessageErrorStatus.IMAGE_MEDIA_REQUIRED);
             }
         }
 
@@ -106,8 +105,14 @@ public class ChatMessageService {
         // IMAGE 메시지면 Media에 연결 저장 (targetType=CHAT_MESSAGE, targetId=messageId)
         ChatMessageDTO.MediaItem mediaItem = null;
         if (type == ChatMessage.MessageType.IMAGE) {
-            Media media = Media.ofChatMessage(req.getImageUrl(), saved.getId(), MediaType.IMAGE, sender);
-            Media savedMedia = mediaRepository.save(media);
+            Media savedMedia = mediaRepository.findByIdAndUploaderId(req.getMediaId(), senderId)
+                    .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_NOT_FOUND));
+
+            if (!savedMedia.isApprovedChatUploadBy(senderId)) {
+                throw new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_NOT_FOUND);
+            }
+
+            savedMedia.attachToChatMessage(saved.getId());
 
             mediaItem = ChatMessageDTO.MediaItem.builder()
                     .id(savedMedia.getId())
