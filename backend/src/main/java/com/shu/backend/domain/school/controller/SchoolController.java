@@ -7,6 +7,7 @@ import com.shu.backend.domain.school.dto.SchoolResponse;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.exception.status.SchoolSuccessStatus;
 import com.shu.backend.domain.school.service.SchoolService;
+import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import com.shu.backend.global.neis.NeisSyncResult;
 import com.shu.backend.global.neis.NeisSchoolSyncService;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -82,11 +84,12 @@ public class SchoolController {
     public ApiResponse<SchoolDetailResponse> getSchoolDetail(
             @PathVariable Long schoolId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal User user
     ){
         Pageable pageable = PageRequest.of(page, size);
 
-        SchoolDetailResponse response = schoolService.getSchoolDetail(schoolId, "자유게시판", pageable);
+        SchoolDetailResponse response = schoolService.getSchoolDetail(schoolId, "자유게시판", pageable, user.getId());
 
         return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, response);
     }

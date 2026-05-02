@@ -74,6 +74,9 @@ public class User extends BaseEntity {
     @Column(name = "phone_verified", nullable = false)
     private boolean phoneVerified = false;
 
+    @Column(name = "nickname_changed_at")
+    private LocalDateTime nicknameChangedAt;
+
     // 학교 인증 완료 처리
     public void verifySchool() {
         this.verified = true;
@@ -85,6 +88,7 @@ public class User extends BaseEntity {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+        this.nicknameChangedAt = LocalDateTime.now();
     }
 
     public void updatePassword(String encodedPassword) {

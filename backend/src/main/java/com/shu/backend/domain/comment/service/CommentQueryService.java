@@ -21,14 +21,14 @@ public class CommentQueryService {
     private final ReactionRepository reactionRepository;
 
     public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId) {
-        List<Comment> parents = commentRepository.findParentsForPostDetail(postId);
+        List<Comment> parents = commentRepository.findParentsForPostDetail(postId, currentUserId);
 
         if (parents.isEmpty()) {
             return List.of();
         }
 
         List<Long> parentIds = parents.stream().map(Comment::getId).toList();
-        List<Comment> children = commentRepository.findChildrenByParentIds(parentIds);
+        List<Comment> children = commentRepository.findChildrenByParentIds(parentIds, currentUserId);
 
         Map<Long, List<Comment>> childrenMap = children.stream()
                 .collect(Collectors.groupingBy(comment -> comment.getParent().getId()));

@@ -102,20 +102,23 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDirection
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @AuthenticationPrincipal User user
     ) {
         Pageable pageable = PageRequest.of(page, size, JpaSort.unsafe(Sort.Direction.fromString(sortDirection), sortBy));
-        Slice<PostResponse> postResponses = postService.getPostsByBoardId(boardId, pageable);
+        Slice<PostResponse> postResponses = postService.getPostsByBoardId(boardId, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }
 
-    @Operation(summary = "이번 주 인기글 조회", description = "최근 3일간 해당 학교의 좋아요 많은 순 상위 게시글을 조회합니다.")
+    @Operation(summary = "HOT 게시글 조회", description = "해당 학교의 좋아요 많은 순 상위 게시글 조회. filter: TODAY / WEEK(기본) / ALL")
     @GetMapping("/schools/{schoolId}/posts/hot")
     public ApiResponse<List<PostResponse>> getHotPosts(
             @PathVariable Long schoolId,
-            @RequestParam(defaultValue = "5") int size
+            @RequestParam(defaultValue = "WEEK") String filter,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user
     ) {
-        List<PostResponse> hotPosts = postService.getHotPosts(schoolId, size);
+        List<PostResponse> hotPosts = postService.getHotPosts(schoolId, filter, size, user.getId());
         return ApiResponse.onSuccess(hotPosts);
     }
 
@@ -133,7 +136,7 @@ public class PostController {
                 ? user.getSchool().getRegion().getId()
                 : null;
 
-        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable);
+        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }
 }

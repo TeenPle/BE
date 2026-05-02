@@ -13,6 +13,7 @@ import java.util.List;
 public class PostDetailResponse {
 
     private Long postId;
+    private Long authorUserId;
     @JsonProperty("isMine")
     private boolean isMine;
     private String title;
@@ -35,6 +36,7 @@ public class PostDetailResponse {
         }
         return PostDetailResponse.builder()
                 .postId(post.getId())
+                .authorUserId(post.getUser().getId())
                 .isMine(post.getUser().getId().equals(currentUserId))
                 .title(post.getTitle())
                 .content(post.getContent())

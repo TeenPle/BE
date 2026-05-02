@@ -23,6 +23,9 @@ public class UserDTO {
         private Gender gender;
         private boolean verified;
         private boolean phoneVerified;
+        private long myPostCount;
+        private long myCommentCount;
+        private LocalDateTime nicknameChangedAt;
     }
 
     @Getter
@@ -52,6 +55,7 @@ public class UserDTO {
         private int likeCount;
         private int commentCount;
         private LocalDateTime createdAt;
+        private String boardTitle;
     }
 
     @Getter
@@ -63,5 +67,6 @@ public class UserDTO {
         private String postTitle;
         private int likeCount;
         private LocalDateTime createdAt;
+        private String boardTitle;
     }
 }
