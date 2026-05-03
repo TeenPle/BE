@@ -10,6 +10,7 @@ import com.shu.backend.domain.post.exception.status.PostSuccessStatus;
 import com.shu.backend.domain.post.service.PostService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
@@ -22,8 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.web.PageableDefault;
+
+import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +39,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostController {
 
+    private static final Set<String> ALLOWED_SORT_FIELDS =
+            Set.of("createdAt", "likeCount", "commentCount", "viewCount");
+
     private final PostService postService;
 
     @Operation(summary = "게시글 생성", description = "특정 게시판에 게시글을 작성합니다. 파일은 선택적으로 첨부할 수 있습니다.")
@@ -46,6 +51,7 @@ public class PostController {
                     encoding = @Encoding(name = "data", contentType = MediaType.APPLICATION_JSON_VALUE)
             )
     )
+    @RateLimit(key = "post", limit = 10, windowSeconds = 3600)
     @PostMapping(value = "/boards/{boardId}/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Long> createPost(
             @PathVariable Long boardId,
@@ -102,20 +108,24 @@ public class PostController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDirection
+            @RequestParam(defaultValue = "DESC") String sortDirection,
+            @AuthenticationPrincipal User user
     ) {
-        Pageable pageable = PageRequest.of(page, size, JpaSort.unsafe(Sort.Direction.fromString(sortDirection), sortBy));
-        Slice<PostResponse> postResponses = postService.getPostsByBoardId(boardId, pageable);
+        String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection), safeSortBy));
+        Slice<PostResponse> postResponses = postService.getPostsByBoardId(boardId, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }
 
-    @Operation(summary = "이번 주 인기글 조회", description = "최근 3일간 해당 학교의 좋아요 많은 순 상위 게시글을 조회합니다.")
+    @Operation(summary = "HOT 게시글 조회", description = "해당 학교의 좋아요 많은 순 상위 게시글 조회. filter: TODAY / WEEK(기본) / ALL")
     @GetMapping("/schools/{schoolId}/posts/hot")
     public ApiResponse<List<PostResponse>> getHotPosts(
             @PathVariable Long schoolId,
-            @RequestParam(defaultValue = "5") int size
+            @RequestParam(defaultValue = "WEEK") String filter,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user
     ) {
-        List<PostResponse> hotPosts = postService.getHotPosts(schoolId, size);
+        List<PostResponse> hotPosts = postService.getHotPosts(schoolId, filter, size, user.getId());
         return ApiResponse.onSuccess(hotPosts);
     }
 
@@ -133,7 +143,7 @@ public class PostController {
                 ? user.getSchool().getRegion().getId()
                 : null;
 
-        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable);
+        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }
 }

@@ -11,6 +11,7 @@ import lombok.Getter;
 public class CommentResponse {
 
     private Long commentId;
+    private Long authorUserId;
     @JsonProperty("isMine")
     private boolean isMine;
     private String commentStatus;
@@ -46,6 +47,7 @@ public class CommentResponse {
 
         return CommentResponse.builder()
                 .commentId(comment.getId())
+                .authorUserId(comment.getUser() != null ? comment.getUser().getId() : null)
                 .isMine(isMine)
                 .commentStatus(comment.getCommentStatus().name())
                 .content(content)

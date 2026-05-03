@@ -20,6 +20,7 @@ public enum UserErrorStatus implements BaseErrorCode {
     SCHOOL_VERIFICATION_ALREADY_APPROVED(HttpStatus.BAD_REQUEST, "USER4005", "이미 학교 인증이 완료된 사용자입니다."),
     SAME_NICKNAME(HttpStatus.BAD_REQUEST, "USER4006", "현재와 동일한 닉네임입니다."),
     SAME_PASSWORD(HttpStatus.BAD_REQUEST, "USER4007", "현재와 동일한 비밀번호입니다."),
+    NICKNAME_CHANGE_COOLDOWN(HttpStatus.BAD_REQUEST, "USER4008", "닉네임은 30일에 한 번만 변경할 수 있습니다."),
 
     VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "USER4010", "인증번호가 올바르지 않습니다."),
     VERIFICATION_TOKEN_INVALID_OR_EXPIRED(HttpStatus.BAD_REQUEST, "USER4011", "인증 토큰이 만료되었거나 유효하지 않습니다."),
@@ -36,7 +37,9 @@ public enum UserErrorStatus implements BaseErrorCode {
 
     // =================== 500 ===================
     USER_STUDENT_CARD_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "USER5000", "학생증 이미지 업로드에 실패했습니다."),
-    SCHOOL_VERIFICATION_STATUS_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "USER5001", "잘못된 인증 상태입니다. 관리자에게 문의해주세요.");
+    SCHOOL_VERIFICATION_STATUS_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "USER5001", "잘못된 인증 상태입니다. 관리자에게 문의해주세요."),
+    INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "USER4040", "허용되지 않는 파일 형식입니다. (허용: jpg, png)"),
+    INVALID_FILE_FORMAT(HttpStatus.BAD_REQUEST, "USER4041", "파일 내용이 확장자와 일치하지 않습니다.");
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;

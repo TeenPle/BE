@@ -90,9 +90,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.board b
         join p.user u
         where b.id = :boardId
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
         order by p.id desc
     """)
-    List<Object[]> findPostRowsByBoardId(Long boardId, Pageable pageable);
+    List<Object[]> findPostRowsByBoardId(@Param("boardId") Long boardId, @Param("currentUserId") Long currentUserId, Pageable pageable);
 
     @Query("""
         select
@@ -119,8 +123,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.user u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and (
-                p.title like concat('%', :keyword, '%')
-             or p.content like concat('%', :keyword, '%')
+                p.title like concat('%', :keyword, '%') escape '\\'
+             or p.content like concat('%', :keyword, '%') escape '\\'
           )
           and (
                 (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
@@ -142,12 +146,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.board b
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and (
-                p.title like concat('%', :keyword, '%')
-             or p.content like concat('%', :keyword, '%')
+                p.title like concat('%', :keyword, '%') escape '\\'
+             or p.content like concat('%', :keyword, '%') escape '\\'
           )
           and (
                 (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
              or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
+          )
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
           )
         order by p.id desc
     """)
@@ -155,6 +163,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("keyword") String keyword,
             @Param("schoolId") Long schoolId,
             @Param("regionId") Long regionId,
+            @Param("currentUserId") Long currentUserId,
             Pageable pageable
     );
 
@@ -213,6 +222,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     int countByBoard(Board board);
 
+    @Query("select count(p) from Post p where p.user.id = :userId and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED")
+    long countActiveByUserId(@Param("userId") Long userId);
+
     // 최근 N일간 특정 학교의 게시글을 좋아요 많은 순으로 조회 (이번 주 인기글)
     @Query("""
         select
@@ -241,11 +253,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
           and p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.createdAt >= :since
+          and p.likeCount >= 1
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
         order by p.likeCount desc
     """)
     List<Object[]> findHotPostRowsBySchoolId(
             @Param("schoolId") Long schoolId,
             @Param("since") LocalDateTime since,
+            @Param("currentUserId") Long currentUserId,
             Pageable pageable
     );
 
@@ -262,8 +280,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from Comment c
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            )
+            ),
+            b.title
         from Post p
+        join p.board b
         where p.user.id = :userId
           and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED
         order by p.id desc

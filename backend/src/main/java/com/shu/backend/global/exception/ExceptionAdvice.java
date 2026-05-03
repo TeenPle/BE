@@ -165,7 +165,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     //위에서 처리하지 않은 모든 예외 (서버 에러)
     @ExceptionHandler
     public ResponseEntity<Object> exception(Exception e, WebRequest request) {
-        e.printStackTrace();
+        log.error("Unhandled exception", e);
 
         return handleExceptionInternalFalse(
                 e,
@@ -173,7 +173,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
                 HttpHeaders.EMPTY,
                 ErrorStatus._INTERNAL_SERVER_ERROR.getHttpStatus(),
                 request,
-                e.getMessage());
+                "서버 내부 오류가 발생했습니다.");
     }
 
 

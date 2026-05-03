@@ -13,6 +13,7 @@ import java.util.List;
 public class PostDetailResponse {
 
     private Long postId;
+    private Long authorUserId;
     @JsonProperty("isMine")
     private boolean isMine;
     private String title;
@@ -26,15 +27,18 @@ public class PostDetailResponse {
     private String authorProfileImageUrl;
     private List<CommentResponse> comments;
     private List<PostMediaResponse> mediaList;
+    @JsonProperty("isBookmarked")
+    private boolean isBookmarked;
 
 
-    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId) {
+    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked) {
         String profileImageUrl = post.getAnonymous() ? null : post.getUser().getProfileImageUrl();
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
         }
         return PostDetailResponse.builder()
                 .postId(post.getId())
+                .authorUserId(post.getUser().getId())
                 .isMine(post.getUser().getId().equals(currentUserId))
                 .title(post.getTitle())
                 .content(post.getContent())
@@ -47,6 +51,7 @@ public class PostDetailResponse {
                 .authorProfileImageUrl(profileImageUrl)
                 .comments(comments)
                 .mediaList(mediaList)
+                .isBookmarked(isBookmarked)
                 .build();
     }
 }

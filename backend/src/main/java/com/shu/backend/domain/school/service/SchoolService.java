@@ -119,7 +119,7 @@ public class SchoolService {
     /*
     특정 학교 상세정보 조회 (기본으로 자유게시판 조회)
      */
-    public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable) {
+    public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable, Long currentUserId) {
 
         School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
@@ -136,7 +136,7 @@ public class SchoolService {
                 .map(BoardResponse::toDto)
                 .toList();
 
-        Slice<PostResponse> postSlice = postService.getPostsByBoardId(freeBoard.getId(), pageable);
+        Slice<PostResponse> postSlice = postService.getPostsByBoardId(freeBoard.getId(), pageable, currentUserId);
 
         return new SchoolDetailResponse(
                 school.getId(),

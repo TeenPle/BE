@@ -7,7 +7,9 @@ import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
 import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
+import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
 import com.shu.backend.domain.post.component.ViewCountAccumulator;
+import com.shu.backend.global.moderation.ContentModerationService;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
 import com.shu.backend.domain.post.dto.PostDetailResponse;
 import com.shu.backend.domain.post.dto.PostMediaResponse;
@@ -33,10 +35,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaTargetType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +60,8 @@ public class PostService {
     private final PostMediaService postMediaService;
     private final MediaRepository mediaRepository;
     private final ViewCountAccumulator viewCountAccumulator;
+    private final ContentModerationService contentModerationService;
+    private final BookmarkRepository bookmarkRepository;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -101,8 +107,12 @@ public class PostService {
             throw new BoardException(BoardErrorStatus.INVALID_BOARD_SCOPE);
         }
 
-        String title = req.getTitle().trim();
-        String content = req.getContent().trim();
+        String rawTitle = req.getTitle().trim();
+        String rawContent = req.getContent().trim();
+        contentModerationService.checkPost(rawTitle, rawContent);
+
+        String title = HtmlUtils.htmlEscape(rawTitle);
+        String content = HtmlUtils.htmlEscape(rawContent);
 
         Post post = Post.builder()
                 .title(title)
@@ -136,7 +146,14 @@ public class PostService {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
 
-        post.update(req.getTitle(), req.getContent(), req.isAnonymous());
+        String rawTitle = req.getTitle().trim();
+        String rawContent = req.getContent().trim();
+        contentModerationService.checkPost(rawTitle, rawContent);
+
+        String title = HtmlUtils.htmlEscape(rawTitle);
+        String content = HtmlUtils.htmlEscape(rawContent);
+
+        post.update(title, content, req.isAnonymous());
 
         postMediaService.deleteByIds(req.getDeleteMediaIds(), postId, userId);
 
@@ -184,12 +201,13 @@ public class PostService {
 
         List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId);
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
+        boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
 
-        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId);
+        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked);
     }
 
     // 특정 게시판의 글 페이징 조회
-    public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable) {
+    public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable, Long currentUserId) {
         // Slice 처리를 위해 size+1로 한 건 더 가져와 hasNext 판정
         Pageable slicePageable = PageRequest.of(
                 pageable.getPageNumber(),
@@ -197,7 +215,7 @@ public class PostService {
                 Sort.by(Sort.Direction.DESC, "id")
         );
 
-        List<Object[]> rows = postRepository.findPostRowsByBoardId(boardId, slicePageable);
+        List<Object[]> rows = postRepository.findPostRowsByBoardId(boardId, currentUserId, slicePageable);
 
         boolean hasNext = rows.size() > pageable.getPageSize();
         if (hasNext) {
@@ -213,7 +231,7 @@ public class PostService {
         return new SliceImpl<>(content, pageable, hasNext);
     }
 
-    public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, String keyword, Pageable pageable) {
+    public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, String keyword, Pageable pageable, Long currentUserId) {
         if (!StringUtils.hasText(keyword)) {
             return new SliceImpl<>(List.of(), pageable, false);
         }
@@ -239,8 +257,12 @@ public class PostService {
                 slicePageable
         );*/
 
-        // Phase 1: ID만 가져오기
-        List<Long> ids = postRepository.findSearchPostIds(keyword, schoolId, regionId, slicePageable);
+        // Phase 1: ID만 가져오기 (LIKE 와일드카드 이스케이프)
+        String escapedKeyword = keyword.trim()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        List<Long> ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, regionId, currentUserId, slicePageable);
 
         boolean hasNext = ids.size() > pageable.getPageSize();
         if (hasNext) {
@@ -264,12 +286,16 @@ public class PostService {
         return new SliceImpl<>(content, responsePageable, hasNext);
     }
 
-    // 최근 3일간 해당 학교의 좋아요 많은 게시글 조회 (이번 주 인기글)
-    public List<PostResponse> getHotPosts(Long schoolId, int size) {
+    // 해당 학교의 HOT 게시글 조회 (filter: TODAY / WEEK / ALL)
+    public List<PostResponse> getHotPosts(Long schoolId, String filter, int size, Long currentUserId) {
         int safeSize = Math.min(Math.max(size, 1), 20);
-        LocalDateTime since = LocalDateTime.now().minusDays(3);
+        LocalDateTime since = switch (filter.toUpperCase()) {
+            case "TODAY" -> LocalDate.now().atStartOfDay();
+            case "ALL"   -> LocalDateTime.of(2020, 1, 1, 0, 0);
+            default      -> LocalDateTime.now().minusDays(7);  // WEEK
+        };
         Pageable pageable = PageRequest.of(0, safeSize);
-        List<Object[]> rows = postRepository.findHotPostRowsBySchoolId(schoolId, since, pageable);
+        List<Object[]> rows = postRepository.findHotPostRowsBySchoolId(schoolId, since, currentUserId, pageable);
         List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
         return attachMediaToResponses(content);
     }

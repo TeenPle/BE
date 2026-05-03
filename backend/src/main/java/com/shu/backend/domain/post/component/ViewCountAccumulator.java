@@ -36,6 +36,6 @@ public class ViewCountAccumulator {
     }
 
     public Map<Long, LongAdder> snapshot() {
-        return nativeCache.asMap();
+        return Map.copyOf(nativeCache.asMap());
     }
 }

@@ -136,7 +136,11 @@ public class S3FileStorageService implements FileStorageService {
 
     // 학생증 전용 업로드 (프라이빗 버킷, key만 반환)
     private String uploadToStudentCardBucket(MultipartFile file) throws IOException {
-        String key = props.getStudentCardDir() + "/" + UUID.randomUUID() + extractExt(file);
+        // MIME 타입·매직바이트 검증 (jpg, png만 허용)
+        byte[] bytes = FileValidator.validateStudentCard(file);
+
+        String ext = FileValidator.extractSafeExt(file.getContentType());
+        String key = props.getStudentCardDir() + "/" + UUID.randomUUID() + ext;
 
         s3Client.putObject(
                 PutObjectRequest.builder()
@@ -144,7 +148,7 @@ public class S3FileStorageService implements FileStorageService {
                         .key(key)
                         .contentType(file.getContentType())
                         .build(),
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                RequestBody.fromBytes(bytes)
         );
 
         log.info("학생증 업로드 완료: bucket={}, key={}", props.getStudentCardBucket(), key);
@@ -153,7 +157,11 @@ public class S3FileStorageService implements FileStorageService {
 
     // 퍼블릭 버킷 공통 업로드 (S3 public URL 반환)
     private String upload(MultipartFile file, String dir) throws IOException {
-        String key = dir + "/" + UUID.randomUUID() + extractExt(file);
+        // MIME 타입·매직바이트 검증 (게시글·채팅·프로필 이미지 공통)
+        byte[] bytes = FileValidator.validatePostMedia(file);
+
+        String ext = FileValidator.extractSafeExt(file.getContentType());
+        String key = dir + "/" + UUID.randomUUID() + ext;
 
         s3Client.putObject(
                 PutObjectRequest.builder()
@@ -161,7 +169,7 @@ public class S3FileStorageService implements FileStorageService {
                         .key(key)
                         .contentType(file.getContentType())
                         .build(),
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+                RequestBody.fromBytes(bytes)
         );
 
         String url = String.format("https://%s.s3.%s.amazonaws.com/%s", props.getBucket(), props.getRegion(), key);
@@ -176,12 +184,4 @@ public class S3FileStorageService implements FileStorageService {
         return url.substring(idx + ".amazonaws.com/".length());
     }
 
-    // 파일 확장자 추출
-    private String extractExt(MultipartFile file) {
-        String name = file.getOriginalFilename();
-        if (name != null && name.contains(".")) {
-            return name.substring(name.lastIndexOf("."));
-        }
-        return "";
-    }
 }

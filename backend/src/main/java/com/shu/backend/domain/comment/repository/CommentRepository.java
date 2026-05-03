@@ -20,6 +20,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     int countByPostId(Long postId);
 
+    @Query("select count(c) from Comment c where c.user.id = :userId and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED")
+    long countActiveByUserId(@Param("userId") Long userId);
+
     @Query("""
         select c
         from Comment c
@@ -27,16 +30,20 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         where c.post.id = :postId
           and c.parent is null
           and c.commentStatus in :statuses
+          and c.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
         order by c.createdAt asc
     """)
     List<Comment> findParentsForPostDetail(
             @Param("postId") Long postId,
-            @Param("statuses") List<CommentStatus> statuses
+            @Param("statuses") List<CommentStatus> statuses,
+            @Param("currentUserId") Long currentUserId
     );
 
-    default List<Comment> findParentsForPostDetail(Long postId) {
-        // DELETED 포함 — 자식이 있으면 "삭제된 댓글입니다." 플레이스홀더로 표시해야 하므로
-        return findParentsForPostDetail(postId, List.of(CommentStatus.ACTIVE, CommentStatus.HIDDEN, CommentStatus.DELETED));
+    default List<Comment> findParentsForPostDetail(Long postId, Long currentUserId) {
+        return findParentsForPostDetail(postId, List.of(CommentStatus.ACTIVE, CommentStatus.HIDDEN, CommentStatus.DELETED), currentUserId);
     }
 
     @Query("""
@@ -61,9 +68,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     select c from Comment c
     join fetch c.user u
     where c.parent.id in :parentIds
+      and c.user.id not in (
+          select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+          where ub.blocker.id = :currentUserId
+      )
     order by c.parent.id asc, c.createdAt asc
 """)
-    List<Comment> findChildrenByParentIds(List<Long> parentIds);
+    List<Comment> findChildrenByParentIds(@Param("parentIds") List<Long> parentIds, @Param("currentUserId") Long currentUserId);
 
     @Query("""
         select
@@ -72,7 +83,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             c.post.id,
             c.post.title,
             c.likeCount,
-            c.createdAt
+            c.createdAt,
+            c.post.board.title
         from Comment c
         where c.user.id = :userId
           and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED

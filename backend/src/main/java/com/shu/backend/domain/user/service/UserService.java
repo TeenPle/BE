@@ -36,6 +36,9 @@ public class UserService {
         User user = userRepository.findByIdWithSchoolAndRegion(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
 
+        long myPostCount = postRepository.countActiveByUserId(userId);
+        long myCommentCount = commentRepository.countActiveByUserId(userId);
+
         return UserDTO.ProfileResponse.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
@@ -46,6 +49,9 @@ public class UserService {
                 .gender(user.getGender())
                 .verified(user.isVerified())
                 .phoneVerified(user.isPhoneVerified())
+                .myPostCount(myPostCount)
+                .myCommentCount(myCommentCount)
+                .nicknameChangedAt(user.getNicknameChangedAt())
                 .build();
     }
 
@@ -56,6 +62,10 @@ public class UserService {
 
         if (user.getNickname().equals(nickname)) {
             throw new GeneralException(UserErrorStatus.SAME_NICKNAME);
+        }
+        if (user.getNicknameChangedAt() != null &&
+                user.getNicknameChangedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+            throw new GeneralException(UserErrorStatus.NICKNAME_CHANGE_COOLDOWN);
         }
         if (userRepository.existsByNickname(nickname)) {
             throw new GeneralException(UserErrorStatus.EXIST_NICKNAME);
@@ -90,6 +100,7 @@ public class UserService {
                 .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
                 .createdAt((LocalDateTime) r[5])
                 .commentCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
+                .boardTitle((String) r[7])
                 .build()
         ).toList();
     }
@@ -104,6 +115,7 @@ public class UserService {
                 .postTitle((String) r[3])
                 .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
                 .createdAt((LocalDateTime) r[5])
+                .boardTitle((String) r[6])
                 .build()
         ).toList();
     }
