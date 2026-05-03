@@ -10,6 +10,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
@@ -25,12 +26,17 @@ public class WsJwtChannelInterceptor implements ChannelInterceptor {
 
     private static final Pattern ROOM_SUB_PATTERN =
             Pattern.compile("^/sub/chat/rooms/(\\d+)$");
+    private static final Pattern USER_ROOM_SUB_PATTERN =
+            Pattern.compile("^/sub/chat/users/(\\d+)/rooms$");
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
 
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
-        if (accessor.getCommand() == null) return message;
+        // wrap()은 헤더 복사본을 만들어 setUser()가 원본 message에 반영되지 않음
+        // getAccessor()로 message에 연결된 mutable accessor를 직접 가져와야 세션에 user가 저장됨
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor == null || accessor.getCommand() == null) return message;
 
         /* ================= CONNECT ================= */
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
@@ -73,6 +79,17 @@ public class WsJwtChannelInterceptor implements ChannelInterceptor {
                         .isPresent();
 
                 if (!isMember) {
+                    throw new ChatMessageException(ChatMessageErrorStatus.WS_NOT_ROOM_MEMBER);
+                }
+            }
+
+            Matcher userRoomMatcher = USER_ROOM_SUB_PATTERN.matcher(destination);
+            if (userRoomMatcher.matches()) {
+                Long destinationUserId = Long.valueOf(userRoomMatcher.group(1));
+                Long userId = Long.valueOf(principal.getName());
+
+                // 유저별 채팅 목록 이벤트는 본인 채널만 구독 가능해야 다른 사용자의 방 갱신 여부가 노출되지 않는다.
+                if (!destinationUserId.equals(userId)) {
                     throw new ChatMessageException(ChatMessageErrorStatus.WS_NOT_ROOM_MEMBER);
                 }
             }

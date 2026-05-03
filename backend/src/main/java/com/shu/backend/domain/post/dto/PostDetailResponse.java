@@ -16,6 +16,7 @@ public class PostDetailResponse {
     private Long authorUserId;
     @JsonProperty("isMine")
     private boolean isMine;
+    private Long authorId;   // 게시글 작성자 userId (채팅 유입용)
     private String title;
     private String content;
     private Integer viewCount;
@@ -40,6 +41,7 @@ public class PostDetailResponse {
                 .postId(post.getId())
                 .authorUserId(post.getUser().getId())
                 .isMine(post.getUser().getId().equals(currentUserId))
+                .authorId(post.getUser().getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .viewCount(post.getViewCount())

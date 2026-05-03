@@ -10,7 +10,6 @@ import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
 import com.shu.backend.domain.media.entity.Media;
-import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.notification.enums.NotificationTargetType;
 import com.shu.backend.domain.notification.enums.NotificationType;
@@ -85,10 +84,10 @@ public class ChatMessageService {
         // 요청 타입(TEXT/IMAGE) 변환 및 검증
         ChatMessage.MessageType type = mapType(req.getType());
 
-        // IMAGE 메시지는 imageUrl 필수
+        // IMAGE 메시지는 업로드/검수 완료된 mediaId 필수
         if (type == ChatMessage.MessageType.IMAGE) {
-            if (req.getImageUrl() == null || req.getImageUrl().isBlank()) {
-                throw new ChatMessageException(ChatMessageErrorStatus.IMAGE_URL_REQUIRED);
+            if (req.getMediaId() == null) {
+                throw new ChatMessageException(ChatMessageErrorStatus.IMAGE_MEDIA_REQUIRED);
             }
         }
 
@@ -106,8 +105,14 @@ public class ChatMessageService {
         // IMAGE 메시지면 Media에 연결 저장 (targetType=CHAT_MESSAGE, targetId=messageId)
         ChatMessageDTO.MediaItem mediaItem = null;
         if (type == ChatMessage.MessageType.IMAGE) {
-            Media media = Media.ofChatMessage(req.getImageUrl(), saved.getId(), MediaType.IMAGE, sender);
-            Media savedMedia = mediaRepository.save(media);
+            Media savedMedia = mediaRepository.findByIdAndUploaderId(req.getMediaId(), senderId)
+                    .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_NOT_FOUND));
+
+            if (!savedMedia.isApprovedChatUploadBy(senderId)) {
+                throw new ChatMessageException(ChatMessageErrorStatus.CHAT_IMAGE_NOT_FOUND);
+            }
+
+            savedMedia.attachToChatMessage(saved.getId());
 
             mediaItem = ChatMessageDTO.MediaItem.builder()
                     .id(savedMedia.getId())
@@ -172,8 +177,20 @@ public class ChatMessageService {
     @Transactional(readOnly = true)
     public ChatMessageDTO.MessageListResponse getMessages(Long myId, Long roomId, Long lastId) {
 
-        chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
+        ChatRoomUser myCru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.NOT_ROOM_MEMBER));
+
+        // 상대방 ID 계산 (1:1 DM 기준)
+        ChatRoom room = myCru.getChatRoom();
+        Long otherId = room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
+
+        // 상대방이 마지막으로 읽은 메시지 ID (카카오톡 "1" 기준값)
+        Long otherLastRead = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, otherId)
+                .map(ChatRoomUser::getLastReadMessageId)
+                .orElse(null);
+        boolean blockedByOther = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, otherId)
+                .map(ChatRoomUser::isBlocked)
+                .orElse(false);
 
         List<ChatMessage> list = (lastId == null)
                 ? chatMessageRepository.findTop50ByChatRoomIdOrderByIdDesc(roomId)
@@ -215,6 +232,10 @@ public class ChatMessageService {
         return ChatMessageDTO.MessageListResponse.builder()
                 .roomId(roomId)
                 .messages(res)
+                .otherLastReadMessageId(otherLastRead)
+                .blocked(myCru.isBlocked() || blockedByOther)
+                .blockedByMe(myCru.isBlocked())
+                .blockedByOther(blockedByOther)
                 .build();
     }
 

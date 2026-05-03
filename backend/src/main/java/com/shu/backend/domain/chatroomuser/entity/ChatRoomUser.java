@@ -83,18 +83,17 @@ public class ChatRoomUser extends BaseEntity {
         }
     }
 
-    // 차단 (완전 차단 + 내 목록에서 숨김)
+    // 차단 상태로 전환하되 방은 목록에 유지한다. 입력 비활성화/차단 해제는 방 안에서 처리한다.
     public void block() {
         this.blockedAt = LocalDateTime.now();
-        this.leftAt = LocalDateTime.now();
-        this.hidden = true;
+        this.leftAt = null;
+        this.hidden = false;
     }
 
     public void unblock() {
         this.blockedAt = null;
-        // 해제 시 방을 다시 보이게 할지 정책에 따라:
-        // this.hidden = false;
-        // this.leftAt = null;
+        this.leftAt = null;
+        this.hidden = false;
     }
 
     public static ChatRoomUser createHidden(ChatRoom chatRoom, User user) {

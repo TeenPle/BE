@@ -14,7 +14,9 @@ public enum ChatRoomSuccessStatus implements BaseCode {
     DM_ROOM_FIND_OR_CREATE_SUCCESS(HttpStatus.OK,"CHATROOM2001","DM 채팅방 생성 또는 조회 성공"),
     CHAT_ROOM_LIST_SUCCESS(HttpStatus.OK,"CHATROOM2002","채팅방 목록 조회 성공"),
     CHAT_ROOM_LEAVE_SUCCESS(HttpStatus.OK,"CHATROOM2003","채팅방 나가기 성공"),
-    CHAT_ROOM_BLOCK_SUCCESS(HttpStatus.OK,"CHATROOM2004","채팅방 차단 성공");
+    CHAT_ROOM_BLOCK_SUCCESS(HttpStatus.OK,"CHATROOM2004","채팅방 차단 성공"),
+    CHAT_ROOM_REPORT_SUCCESS(HttpStatus.OK,"CHATROOM2005","채팅방 신고 성공"),
+    CHAT_ROOM_UNBLOCK_SUCCESS(HttpStatus.OK,"CHATROOM2006","채팅방 차단 해제 성공");
 
     private final HttpStatus httpStatus;
     private final String code;

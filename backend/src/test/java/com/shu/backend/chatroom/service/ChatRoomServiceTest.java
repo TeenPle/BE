@@ -15,8 +15,12 @@ import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import com.shu.backend.domain.notification.service.NotificationService;
+import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +35,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,9 +47,22 @@ class ChatFeatureServiceTest {
     @Mock ChatMessageRepository chatMessageRepository;
     @Mock UserRepository userRepository;
     @Mock MediaRepository mediaRepository;
+    @Mock NotificationService notificationService;
+    @Mock PushService pushService;
+    @Mock UserSettingRepository userSettingRepository;
 
     @InjectMocks ChatRoomService chatRoomService;
     @InjectMocks ChatMessageService chatMessageService;
+
+    private static final Long SOURCE_POST_ID = 100L;
+    private static final String ROOM_TITLE = "테스트 게시글";
+
+    @BeforeEach
+    void stubNotification() {
+        // notificationService.create() → null 반환 (push 로직 skip)
+        lenient().when(notificationService.create(any(), any(), anyLong(), anyString(), anyLong(), anyLong()))
+                .thenReturn(null);
+    }
 
     // =========================
     // ChatRoomService
@@ -54,19 +73,21 @@ class ChatFeatureServiceTest {
         Long myId = 1L;
         Long otherId = 2L;
 
-        ChatRoom created = ChatRoom.ofDm(myId, otherId);
+        ChatRoom created = ChatRoom.ofDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE);
         setId(created, 10L);
 
-        when(chatRoomRepository.findByUser1IdAndUser2Id(1L, 2L)).thenReturn(Optional.empty());
+        when(chatRoomRepository.findByUser1IdAndUser2IdAndSourcePostId(1L, 2L, SOURCE_POST_ID))
+                .thenReturn(Optional.empty());
         when(chatRoomRepository.save(any(ChatRoom.class))).thenReturn(created);
 
         when(userRepository.getReferenceById(myId)).thenReturn(mock(User.class));
         when(userRepository.getReferenceById(otherId)).thenReturn(mock(User.class));
 
-        ChatRoomDTO.CreateDmResponse res = chatRoomService.findOrCreateDm(myId, otherId);
+        ChatRoomDTO.CreateDmResponse res = chatRoomService.findOrCreateDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE);
 
         assertThat(res.getRoomId()).isEqualTo(10L);
         assertThat(res.getOtherUserId()).isEqualTo(otherId);
+        assertThat(res.getDisplayName()).isEqualTo(ROOM_TITLE);
 
         verify(chatRoomRepository).save(any(ChatRoom.class));
         verify(chatRoomUserRepository, times(2)).save(any(ChatRoomUser.class));
@@ -77,12 +98,13 @@ class ChatFeatureServiceTest {
         Long myId = 2L;
         Long otherId = 1L;
 
-        ChatRoom existed = ChatRoom.ofDm(myId, otherId);
+        ChatRoom existed = ChatRoom.ofDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE);
         setId(existed, 99L);
 
-        when(chatRoomRepository.findByUser1IdAndUser2Id(1L, 2L)).thenReturn(Optional.of(existed));
+        when(chatRoomRepository.findByUser1IdAndUser2IdAndSourcePostId(1L, 2L, SOURCE_POST_ID))
+                .thenReturn(Optional.of(existed));
 
-        ChatRoomDTO.CreateDmResponse res = chatRoomService.findOrCreateDm(myId, otherId);
+        ChatRoomDTO.CreateDmResponse res = chatRoomService.findOrCreateDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE);
 
         assertThat(res.getRoomId()).isEqualTo(99L);
         assertThat(res.getOtherUserId()).isEqualTo(otherId);
@@ -93,18 +115,42 @@ class ChatFeatureServiceTest {
     }
 
     @Test
+    void 같은_두_사용자가_다른_글에서_만나면_별도_채팅방이_생성된다() {
+        Long myId = 1L;
+        Long otherId = 2L;
+        Long anotherPostId = 200L;
+
+        ChatRoom room1 = ChatRoom.ofDm(myId, otherId, SOURCE_POST_ID, "글 A");
+        setId(room1, 10L);
+        ChatRoom room2 = ChatRoom.ofDm(myId, otherId, anotherPostId, "글 B");
+        setId(room2, 11L);
+
+        when(chatRoomRepository.findByUser1IdAndUser2IdAndSourcePostId(1L, 2L, SOURCE_POST_ID))
+                .thenReturn(Optional.of(room1));
+        when(chatRoomRepository.findByUser1IdAndUser2IdAndSourcePostId(1L, 2L, anotherPostId))
+                .thenReturn(Optional.of(room2));
+
+        ChatRoomDTO.CreateDmResponse res1 = chatRoomService.findOrCreateDm(myId, otherId, SOURCE_POST_ID, "글 A");
+        ChatRoomDTO.CreateDmResponse res2 = chatRoomService.findOrCreateDm(myId, otherId, anotherPostId, "글 B");
+
+        assertThat(res1.getRoomId()).isEqualTo(10L);
+        assertThat(res2.getRoomId()).isEqualTo(11L);
+        assertThat(res1.getRoomId()).isNotEqualTo(res2.getRoomId());
+    }
+
+    @Test
     void 내_채팅방_목록은_lastMessageAt_최신순으로_정렬된다_null은_맨아래() {
         Long myId = 1L;
 
-        ChatRoom r1 = ChatRoom.ofDm(1L, 2L);
+        ChatRoom r1 = ChatRoom.ofDm(1L, 2L, 1L, "글1");
         setId(r1, 1L);
         setField(r1, "lastMessageAt", LocalDateTime.of(2025, 1, 1, 10, 0));
 
-        ChatRoom r2 = ChatRoom.ofDm(1L, 3L);
+        ChatRoom r2 = ChatRoom.ofDm(1L, 3L, 2L, "글2");
         setId(r2, 2L);
         setField(r2, "lastMessageAt", LocalDateTime.of(2025, 1, 1, 12, 0));
 
-        ChatRoom r3 = ChatRoom.ofDm(1L, 4L);
+        ChatRoom r3 = ChatRoom.ofDm(1L, 4L, 3L, "글3");
         setId(r3, 3L);
         setField(r3, "lastMessageAt", null);
 
@@ -112,8 +158,14 @@ class ChatFeatureServiceTest {
         ChatRoomUser cru2 = mockCruForList(r2);
         ChatRoomUser cru3 = mockCruForList(r3);
 
-        when(chatRoomUserRepository.findByUserIdAndHiddenFalseAndBlockedAtIsNull(myId))
+        when(chatRoomUserRepository.findByUserIdAndHiddenFalse(myId))
                 .thenReturn(new ArrayList<>(List.of(cru1, cru3, cru2)));
+        when(chatRoomUserRepository.findByChatRoomIdIn(List.of(2L, 1L, 3L)))
+                .thenReturn(List.of());
+        when(chatMessageRepository.findAllById(List.of()))
+                .thenReturn(List.of());
+        when(chatMessageRepository.countUnreadByRoomIds(List.of(2L, 1L, 3L), myId))
+                .thenReturn(List.of());
 
         ChatRoomDTO.RoomListResponse res = chatRoomService.getMyRooms(myId);
 
@@ -169,7 +221,7 @@ class ChatFeatureServiceTest {
         Long senderId = 1L;
         Long receiverId = 2L;
 
-        ChatRoom room = ChatRoom.ofDm(senderId, receiverId);
+        ChatRoom room = ChatRoom.ofDm(senderId, receiverId, SOURCE_POST_ID, ROOM_TITLE);
         setId(room, 10L);
         setField(room, "user1Id", 1L);
         setField(room, "user2Id", 2L);
@@ -220,7 +272,7 @@ class ChatFeatureServiceTest {
         Long senderId = 1L;
         Long receiverId = 2L;
 
-        ChatRoom room = ChatRoom.ofDm(senderId, receiverId);
+        ChatRoom room = ChatRoom.ofDm(senderId, receiverId, SOURCE_POST_ID, ROOM_TITLE);
         setId(room, 10L);
         setField(room, "user1Id", 1L);
         setField(room, "user2Id", 2L);
@@ -277,7 +329,7 @@ class ChatFeatureServiceTest {
         Long senderId = 1L;
         Long receiverId = 2L;
 
-        ChatRoom room = ChatRoom.ofDm(senderId, receiverId);
+        ChatRoom room = ChatRoom.ofDm(senderId, receiverId, SOURCE_POST_ID, ROOM_TITLE);
         setId(room, 10L);
         setField(room, "user1Id", 1L);
         setField(room, "user2Id", 2L);
@@ -298,7 +350,7 @@ class ChatFeatureServiceTest {
         ChatMessageDTO.SendRequest req = new ChatMessageDTO.SendRequest();
         req.setRoomId(10L);
         req.setType(ChatMessageDTO.MessageType.IMAGE);
-        req.setImageUrl("  "); // blank
+        req.setImageUrl("  ");
 
         assertThatThrownBy(() -> chatMessageService.send(senderId, req))
                 .isInstanceOf(ChatMessageException.class);
@@ -312,7 +364,7 @@ class ChatFeatureServiceTest {
         Long senderId = 1L;
         Long receiverId = 2L;
 
-        ChatRoom room = ChatRoom.ofDm(senderId, receiverId);
+        ChatRoom room = ChatRoom.ofDm(senderId, receiverId, SOURCE_POST_ID, ROOM_TITLE);
         setId(room, 10L);
         setField(room, "user1Id", 1L);
         setField(room, "user2Id", 2L);
@@ -320,10 +372,9 @@ class ChatFeatureServiceTest {
         when(chatRoomRepository.findById(10L)).thenReturn(Optional.of(room));
 
         ChatRoomUser senderCru = mock(ChatRoomUser.class);
-        when(senderCru.isBlocked()).thenReturn(true); // 차단 -> 여기서 예외로 끝남(단축평가)
+        when(senderCru.isBlocked()).thenReturn(true);
 
         ChatRoomUser receiverCru = mock(ChatRoomUser.class);
-        // ✅ 불필요 스텁 제거: senderCru가 true면 receiverCru.isBlocked() 호출 자체가 안 됨
 
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(10L, senderId)).thenReturn(Optional.of(senderCru));
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(10L, receiverId)).thenReturn(Optional.of(receiverCru));
@@ -345,7 +396,7 @@ class ChatFeatureServiceTest {
         Long senderId = 1L;
         Long receiverId = 2L;
 
-        ChatRoom room = ChatRoom.ofDm(senderId, receiverId);
+        ChatRoom room = ChatRoom.ofDm(senderId, receiverId, SOURCE_POST_ID, ROOM_TITLE);
         setId(room, 10L);
         setField(room, "user1Id", 1L);
         setField(room, "user2Id", 2L);
@@ -492,6 +543,7 @@ class ChatFeatureServiceTest {
     private static ChatRoomUser mockCruForList(ChatRoom room) {
         ChatRoomUser cru = mock(ChatRoomUser.class);
         when(cru.getChatRoom()).thenReturn(room);
+        when(cru.isBlocked()).thenReturn(false);
         return cru;
     }
 }
