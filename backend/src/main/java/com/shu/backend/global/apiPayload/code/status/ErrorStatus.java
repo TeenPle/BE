@@ -17,6 +17,9 @@ public enum ErrorStatus implements BaseErrorCode {
     // 동시성 관련
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "COMMON4091", "요청이 처리 중입니다. 잠시 후 다시 시도해주세요."),
 
+    // Rate Limiting
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "COMMON4290", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+
 
     // 인증 관련
     MALFORMED_JWT_TOKEN(HttpStatus.BAD_REQUEST, "AUTH4101", "잘못 구성된 JWT 형식입니다."),

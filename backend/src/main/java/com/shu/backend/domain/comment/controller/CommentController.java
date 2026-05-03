@@ -6,8 +6,10 @@ import com.shu.backend.domain.comment.exception.status.CommentSuccessStatus;
 import com.shu.backend.domain.comment.service.CommentService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +29,10 @@ public class CommentController {
             summary = "댓글 생성",
             description = "특정 게시판에 댓글을 작성합니다."
     )
+    @RateLimit(key = "comment", limit = 5, windowSeconds = 60)
     @PostMapping("/posts/{postId}/comments")
     public ApiResponse<Long> createComment(@PathVariable Long postId,
-                                           @RequestBody CommentCreateRequest req,
+                                           @RequestBody @Valid CommentCreateRequest req,
                                            @AuthenticationPrincipal User user) {
 
         Long userId = user.getId();
@@ -45,7 +48,7 @@ public class CommentController {
     )
     @PatchMapping("/comments/{commentId}")
     public ApiResponse<Long> updateComment(@PathVariable Long commentId,
-                                           @RequestBody CommentUpdateRequest req,
+                                           @RequestBody @Valid CommentUpdateRequest req,
                                            @AuthenticationPrincipal User user) {
         Long userId = user.getId();
 

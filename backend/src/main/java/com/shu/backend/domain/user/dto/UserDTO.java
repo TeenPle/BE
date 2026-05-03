@@ -4,8 +4,10 @@ import com.shu.backend.domain.user.enums.Gender;
 import com.shu.backend.domain.user.enums.Grade;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +31,8 @@ public class UserDTO {
     }
 
     @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class NicknameUpdateRequest {
         @NotBlank(message = "닉네임을 입력해주세요.")
         @Size(min = 2, max = 20, message = "닉네임은 2~20자 사이여야 합니다.")
@@ -36,6 +40,8 @@ public class UserDTO {
     }
 
     @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PasswordUpdateRequest {
         @NotBlank(message = "현재 비밀번호를 입력해주세요.")
         private String currentPassword;

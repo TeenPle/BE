@@ -7,6 +7,7 @@ import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
 import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
+import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
 import com.shu.backend.domain.post.component.ViewCountAccumulator;
 import com.shu.backend.global.moderation.ContentModerationService;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
@@ -60,6 +61,7 @@ public class PostService {
     private final MediaRepository mediaRepository;
     private final ViewCountAccumulator viewCountAccumulator;
     private final ContentModerationService contentModerationService;
+    private final BookmarkRepository bookmarkRepository;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -105,10 +107,12 @@ public class PostService {
             throw new BoardException(BoardErrorStatus.INVALID_BOARD_SCOPE);
         }
 
-        String title = HtmlUtils.htmlEscape(req.getTitle().trim());
-        String content = HtmlUtils.htmlEscape(req.getContent().trim());
+        String rawTitle = req.getTitle().trim();
+        String rawContent = req.getContent().trim();
+        contentModerationService.checkPost(rawTitle, rawContent);
 
-        contentModerationService.checkPost(title, content);
+        String title = HtmlUtils.htmlEscape(rawTitle);
+        String content = HtmlUtils.htmlEscape(rawContent);
 
         Post post = Post.builder()
                 .title(title)
@@ -142,9 +146,12 @@ public class PostService {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
 
-        String title = HtmlUtils.htmlEscape(req.getTitle().trim());
-        String content = HtmlUtils.htmlEscape(req.getContent().trim());
-        contentModerationService.checkPost(title, content);
+        String rawTitle = req.getTitle().trim();
+        String rawContent = req.getContent().trim();
+        contentModerationService.checkPost(rawTitle, rawContent);
+
+        String title = HtmlUtils.htmlEscape(rawTitle);
+        String content = HtmlUtils.htmlEscape(rawContent);
 
         post.update(title, content, req.isAnonymous());
 
@@ -194,8 +201,9 @@ public class PostService {
 
         List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId);
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
+        boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
 
-        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId);
+        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked);
     }
 
     // 특정 게시판의 글 페이징 조회

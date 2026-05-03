@@ -1,8 +1,10 @@
 package com.shu.backend.domain.usersetting.dto;
 
 import com.shu.backend.domain.usersetting.entity.UserSetting;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 public class UserSettingDTO {
 
@@ -27,6 +29,8 @@ public class UserSettingDTO {
     }
 
     @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UpdateRequest {
         // null이면 변경하지 않음
         private Boolean allowPush;

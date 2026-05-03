@@ -3,8 +3,10 @@ package com.shu.backend.domain.warning.dto;
 import com.shu.backend.domain.warning.entity.Warning;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 
@@ -14,6 +16,8 @@ public class WarningDTO {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class IssueRequest {
         @NotBlank(message = "관리자 코멘트를 입력해주세요.")
         @Size(max = 500, message = "코멘트는 500자 이하로 입력해주세요.")

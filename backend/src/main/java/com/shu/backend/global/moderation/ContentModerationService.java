@@ -61,7 +61,7 @@ public class ContentModerationService {
     private static final List<Pattern> CONTACT_PATTERNS = List.of(
             Pattern.compile("01[016789][\\s\\-]?\\d{3,4}[\\s\\-]?\\d{4}"),
             Pattern.compile("오픈채팅|카카오톡\\s*(아이디|id|ID)|카톡\\s*(아이디|id|ID)"),
-            Pattern.compile("텔레그램.{0,10}(아이디|id|@|ID)|라인.{0,10}(아이디|id|ID)")
+            Pattern.compile("텔레그램.{0,10}+(아이디|id|@|ID)|라인.{0,10}+(아이디|id|ID)")
     );
 
     private final Set<String> selfHarmSet;
