@@ -57,6 +57,8 @@ public class ReportSummaryResponse {
         private String targetType;
         private Long targetId;
         private String targetContent;
+        private String schoolName;
+        private String boardTitle;
         private String reportReason;
         private String status;
         private String createdAt;

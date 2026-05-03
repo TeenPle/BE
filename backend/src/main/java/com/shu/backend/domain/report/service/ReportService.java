@@ -127,6 +127,7 @@ public class ReportService {
                 .orElseThrow(() -> new ReportException(ReportErrorStatus.REPORT_NOT_FOUND));
 
         String targetContent = resolveTargetContent(r.getTargetType(), r.getTargetId());
+        PostContext ctx = resolvePostContext(r.getTargetType(), r.getTargetId());
 
         return ReportSummaryResponse.DetailResponse.builder()
                 .reportId(r.getId())
@@ -137,6 +138,8 @@ public class ReportService {
                 .targetType(r.getTargetType().name())
                 .targetId(r.getTargetId())
                 .targetContent(targetContent)
+                .schoolName(ctx.schoolName())
+                .boardTitle(ctx.boardTitle())
                 .reportReason(r.getReportReason().name())
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
@@ -153,6 +156,26 @@ public class ReportService {
                     .map(Comment::getContent)
                     .orElse("(삭제된 댓글)");
             default -> "";
+        };
+    }
+
+    private record PostContext(String schoolName, String boardTitle) {}
+
+    private PostContext resolvePostContext(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case POST -> postRepository.findById(targetId)
+                    .map(p -> new PostContext(
+                            p.getBoard().getSchool() != null ? p.getBoard().getSchool().getName() : null,
+                            p.getBoard().getTitle()
+                    ))
+                    .orElse(new PostContext(null, null));
+            case COMMENT -> commentRepository.findById(targetId)
+                    .map(c -> new PostContext(
+                            c.getPost().getBoard().getSchool() != null ? c.getPost().getBoard().getSchool().getName() : null,
+                            c.getPost().getBoard().getTitle()
+                    ))
+                    .orElse(new PostContext(null, null));
+            default -> new PostContext(null, null);
         };
     }
 
