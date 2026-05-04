@@ -45,4 +45,9 @@ public class Penalty extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_id", nullable = false)
     private Report report;
+
+    public void cancel() {
+        this.status = PenaltyStatus.CANCELLED;
+        this.expiresAt = LocalDateTime.now();
+    }
 }

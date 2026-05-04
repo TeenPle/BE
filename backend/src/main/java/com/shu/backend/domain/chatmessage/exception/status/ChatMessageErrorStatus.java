@@ -21,6 +21,9 @@ public enum ChatMessageErrorStatus implements BaseErrorCode {
     CHAT_IMAGE_REJECTED(HttpStatus.BAD_REQUEST, "CHATMSG4008", "정책상 업로드할 수 없는 이미지입니다."),
     CHAT_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHATMSG4009", "업로드된 채팅 이미지를 찾을 수 없습니다."),
 
+    // 제재 중인 유저
+    CHAT_PENALIZED(HttpStatus.FORBIDDEN, "CHATMSG4013", "제재 기간 중에는 메시지를 보낼 수 없습니다."),
+
     // WebSocket 인증/인가
     UNAUTHORIZED_WS(HttpStatus.UNAUTHORIZED, "CHATMSG4010", "WebSocket 인증이 필요합니다."),
     INVALID_WS_TOKEN(HttpStatus.UNAUTHORIZED, "CHATMSG4011", "유효하지 않은 WebSocket 토큰입니다."),

@@ -1,5 +1,6 @@
 package com.shu.backend.domain.warning.dto;
 
+import com.shu.backend.domain.report.enums.TargetType;
 import com.shu.backend.domain.warning.entity.Warning;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -31,11 +32,53 @@ public class WarningDTO {
         private Long warningId;
         private String adminComment;
         private String issuedAt;  // ISO-8601
+        private String targetType;    // POST | COMMENT
+        private String targetSummary; // 신고된 콘텐츠 요약 (최대 80자)
 
         public static UnreadResponse from(Warning w) {
             return UnreadResponse.builder()
                     .warningId(w.getId())
                     .adminComment(w.getAdminComment())
+                    .issuedAt(w.getCreatedAt().format(ISO_FMT))
+                    .build();
+        }
+
+        public static UnreadResponse from(Warning w, String targetType, String targetSummary) {
+            return UnreadResponse.builder()
+                    .warningId(w.getId())
+                    .adminComment(w.getAdminComment())
+                    .issuedAt(w.getCreatedAt().format(ISO_FMT))
+                    .targetType(targetType)
+                    .targetSummary(targetSummary)
+                    .build();
+        }
+    }
+
+    /** 경고 이력 항목 (유저 본인 조회 + 관리자 조회 공용) */
+    @Getter
+    @Builder
+    public static class HistoryResponse {
+        private Long warningId;
+        private Long userId;
+        private String userNickname;
+        private Long reportId;
+        private String targetType;
+        private String targetSummary;
+        private String adminComment;
+        private Boolean isRead;
+        private String issuedAt;
+
+        public static HistoryResponse from(Warning w, String targetSummary) {
+            TargetType tt = w.getReport().getTargetType();
+            return HistoryResponse.builder()
+                    .warningId(w.getId())
+                    .userId(w.getUser().getId())
+                    .userNickname(w.getUser().getNickname())
+                    .reportId(w.getReport().getId())
+                    .targetType(tt != null ? tt.name() : null)
+                    .targetSummary(targetSummary)
+                    .adminComment(w.getAdminComment())
+                    .isRead(w.getIsRead())
                     .issuedAt(w.getCreatedAt().format(ISO_FMT))
                     .build();
         }

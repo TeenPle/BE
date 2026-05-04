@@ -7,6 +7,7 @@ import com.shu.backend.domain.chatmessage.exception.status.ChatMessageSuccessSta
 import com.shu.backend.domain.chatmessage.service.ChatMessageService;
 import com.shu.backend.domain.chatroom.entity.ChatRoom;
 import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
+import com.shu.backend.domain.penalty.security.PenaltyChecker;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import com.shu.backend.global.apiPayload.code.ErrorReasonDto;
 import com.shu.backend.global.websocket.ChatRealtimePublisher;
@@ -23,6 +24,7 @@ public class ChatMessageWsController {
     private final ChatMessageService chatMessageService;
     private final ChatRealtimePublisher realtimePublisher;
     private final ChatRoomRepository chatRoomRepository;
+    private final PenaltyChecker penaltyChecker;
 
     // =================== 실시간 메시지 전송 ===================
     // Client -> /pub/chat.send
@@ -35,6 +37,25 @@ public class ChatMessageWsController {
         }
 
         Long senderId = Long.valueOf(principal.getName());
+
+        if (!penaltyChecker.notPenalized(senderId)) {
+            ErrorReasonDto reason = ChatMessageErrorStatus.CHAT_PENALIZED.getReason();
+            realtimePublisher.publish(
+                    "/sub/chat/rooms/" + request.getRoomId(),
+                    ApiResponse.onFailure(
+                            reason.getCode(),
+                            reason.getMessage(),
+                            ChatMessageDTO.SendErrorBroadcast.builder()
+                                    .eventType("SEND_ERROR")
+                                    .type("SEND_ERROR")
+                                    .senderId(senderId)
+                                    .code(reason.getCode())
+                                    .message(reason.getMessage())
+                                    .build()
+                    )
+            );
+            return;
+        }
 
         if (request.getType() == ChatMessageDTO.MessageType.TEXT) {
             if (request.getContent() == null || request.getContent().isBlank()) {

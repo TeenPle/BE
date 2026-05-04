@@ -12,10 +12,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 
 @Tag(
         name = "Admin Penalty",
@@ -54,5 +52,15 @@ public class AdminPenaltyController {
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ApiResponse.onSuccess(penaltyService.getPenaltiesByUser(userId, pageable));
+    }
+
+    @Operation(
+            summary = "제재 취소",
+            description = "활성 상태의 제재를 즉시 취소합니다."
+    )
+    @PostMapping("/{penaltyId}/cancel")
+    public ApiResponse<Void> cancel(@PathVariable Long penaltyId) {
+        penaltyService.cancel(penaltyId);
+        return ApiResponse.onSuccess(null);
     }
 }

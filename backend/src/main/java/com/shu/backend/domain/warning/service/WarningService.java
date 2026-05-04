@@ -1,7 +1,11 @@
 package com.shu.backend.domain.warning.service;
 
+import com.shu.backend.domain.comment.repository.CommentRepository;
+import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.global.firebase.FcmSender;
 import com.shu.backend.domain.report.entity.Report;
 import com.shu.backend.domain.report.enums.ReportStatus;
+import com.shu.backend.domain.report.enums.TargetType;
 import com.shu.backend.domain.report.exception.ReportException;
 import com.shu.backend.domain.report.exception.status.ReportErrorStatus;
 import com.shu.backend.domain.report.repository.ReportRepository;
@@ -18,6 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.Optional;
 
 @Service
@@ -28,6 +35,9 @@ public class WarningService {
     private final WarningRepository warningRepository;
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final FcmSender fcmSender;
 
     @Transactional
     public Long issue(Long adminId, Long reportId, String adminComment) {
@@ -53,13 +63,61 @@ public class WarningService {
                 .adminComment(adminComment)
                 .build();
 
-        return warningRepository.save(warning).getId();
+        Long warningId = warningRepository.save(warning).getId();
+
+        fcmSender.sendToUser(
+                report.getReportedUser().getId(),
+                "경고 발령",
+                "관리자로부터 경고가 발령되었습니다. 앱을 열어 확인해주세요."
+        );
+
+        return warningId;
     }
 
     public Optional<WarningDTO.UnreadResponse> getUnreadWarning(Long userId) {
         return warningRepository
                 .findTop1ByUserIdAndIsReadFalseOrderByCreatedAtAsc(userId)
-                .map(WarningDTO.UnreadResponse::from);
+                .map(w -> {
+                    Report report = w.getReport();
+                    String targetType = report.getTargetType().name();
+                    String targetSummary = resolveTargetSummary(report.getTargetType(), report.getTargetId());
+                    return WarningDTO.UnreadResponse.from(w, targetType, targetSummary);
+                });
+    }
+
+    public Page<WarningDTO.HistoryResponse> getMyWarnings(Long userId, Pageable pageable) {
+        return warningRepository.findAllByUserId(userId, pageable)
+                .map(w -> WarningDTO.HistoryResponse.from(
+                        w, resolveTargetSummary(w.getReport().getTargetType(), w.getReport().getTargetId())));
+    }
+
+    public Page<WarningDTO.HistoryResponse> getWarningsByUser(Long userId, Pageable pageable) {
+        return warningRepository.findAllByUserId(userId, pageable)
+                .map(w -> WarningDTO.HistoryResponse.from(
+                        w, resolveTargetSummary(w.getReport().getTargetType(), w.getReport().getTargetId())));
+    }
+
+    public Page<WarningDTO.HistoryResponse> getAllWarnings(Pageable pageable) {
+        return warningRepository.findAll(pageable)
+                .map(w -> WarningDTO.HistoryResponse.from(
+                        w, resolveTargetSummary(w.getReport().getTargetType(), w.getReport().getTargetId())));
+    }
+
+    private String resolveTargetSummary(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case POST -> postRepository.findById(targetId)
+                    .map(p -> truncate(p.getTitle(), 80))
+                    .orElse("(삭제된 게시글)");
+            case COMMENT -> commentRepository.findById(targetId)
+                    .map(c -> truncate(c.getContent(), 80))
+                    .orElse("(삭제된 댓글)");
+            default -> "";
+        };
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 
     @Transactional

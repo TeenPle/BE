@@ -7,6 +7,10 @@ import com.shu.backend.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,5 +46,19 @@ public class WarningController {
     ) {
         warningService.markAsRead(warningId, user.getId());
         return ApiResponse.onSuccess(null);
+    }
+
+    @Operation(
+            summary = "내 경고 이력 조회",
+            description = "로그인한 사용자의 경고 이력을 최신순으로 페이지 단위로 조회합니다."
+    )
+    @GetMapping("/me")
+    public ApiResponse<Page<WarningDTO.HistoryResponse>> getMyWarnings(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return ApiResponse.onSuccess(warningService.getMyWarnings(user.getId(), pageable));
     }
 }

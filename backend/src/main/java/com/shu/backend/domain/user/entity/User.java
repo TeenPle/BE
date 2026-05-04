@@ -37,12 +37,6 @@ public class User extends BaseEntity {
     @Column(name = "profile_image_url")
     private String profileImageUrl = "default_profile.png";
 
-    @Column(name = "is_write_banned")
-    private Boolean isWriteBanned = false;
-
-    @Column(name = "write_ban_expired_at")
-    private LocalDateTime writeBanExpiredAt;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role = UserRole.USER;

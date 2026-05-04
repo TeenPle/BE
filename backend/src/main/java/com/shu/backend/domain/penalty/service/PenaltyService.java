@@ -3,6 +3,8 @@ package com.shu.backend.domain.penalty.service;
 import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.entity.Penalty;
 import com.shu.backend.domain.penalty.enums.PenaltyStatus;
+import com.shu.backend.domain.penalty.exception.PenaltyException;
+import com.shu.backend.domain.penalty.exception.status.PenaltyErrorStatus;
 import com.shu.backend.domain.penalty.repository.PenaltyRepository;
 import com.shu.backend.domain.report.entity.Report;
 import com.shu.backend.domain.report.exception.ReportException;
@@ -73,6 +75,18 @@ public class PenaltyService {
     public Page<PenaltyDTO.SummaryResponse> getAllPenalties(Pageable pageable) {
         return penaltyRepository.findAll(pageable)
                 .map(PenaltyDTO.SummaryResponse::from);
+    }
+
+    @Transactional
+    public void cancel(Long penaltyId) {
+        Penalty penalty = penaltyRepository.findById(penaltyId)
+                .orElseThrow(() -> new PenaltyException(PenaltyErrorStatus.PENALTY_NOT_FOUND));
+
+        if (penalty.getStatus() != PenaltyStatus.ACTIVE) {
+            throw new PenaltyException(PenaltyErrorStatus.PENALTY_NOT_ACTIVE);
+        }
+
+        penalty.cancel();
     }
 
 }
