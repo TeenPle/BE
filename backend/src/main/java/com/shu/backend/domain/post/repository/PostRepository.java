@@ -85,7 +85,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 where c.post.id = p.id
                    and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
             ),
-            u.profileImageUrl
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
         from Post p
         join p.board b
         join p.user u
@@ -117,7 +123,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
             ),
-            u.profileImageUrl
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
         from Post p
         join p.board b
         join p.user u
@@ -188,7 +200,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
             ),
-            u.profileImageUrl
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
         from Post p
         join p.board b
         join p.user u
@@ -267,7 +285,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 where c.post.id = p.id
                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
             ),
-            u.profileImageUrl
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
         from Post p
         join p.board b
         join p.user u

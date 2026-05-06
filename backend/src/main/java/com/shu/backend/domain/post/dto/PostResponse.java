@@ -1,9 +1,13 @@
 package com.shu.backend.domain.post.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shu.backend.domain.post.entity.Post;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Getter
@@ -23,8 +27,18 @@ public class PostResponse {
     private String username; // 사용자 이름
     private String authorProfileImageUrl; // 작성자 프로필 이미지 URL (익명이면 null)
     private int commentCount; // 댓글 수 (선택적)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt;
     @Builder.Default
     private List<PostMediaResponse> mediaList = List.of();
+    private boolean hasPoll;
+
+    @JsonProperty("createdAtMs")
+    public Long getCreatedAtMs() {
+        return createdAt != null
+                ? createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null;
+    }
 
     // 미디어를 덧붙인 복사본 반환
     public PostResponse withMedia(List<PostMediaResponse> mediaList) {
@@ -42,7 +56,9 @@ public class PostResponse {
                 .username(this.username)
                 .authorProfileImageUrl(this.authorProfileImageUrl)
                 .commentCount(this.commentCount)
+                .createdAt(this.createdAt)
                 .mediaList(mediaList)
+                .hasPoll(this.hasPoll)
                 .build();
     }
 
@@ -60,7 +76,9 @@ public class PostResponse {
                 .boardId(post.getBoard().getId()) // 게시판 ID
                 .userId(post.getUser().getId()) // 사용자 ID
                 .username(post.getUser().getUsername()) // 사용자 이름
-                .commentCount(commentCount) // 댓글 수 추가
+                .commentCount(commentCount)
+                .createdAt(post.getCreatedAt())
+                .hasPoll(false)
                 .build();
     }
 
@@ -92,6 +110,9 @@ public class PostResponse {
             authorProfileImageUrl = rawProfileUrl;
         }
 
+        LocalDateTime createdAt = (r.length > 13) ? (LocalDateTime) r[13] : null;
+        Boolean hasPoll = (r.length > 14) ? (Boolean) r[14] : false;
+
         return PostResponse.builder()
                 .id(id)
                 .title(title)
@@ -106,6 +127,8 @@ public class PostResponse {
                 .username(username)
                 .authorProfileImageUrl(authorProfileImageUrl)
                 .commentCount(commentCount)
+                .createdAt(createdAt)
+                .hasPoll(Boolean.TRUE.equals(hasPoll))
                 .build();
     }
 }

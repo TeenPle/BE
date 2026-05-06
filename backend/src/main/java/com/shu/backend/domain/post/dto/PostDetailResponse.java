@@ -1,11 +1,15 @@
 package com.shu.backend.domain.post.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shu.backend.domain.comment.dto.CommentResponse;
+import com.shu.backend.domain.poll.dto.PollResponse;
 import com.shu.backend.domain.post.entity.Post;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Getter
@@ -26,13 +30,23 @@ public class PostDetailResponse {
     private String postStatus;
     private String username;
     private String authorProfileImageUrl;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt;
     private List<CommentResponse> comments;
+
+    @JsonProperty("createdAtMs")
+    public Long getCreatedAtMs() {
+        return createdAt != null
+                ? createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null;
+    }
     private List<PostMediaResponse> mediaList;
     @JsonProperty("isBookmarked")
     private boolean isBookmarked;
+    private PollResponse poll;
 
 
-    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked) {
+    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked, PollResponse poll) {
         String profileImageUrl = post.getAnonymous() ? null : post.getUser().getProfileImageUrl();
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
@@ -51,9 +65,11 @@ public class PostDetailResponse {
                 .postStatus(post.getPostStatus().name())
                 .username(post.getUser().getNickname())
                 .authorProfileImageUrl(profileImageUrl)
+                .createdAt(post.getCreatedAt())
                 .comments(comments)
                 .mediaList(mediaList)
                 .isBookmarked(isBookmarked)
+                .poll(poll)
                 .build();
     }
 }

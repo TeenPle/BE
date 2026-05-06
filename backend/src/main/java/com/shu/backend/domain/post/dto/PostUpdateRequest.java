@@ -25,4 +25,6 @@ public class PostUpdateRequest {
     private boolean anonymous;
 
     private List<Long> deleteMediaIds = Collections.emptyList();
+
+    private List<String> pollOptions;
 }
