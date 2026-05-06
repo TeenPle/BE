@@ -231,7 +231,7 @@ public class PostService {
         return new SliceImpl<>(content, pageable, hasNext);
     }
 
-    public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, String keyword, Pageable pageable, Long currentUserId) {
+    public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, Long boardId, String keyword, Pageable pageable, Long currentUserId) {
         if (!StringUtils.hasText(keyword)) {
             return new SliceImpl<>(List.of(), pageable, false);
         }
@@ -262,7 +262,17 @@ public class PostService {
                 .replace("\\", "\\\\")
                 .replace("%", "\\%")
                 .replace("_", "\\_");
-        List<Long> ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, regionId, currentUserId, slicePageable);
+        List<Long> ids;
+        if (boardId != null) {
+            Board board = boardRepository.findById(boardId)
+                    .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
+            if (!isAccessibleBoard(board, schoolId, regionId)) {
+                throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
+            }
+            ids = postRepository.findSearchPostIdsByBoardId(escapedKeyword, boardId, currentUserId, slicePageable);
+        } else {
+            ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, regionId, currentUserId, slicePageable);
+        }
 
         boolean hasNext = ids.size() > pageable.getPageSize();
         if (hasNext) {
@@ -284,6 +294,18 @@ public class PostService {
 
         Pageable responsePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         return new SliceImpl<>(content, responsePageable, hasNext);
+    }
+
+    private boolean isAccessibleBoard(Board board, Long schoolId, Long regionId) {
+        if (board.getScope() == BoardScope.SCHOOL) {
+            return board.getSchool() != null && board.getSchool().getId().equals(schoolId);
+        }
+        if (board.getScope() == BoardScope.REGION) {
+            return board.getRegion() != null
+                    && regionId != null
+                    && board.getRegion().getId().equals(regionId);
+        }
+        return false;
     }
 
     // 해당 학교의 HOT 게시글 조회 (filter: TODAY / WEEK / ALL)

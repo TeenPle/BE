@@ -29,6 +29,17 @@ public class NotificationService {
                        String message,
                        Long receiverUserId,
                        Long actorId) {
+        return create(type, targetType, targetId, message, receiverUserId, actorId, null);
+    }
+
+    @Transactional
+    public Long create(NotificationType type,
+                       NotificationTargetType targetType,
+                       Long targetId,
+                       String message,
+                       Long receiverUserId,
+                       Long actorId,
+                       String boardName) {
         if (receiverUserId == null){
             throw new NotificationException(NotificationErrorStatus.RECEIVER_REQUIRED);
         }
@@ -37,11 +48,11 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorStatus.MESSAGE_REQUIRED);
         }
 
-        if (actorId != null && actorId == receiverUserId){
-            return actorId;
+        if (actorId != null && actorId.equals(receiverUserId)){
+            return null;
         }
 
-        Notification n = Notification.create(type, targetType, targetId, message, receiverUserId, actorId);
+        Notification n = Notification.create(type, targetType, targetId, message, receiverUserId, actorId, boardName);
         Notification saved = notificationRepository.save(n);
         return saved.getId();
     }

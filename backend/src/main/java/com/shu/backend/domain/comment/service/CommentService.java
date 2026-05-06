@@ -86,36 +86,38 @@ public class CommentService {
         Comment saved = commentRepository.save(comment);
 
         // ===== 알림 생성(저장 성공 이후) =====
-        // actorId = userId(댓글 작성자)
         Long actorId = userId;
+        String boardName = post.getBoard().getTitle();
+        String contentExcerpt = excerptContent(req.getContent());
 
         if (parent == null) {
             // 1) 일반 댓글: 게시글 작성자에게 알림
-            // receiver = post 작성자
             Long receiverUserId = post.getUser().getId();
 
-            if(receiverUserId.equals(actorId)){
+            if (receiverUserId.equals(actorId)) {
                 return saved.getId();
             }
+
+            String message = "새 댓글이 달렸어요: " + contentExcerpt;
 
             Long notificationId = notificationService.create(
                     NotificationType.COMMENT,
                     NotificationTargetType.POST,
                     post.getId(),
-                    "내 글에 댓글이 달렸습니다.",
+                    message,
                     receiverUserId,
-                    actorId
+                    actorId,
+                    boardName
             );
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
-                // setting이 없으면 기본값(모든 알림 허용)으로 간주
                 if (setting == null || setting.isCommentNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 receiverUserId,
-                                "새 댓글",
-                                "내 글에 댓글이 달렸습니다.",
+                                boardName,
+                                message,
                                 Map.of(
                                         "notificationId", String.valueOf(notificationId),
                                         "type", NotificationType.COMMENT.name(),
@@ -131,28 +133,30 @@ public class CommentService {
             // 2) 대댓글: 부모 댓글 작성자에게 알림
             Long receiverUserId = parent.getUser().getId();
 
-            if(receiverUserId.equals(actorId)){
+            if (receiverUserId.equals(actorId)) {
                 return saved.getId();
             }
+
+            String message = "새 대댓글이 달렸어요: " + contentExcerpt;
 
             Long notificationId = notificationService.create(
                     NotificationType.REPLY,
                     NotificationTargetType.POST,
                     post.getId(),
-                    "내 댓글에 대댓글이 달렸습니다.",
+                    message,
                     receiverUserId,
-                    actorId
+                    actorId,
+                    boardName
             );
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
-                // setting이 없으면 기본값(모든 알림 허용)으로 간주
                 if (setting == null || setting.isReplyNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 receiverUserId,
-                                "새 답글",
-                                "내 댓글에 대댓글이 달렸습니다.",
+                                boardName,
+                                message,
                                 Map.of(
                                         "notificationId", String.valueOf(notificationId),
                                         "type", NotificationType.REPLY.name(),
@@ -163,17 +167,6 @@ public class CommentService {
                     } catch (Exception ignore) {}
                 }
             }
-
-        /*
-        notificationService.create(
-                NotificationType.NEW_COMMENT_ON_POST,
-                NotificationTargetType.POST,
-                post.getId(),
-                "내 글에 대댓글이 달렸습니다.",
-                post.getUser().getId(),
-                actorId
-        );
-        */
         }
 
         return saved.getId();
@@ -218,6 +211,12 @@ public class CommentService {
         if (content == null || content.trim().isEmpty()) {
             throw new CommentException(CommentErrorStatus.INVALID_CONTENT);
         }
+    }
+
+    private String excerptContent(String content) {
+        if (content == null) return "";
+        String trimmed = content.trim();
+        return trimmed.length() > 50 ? trimmed.substring(0, 50) + "…" : trimmed;
     }
 
 }

@@ -22,6 +22,7 @@ public class NotificationResponse {
 
     private Long actorId;
     private LocalDateTime createdAt;
+    private String boardName;
 
     public static NotificationResponse from(Notification n) {
         return NotificationResponse.builder()
@@ -33,6 +34,7 @@ public class NotificationResponse {
                 .isRead(n.getIsRead())
                 .actorId(n.getActorId())
                 .createdAt(n.getCreatedAt())
+                .boardName(n.getBoardName())
                 .build();
     }
 }

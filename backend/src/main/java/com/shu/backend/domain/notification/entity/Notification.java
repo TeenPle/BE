@@ -47,6 +47,10 @@ public class Notification extends BaseEntity {
     @Column(name = "actor_id")
     private Long actorId;
 
+    // 댓글/대댓글 알림의 게시판 이름 (COMMENT, REPLY 타입일 때만 사용)
+    @Column(name = "board_name", length = 100)
+    private String boardName;
+
     // ===== 생성 메서드 ===== //
     public static Notification create(
             NotificationType type,
@@ -56,6 +60,18 @@ public class Notification extends BaseEntity {
             Long userId,
             Long actorId
     ) {
+        return create(type, targetType, targetId, message, userId, actorId, null);
+    }
+
+    public static Notification create(
+            NotificationType type,
+            NotificationTargetType targetType,
+            Long targetId,
+            String message,
+            Long userId,
+            Long actorId,
+            String boardName
+    ) {
         Notification n = new Notification();
         n.type = type;
         n.targetType = targetType;
@@ -64,6 +80,7 @@ public class Notification extends BaseEntity {
         n.userId = userId;
         n.actorId = actorId;
         n.isRead = false;
+        n.boardName = boardName;
         return n;
     }
 

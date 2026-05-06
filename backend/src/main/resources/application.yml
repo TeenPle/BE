@@ -112,7 +112,7 @@ firebase:
 
 neis:
   api:
-    key: ${NEIS_API_KEY:}
+    key: ${NEIS_API_KEY}
     base-url: https://open.neis.go.kr/hub
 
 viewcount:

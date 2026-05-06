@@ -132,6 +132,7 @@ public class PostController {
     @GetMapping("/search")
     public ApiResponse<Slice<PostResponse>> searchPosts(
             @RequestParam String keyword,
+            @RequestParam(required = false) Long boardId,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal User user
     ) {
@@ -143,7 +144,7 @@ public class PostController {
                 ? user.getSchool().getRegion().getId()
                 : null;
 
-        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, keyword, pageable, user.getId());
+        Slice<PostResponse> postResponses = postService.searchAccessiblePosts(schoolId, regionId, boardId, keyword, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }
 }

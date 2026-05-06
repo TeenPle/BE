@@ -327,17 +327,14 @@ public class AdminInitializer implements CommandLineRunner {
             boolean anonymous,
             int likeCount
     ) {
-        Post post = Post.builder()
+        return Post.builder()
                 .board(board)
                 .user(user)
                 .title(title)
                 .content(content)
                 .anonymous(anonymous)
+                .likeCount(likeCount)
                 .build();
-
-        applyLikeCount(post, likeCount);
-
-        return post;
     }
 
     /**
@@ -359,13 +356,6 @@ public class AdminInitializer implements CommandLineRunner {
                 .build();
 
         return commentRepository.save(comment);
-    }
-
-    /**
-     * Post 엔티티에 좋아요 수 반영
-     */
-    private void applyLikeCount(Post post, int likeCount) {
-        // 필요 시 post 엔티티 메서드에 맞게 반영
     }
 
     /**

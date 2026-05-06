@@ -11,8 +11,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,17 +37,46 @@ public class NeisApiClient {
             String officeCode, String schoolCode,
             String fromDate, String toDate) {
 
-        String url = UriComponentsBuilder.fromUriString(baseUrl + "/mealServiceDietInfo")
+        return fetchPagedRows("mealServiceDietInfo", page -> UriComponentsBuilder.fromUriString(baseUrl + "/mealServiceDietInfo")
                 .queryParam("KEY", apiKey)
                 .queryParam("Type", "json")
+                .queryParam("pIndex", page)
+                .queryParam("pSize", 100)
                 .queryParam("ATPT_OFCDC_SC_CODE", officeCode)
                 .queryParam("SD_SCHUL_CODE", schoolCode)
                 .queryParam("MLSV_FROM_YMD", fromDate)
                 .queryParam("MLSV_TO_YMD", toDate)
                 .queryParam("MMEAL_SC_CODE", "2")
-                .build().toUriString();
+                .encode().build().toUriString());
+    }
 
-        return parseNeisResponse(url, "mealServiceDietInfo");
+    private List<Map<String, Object>> fetchPagedRows(String rootKey, java.util.function.IntFunction<String> urlFactory) {
+        final int maxPages = 50;
+        ArrayList<Map<String, Object>> allRows = new ArrayList<>();
+        Set<String> seenRows = new HashSet<>();
+
+        for (int page = 1; page <= maxPages; page++) {
+            List<Map<String, Object>> rows = parseNeisResponse(urlFactory.apply(page), rootKey);
+            if (rows.isEmpty()) {
+                break;
+            }
+
+            boolean addedAny = false;
+            for (Map<String, Object> row : rows) {
+                String signature = row.toString();
+                if (seenRows.add(signature)) {
+                    allRows.add(row);
+                    addedAny = true;
+                }
+            }
+
+            if (!addedAny) {
+                log.warn("[NEIS] {} 페이지 반복 응답 감지: page={}", rootKey, page);
+                break;
+            }
+        }
+
+        return allRows;
     }
 
     public List<Map<String, Object>> getTimetable(
@@ -53,9 +85,11 @@ public class NeisApiClient {
             String grade, String classNm,
             String fromDate, String toDate) {
 
-        String url = UriComponentsBuilder.fromUriString(baseUrl + "/hisTimetable")
+        return fetchPagedRows("hisTimetable", page -> UriComponentsBuilder.fromUriString(baseUrl + "/hisTimetable")
                 .queryParam("KEY", apiKey)
                 .queryParam("Type", "json")
+                .queryParam("pIndex", String.valueOf(page))
+                .queryParam("pSize", "1000")
                 .queryParam("ATPT_OFCDC_SC_CODE", officeCode)
                 .queryParam("SD_SCHUL_CODE", schoolCode)
                 .queryParam("AY", ay)
@@ -64,9 +98,80 @@ public class NeisApiClient {
                 .queryParam("CLASS_NM", classNm)
                 .queryParam("TI_FROM_YMD", fromDate)
                 .queryParam("TI_TO_YMD", toDate)
-                .build().toUriString();
+                .encode().build().toUriString());
+    }
 
-        return parseNeisResponse(url, "hisTimetable");
+    public List<Map<String, Object>> getTimetablePeriod(
+            String officeCode, String schoolCode,
+            String ay, String sem,
+            String grade, String classNm,
+            String date, int period) {
+
+        List<Map<String, Object>> exactRows = filterTimetableRows(parseNeisResponse(UriComponentsBuilder.fromUriString(baseUrl + "/hisTimetable")
+                .queryParam("KEY", apiKey)
+                .queryParam("Type", "json")
+                .queryParam("pIndex", "1")
+                .queryParam("pSize", "1000")
+                .queryParam("ATPT_OFCDC_SC_CODE", officeCode)
+                .queryParam("SD_SCHUL_CODE", schoolCode)
+                .queryParam("AY", ay)
+                .queryParam("SEM", sem)
+                .queryParam("GRADE", grade)
+                .queryParam("CLASS_NM", classNm)
+                .queryParam("ALL_TI_YMD", date)
+                .queryParam("PERIO", String.valueOf(period))
+                .encode().build().toUriString(), "hisTimetable"), date, period);
+
+        if (!exactRows.isEmpty()) {
+            return exactRows;
+        }
+
+        return filterTimetableRows(parseNeisResponse(UriComponentsBuilder.fromUriString(baseUrl + "/hisTimetable")
+                .queryParam("KEY", apiKey)
+                .queryParam("Type", "json")
+                .queryParam("pIndex", "1")
+                .queryParam("pSize", "1000")
+                .queryParam("ATPT_OFCDC_SC_CODE", officeCode)
+                .queryParam("SD_SCHUL_CODE", schoolCode)
+                .queryParam("AY", ay)
+                .queryParam("SEM", sem)
+                .queryParam("GRADE", grade)
+                .queryParam("CLASS_NM", classNm)
+                .queryParam("TI_FROM_YMD", date)
+                .queryParam("TI_TO_YMD", date)
+                .queryParam("PERIO", String.valueOf(period))
+                .encode().build().toUriString(), "hisTimetable"), date, period);
+    }
+
+    public List<Map<String, Object>> getTimetableDate(
+            String officeCode, String schoolCode,
+            String ay, String sem,
+            String grade, String classNm,
+            String date) {
+
+        return fetchPagedRows("hisTimetable", page -> UriComponentsBuilder.fromUriString(baseUrl + "/hisTimetable")
+                .queryParam("KEY", apiKey)
+                .queryParam("Type", "json")
+                .queryParam("pIndex", String.valueOf(page))
+                .queryParam("pSize", "1000")
+                .queryParam("ATPT_OFCDC_SC_CODE", officeCode)
+                .queryParam("SD_SCHUL_CODE", schoolCode)
+                .queryParam("AY", ay)
+                .queryParam("SEM", sem)
+                .queryParam("GRADE", grade)
+                .queryParam("CLASS_NM", classNm)
+                .queryParam("ALL_TI_YMD", date)
+                .encode().build().toUriString()).stream()
+                .filter(row -> date.equals(String.valueOf(row.getOrDefault("ALL_TI_YMD", ""))))
+                .collect(Collectors.toList());
+    }
+
+    private List<Map<String, Object>> filterTimetableRows(List<Map<String, Object>> rows, String date, int period) {
+        String periodValue = String.valueOf(period);
+        return rows.stream()
+                .filter(row -> date.equals(String.valueOf(row.getOrDefault("ALL_TI_YMD", ""))))
+                .filter(row -> periodValue.equals(String.valueOf(row.getOrDefault("PERIO", "")).trim()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -176,9 +281,35 @@ public class NeisApiClient {
             log.warn("[NEIS] 데이터 블록 부족 (size={}). head={}", root.size(), root.get(0));
             return List.of();
         }
+        Map<String, Object> headBlock = root.get(0);
+        List<Map<String, Object>> headRows = (List<Map<String, Object>>) headBlock.get("head");
+        Integer totalCount = null;
+        if (headRows != null && !headRows.isEmpty()) {
+            log.info("[NEIS] head: rootKey={}, head={}", rootKey, headRows);
+            totalCount = extractTotalCount(headRows);
+        }
         Map<String, Object> dataBlock = root.get(1);
         List<Map<String, Object>> rows = (List<Map<String, Object>>) dataBlock.get("row");
         log.info("[NEIS] 파싱 완료: rootKey={}, rows={}", rootKey, rows != null ? rows.size() : 0);
+        if (totalCount != null && rows != null && totalCount > rows.size() && rows.size() == 5) {
+            log.warn("[NEIS] {} 응답이 5건으로 제한되었습니다. total={}, rows={}. 인증키 인식 또는 URL 인코딩을 확인하세요.",
+                    rootKey, totalCount, rows.size());
+        }
         return rows != null ? rows : List.of();
+    }
+
+    private Integer extractTotalCount(List<Map<String, Object>> headRows) {
+        for (Map<String, Object> headRow : headRows) {
+            Object value = headRow.get("list_total_count");
+            if (value == null) {
+                continue;
+            }
+            try {
+                return Integer.parseInt(String.valueOf(value));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 }

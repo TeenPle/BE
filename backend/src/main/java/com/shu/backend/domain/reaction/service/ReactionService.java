@@ -79,6 +79,7 @@ public class ReactionService {
         int likeCount;
         int dislikeCount;
         Long ownerUserId;
+        String boardName;
 
         if (targetType == ReactionTargetType.COMMENT) {
             var c = commentRepository.findById(targetId)
@@ -86,24 +87,28 @@ public class ReactionService {
             likeCount = c.getLikeCount();
             dislikeCount = c.getDislikeCount();
             ownerUserId = c.getUser().getId();
+            boardName = c.getPost().getBoard().getTitle();
         } else if (targetType == ReactionTargetType.POST) {
             var p = postRepository.findById(targetId)
                     .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
             likeCount = p.getLikeCount();
             dislikeCount = p.getDislikeCount();
             ownerUserId = p.getUser().getId();
+            boardName = p.getBoard().getTitle();
         } else {
             throw new ReactionException(ReactionErrorStatus.UNSUPPORTED_TARGET_TYPE);
         }
 
-        // 좋아요가 새로 적용됐고, 자신의 글/댓글이 아닌 경우에만 알림 발송
-        if (changed && action == ReactionAction.LIKE && !ownerUserId.equals(userId)) {
+        // 좋아요가 새로 적용됐고, 자신의 글/댓글이 아니며, 공감 수가 10의 배수일 때만 알림 발송
+        if (changed && action == ReactionAction.LIKE && !ownerUserId.equals(userId)
+                && likeCount > 0 && likeCount % 10 == 0) {
+
             NotificationType notiType = (targetType == ReactionTargetType.POST)
                     ? NotificationType.POST_LIKE : NotificationType.COMMENT_LIKE;
             NotificationTargetType notiTargetType = (targetType == ReactionTargetType.POST)
                     ? NotificationTargetType.POST : NotificationTargetType.COMMENT;
-            String notiMsg = (targetType == ReactionTargetType.POST)
-                    ? "내 글에 좋아요가 눌렸습니다." : "내 댓글에 좋아요가 눌렸습니다.";
+            String targetLabel = (targetType == ReactionTargetType.POST) ? "게시글" : "댓글";
+            String notiMsg = "내 " + targetLabel + "의 공감이 " + likeCount + "개가 되었어요!";
 
             Long notificationId = notificationService.create(
                     notiType,
@@ -111,17 +116,17 @@ public class ReactionService {
                     targetId,
                     notiMsg,
                     ownerUserId,
-                    userId
+                    userId,
+                    boardName
             );
 
             if (notificationId != null) {
                 var setting = userSettingRepository.findByUserId(ownerUserId).orElse(null);
-                // setting이 없으면 기본값(모든 알림 허용)으로 간주
                 if (setting == null || setting.isLikeNotificationEnabled()) {
                     try {
                         pushService.sendToUser(
                                 ownerUserId,
-                                "새 좋아요",
+                                boardName,
                                 notiMsg,
                                 Map.of(
                                         "notificationId", String.valueOf(notificationId),
