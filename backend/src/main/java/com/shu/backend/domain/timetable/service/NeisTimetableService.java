@@ -11,6 +11,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +28,7 @@ public class NeisTimetableService {
 
     @Cacheable(
             value = "timetable",
-            key = "#user.school.id + '_' + #user.grade.name() + '_' + #classRoom + '_' + #from + '_' + #to",
+            key = "'v6_' + #user.school.id + '_' + #user.grade.name() + '_' + #classRoom + '_' + #from + '_' + #to",
             unless = "#result.periods.isEmpty()"
     )
     public TimetableDTO.WeekResponse getTimetable(
@@ -47,24 +51,35 @@ public class NeisTimetableService {
                     .grade(gradeNum).classRoom(classRoom).periods(List.of()).neisAvailable(false).build();
         }
 
-        LocalDate date = LocalDate.parse(from, java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
-        String ay = String.valueOf(date.getYear());
-        String sem = date.getMonthValue() >= 3 && date.getMonthValue() <= 8 ? "1" : "2";
+        LocalDate fromDate = LocalDate.parse(from, DateTimeFormatter.BASIC_ISO_DATE);
+        LocalDate toDate = LocalDate.parse(to, DateTimeFormatter.BASIC_ISO_DATE);
+        String ay = String.valueOf(fromDate.getYear());
+        String sem = fromDate.getMonthValue() >= 3 && fromDate.getMonthValue() <= 8 ? "1" : "2";
 
-        List<Map<String, Object>> rows = neisApiClient.getTimetable(
-                school.getNeisOfficeCode(),
-                school.getNeisSchoolCode(),
-                ay, sem, gradeNum, classRoom, from, to
-        );
+        List<Map<String, Object>> rows = fetchWeekByDateAndPeriod(
+                school, ay, sem, gradeNum, classRoom, fromDate, toDate);
 
         List<TimetableDTO.Period> periods = rows.stream()
                 .map(row -> TimetableDTO.Period.builder()
-                        .date((String) row.getOrDefault("ALL_TI_YMD", ""))
-                        .dayOfWeek(parseDayOfWeek((String) row.getOrDefault("ALL_TI_YMD", "")))
-                        .period(parseIntSafe((String) row.getOrDefault("PERIO", "0")))
-                        .subject((String) row.getOrDefault("ITRT_CNTNT", ""))
+                        .date(stringValue(row.get("ALL_TI_YMD")))
+                        .dayOfWeek(parseDayOfWeek(stringValue(row.get("ALL_TI_YMD"))))
+                        .period(parseIntSafe(row.get("PERIO")))
+                        .subject(stringValue(row.get("ITRT_CNTNT")))
                         .build())
-                .collect(Collectors.toList());
+                .filter(period -> period.getDayOfWeek() >= 1 && period.getDayOfWeek() <= 5)
+                .filter(period -> period.getPeriod() > 0)
+                .sorted(Comparator
+                        .comparing(TimetableDTO.Period::getDate)
+                        .thenComparingInt(TimetableDTO.Period::getPeriod))
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toMap(
+                                period -> period.getDate() + "_" + period.getPeriod(),
+                                period -> period,
+                                (first, ignored) -> first,
+                                LinkedHashMap::new
+                        ),
+                        map -> new ArrayList<>(map.values())
+                ));
 
         return TimetableDTO.WeekResponse.builder()
                 .grade(gradeNum)
@@ -89,8 +104,47 @@ public class NeisTimetableService {
         return d.getDayOfWeek().getValue(); // 1=월 ~ 7=일
     }
 
-    private int parseIntSafe(String value) {
-        try { return Integer.parseInt(value.trim()); }
+    private int parseIntSafe(Object value) {
+        try { return Integer.parseInt(stringValue(value).trim()); }
         catch (NumberFormatException e) { return 0; }
+    }
+
+    private List<Map<String, Object>> fetchWeekByDateAndPeriod(
+            School school,
+            String ay,
+            String sem,
+            String gradeNum,
+            String classRoom,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        ArrayList<Map<String, Object>> rows = new ArrayList<>();
+        LocalDate date = fromDate;
+
+        while (!date.isAfter(toDate)) {
+            int dayOfWeek = date.getDayOfWeek().getValue();
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                String dateParam = date.format(DateTimeFormatter.BASIC_ISO_DATE);
+                rows.addAll(neisApiClient.getTimetableDate(
+                        school.getNeisOfficeCode(),
+                        school.getNeisSchoolCode(),
+                        ay, sem, gradeNum, classRoom, dateParam
+                ));
+                for (int period = 1; period <= 8; period++) {
+                    rows.addAll(neisApiClient.getTimetablePeriod(
+                            school.getNeisOfficeCode(),
+                            school.getNeisSchoolCode(),
+                            ay, sem, gradeNum, classRoom, dateParam, period
+                    ));
+                }
+            }
+            date = date.plusDays(1);
+        }
+
+        return rows;
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

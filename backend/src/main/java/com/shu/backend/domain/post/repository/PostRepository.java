@@ -200,6 +200,28 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     );
 
     @Query("""
+        select p.id
+        from Post p
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and p.board.id = :boardId
+          and (
+                p.title like concat('%', :keyword, '%') escape '\\'
+             or p.content like concat('%', :keyword, '%') escape '\\'
+          )
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
+        order by p.id desc
+    """)
+    List<Long> findSearchPostIdsByBoardId(
+            @Param("keyword") String keyword,
+            @Param("boardId") Long boardId,
+            @Param("currentUserId") Long currentUserId,
+            Pageable pageable
+    );
+
+    @Query("""
         select
             p.id,
             p.title,

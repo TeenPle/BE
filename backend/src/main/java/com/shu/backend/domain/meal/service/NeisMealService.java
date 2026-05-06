@@ -24,7 +24,7 @@ public class NeisMealService {
     private final SchoolRepository schoolRepository;
     private final NeisSchoolSyncService neisSchoolSyncService;
 
-    @Cacheable(value = "meal", key = "#schoolId + '_' + #from + '_' + #to", unless = "#result.meals.isEmpty()")
+    @Cacheable(value = "meal", key = "'v3_' + #schoolId + '_' + #from + '_' + #to", unless = "#result.meals.isEmpty()")
     public MealDTO.MealListResponse getMeals(Long schoolId, String from, String to) {
         School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
