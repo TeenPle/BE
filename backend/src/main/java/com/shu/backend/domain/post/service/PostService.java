@@ -8,6 +8,8 @@ import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
 import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
+import com.shu.backend.domain.poll.dto.PollResponse;
+import com.shu.backend.domain.poll.service.PollService;
 import com.shu.backend.domain.post.component.ViewCountAccumulator;
 import com.shu.backend.global.moderation.ContentModerationService;
 import com.shu.backend.domain.post.dto.PostCreateRequest;
@@ -62,6 +64,7 @@ public class PostService {
     private final ViewCountAccumulator viewCountAccumulator;
     private final ContentModerationService contentModerationService;
     private final BookmarkRepository bookmarkRepository;
+    private final PollService pollService;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -124,6 +127,7 @@ public class PostService {
                 .build();
 
         postRepository.save(post);
+        pollService.createPollIfPresent(post, req.getPollOptions());
 
         if (files != null && !files.isEmpty()) {
             postMediaService.uploadAndSave(post.getId(), files, user);
@@ -154,6 +158,7 @@ public class PostService {
         String content = HtmlUtils.htmlEscape(rawContent);
 
         post.update(title, content, req.isAnonymous());
+        pollService.syncPoll(post, req.getPollOptions());
 
         postMediaService.deleteByIds(req.getDeleteMediaIds(), postId, userId);
 
@@ -202,8 +207,9 @@ public class PostService {
         List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId);
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
         boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
+        PollResponse poll = pollService.getPollResponse(postId, currentUserId);
 
-        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked);
+        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked, poll);
     }
 
     // 특정 게시판의 글 페이징 조회

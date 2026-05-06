@@ -1,10 +1,14 @@
 package com.shu.backend.domain.comment.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Getter
 @Builder
@@ -24,6 +28,15 @@ public class CommentResponse {
     private boolean anonymous;    // 익명 여부
     private int depth;            // 대댓글 깊이
     private Long parentId;        // 부모 댓글 ID (대댓글일 경우)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("createdAtMs")
+    public Long getCreatedAtMs() {
+        return createdAt != null
+                ? createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null;
+    }
 
     public static CommentResponse toDto(Comment comment, Long currentUserId) {
         return toDto(comment, currentUserId, false, 0);
@@ -68,6 +81,7 @@ public class CommentResponse {
                 .anonymous(comment.getAnonymous())
                 .depth(comment.getDepth())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
+                .createdAt(comment.getCreatedAt())
                 .build();
     }
 }

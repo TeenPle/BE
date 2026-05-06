@@ -21,7 +21,7 @@ public enum PostErrorStatus implements BaseErrorCode {
     SEXUAL_CONTENT(HttpStatus.BAD_REQUEST, "POST4006", "성매매·불법 성적 거래 관련 내용이 포함되어 있습니다."),
     DRUG_CONTENT(HttpStatus.BAD_REQUEST, "POST4007", "불법 약물 거래 관련 내용이 포함되어 있습니다."),
     CONTACT_SOLICITATION(HttpStatus.BAD_REQUEST, "POST4008", "외부 개인연락 유도 내용이 포함되어 있습니다. (전화번호, 메신저 ID 등)"),
-    INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "POST4009", "허용되지 않는 파일 형식입니다. (허용: jpg, png, gif, webp, mp4, mov)");
+    INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "POST4009", "허용되지 않는 파일 형식입니다.");
 
 
 
