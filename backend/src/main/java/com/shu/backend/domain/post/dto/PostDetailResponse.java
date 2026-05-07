@@ -27,6 +27,10 @@ public class PostDetailResponse {
     private Boolean anonymous;
     private int likeCount;
     private int dislikeCount;
+    @JsonProperty("likedByMe")
+    private boolean likedByMe;
+    @JsonProperty("dislikedByMe")
+    private boolean dislikedByMe;
     private String postStatus;
     private String username;
     private String authorProfileImageUrl;
@@ -46,7 +50,7 @@ public class PostDetailResponse {
     private PollResponse poll;
 
 
-    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked, PollResponse poll) {
+    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked, PollResponse poll, boolean likedByMe, boolean dislikedByMe) {
         String profileImageUrl = post.getAnonymous() ? null : post.getUser().getProfileImageUrl();
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
@@ -62,6 +66,8 @@ public class PostDetailResponse {
                 .anonymous(post.getAnonymous())
                 .likeCount(post.getLikeCount())
                 .dislikeCount(post.getDislikeCount())
+                .likedByMe(likedByMe)
+                .dislikedByMe(dislikedByMe)
                 .postStatus(post.getPostStatus().name())
                 .username(post.getUser().getNickname())
                 .authorProfileImageUrl(profileImageUrl)

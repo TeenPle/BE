@@ -96,13 +96,39 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.board b
         join p.user u
         where b.id = :boardId
+          and p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.user.id not in (
               select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
               where ub.blocker.id = :currentUserId
           )
-        order by p.id desc
+        order by
+          case when :sortDirection = 'ASC' and :sortBy = 'createdAt' then p.createdAt end asc,
+          case when :sortDirection = 'DESC' and :sortBy = 'createdAt' then p.createdAt end desc,
+          case when :sortDirection = 'ASC' and :sortBy = 'likeCount' then p.likeCount end asc,
+          case when :sortDirection = 'DESC' and :sortBy = 'likeCount' then p.likeCount end desc,
+          case when :sortDirection = 'ASC' and :sortBy = 'viewCount' then p.viewCount end asc,
+          case when :sortDirection = 'DESC' and :sortBy = 'viewCount' then p.viewCount end desc,
+          case when :sortDirection = 'ASC' and :sortBy = 'commentCount' then (
+              select count(c.id)
+              from Comment c
+              where c.post.id = p.id
+                and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+          ) end asc,
+          case when :sortDirection = 'DESC' and :sortBy = 'commentCount' then (
+              select count(c.id)
+              from Comment c
+              where c.post.id = p.id
+                and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
+          ) end desc,
+          p.id desc
     """)
-    List<Object[]> findPostRowsByBoardId(@Param("boardId") Long boardId, @Param("currentUserId") Long currentUserId, Pageable pageable);
+    List<Object[]> findPostRowsByBoardId(
+            @Param("boardId") Long boardId,
+            @Param("currentUserId") Long currentUserId,
+            @Param("sortBy") String sortBy,
+            @Param("sortDirection") String sortDirection,
+            Pageable pageable
+    );
 
     @Query("""
         select

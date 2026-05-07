@@ -22,6 +22,9 @@ import com.shu.backend.domain.post.enums.PostStatus;
 import com.shu.backend.domain.post.exception.PostException;
 import com.shu.backend.domain.post.exception.status.PostErrorStatus;
 import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.domain.reaction.entity.Reaction;
+import com.shu.backend.domain.reaction.enums.ReactionTargetType;
+import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
@@ -65,6 +68,7 @@ public class PostService {
     private final ContentModerationService contentModerationService;
     private final BookmarkRepository bookmarkRepository;
     private final PollService pollService;
+    private final ReactionRepository reactionRepository;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -208,20 +212,35 @@ public class PostService {
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
         boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
         PollResponse poll = pollService.getPollResponse(postId, currentUserId);
+        Reaction myReaction = reactionRepository
+                .findByUserIdAndTargetTypeAndTargetId(currentUserId, ReactionTargetType.POST, postId)
+                .orElse(null);
+        boolean likedByMe = myReaction != null && Boolean.TRUE.equals(myReaction.getLiked());
+        boolean dislikedByMe = myReaction != null && Boolean.TRUE.equals(myReaction.getDisliked());
 
-        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked, poll);
+        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked, poll, likedByMe, dislikedByMe);
     }
 
     // 특정 게시판의 글 페이징 조회
     public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable, Long currentUserId) {
+        Sort.Order order = pageable.getSort().stream().findFirst()
+                .orElse(Sort.Order.desc("createdAt"));
+        String sortBy = order.getProperty();
+        String sortDirection = order.getDirection().name();
+
         // Slice 처리를 위해 size+1로 한 건 더 가져와 hasNext 판정
         Pageable slicePageable = PageRequest.of(
                 pageable.getPageNumber(),
-                pageable.getPageSize() + 1,
-                Sort.by(Sort.Direction.DESC, "id")
+                pageable.getPageSize() + 1
         );
 
-        List<Object[]> rows = postRepository.findPostRowsByBoardId(boardId, currentUserId, slicePageable);
+        List<Object[]> rows = postRepository.findPostRowsByBoardId(
+                boardId,
+                currentUserId,
+                sortBy,
+                sortDirection,
+                slicePageable
+        );
 
         boolean hasNext = rows.size() > pageable.getPageSize();
         if (hasNext) {

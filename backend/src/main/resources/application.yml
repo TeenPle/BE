@@ -94,7 +94,7 @@ chat:
     redis-channel: ${CHAT_REALTIME_REDIS_CHANNEL:chat:realtime}
   image:
     moderation:
-      min-confidence: ${CHAT_IMAGE_MODERATION_MIN_CONFIDENCE:80}
+      min-confidence: ${CHAT_IMAGE_MODERATION_MIN_CONFIDENCE:50}
 
 ## 로컬 파일 저장용 설정 (배포 후 비활성화)
 #file:

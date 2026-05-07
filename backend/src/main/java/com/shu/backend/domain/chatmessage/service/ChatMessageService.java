@@ -39,6 +39,10 @@ import java.util.Map;
 @Transactional
 public class ChatMessageService {
 
+    private static final int MAX_TEXT_LENGTH = 500;
+    private static final int MESSAGE_RATE_LIMIT = 20;
+    private static final int MESSAGE_RATE_WINDOW_SECONDS = 60;
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -49,10 +53,12 @@ public class ChatMessageService {
     private final NotificationService notificationService;
     private final PushService pushService;
     private final UserSettingRepository userSettingRepository;
+    private final ChatActionRateLimiter chatActionRateLimiter;
 
     // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
     public ChatMessageDTO.MessageResponse send(Long senderId, ChatMessageDTO.SendRequest req) {
+        chatActionRateLimiter.check(senderId, "message", MESSAGE_RATE_LIMIT, MESSAGE_RATE_WINDOW_SECONDS);
 
         // 채팅방 조회 (없으면 예외)
         ChatRoom room = chatRoomRepository.findById(req.getRoomId())
@@ -83,6 +89,15 @@ public class ChatMessageService {
 
         // 요청 타입(TEXT/IMAGE) 변환 및 검증
         ChatMessage.MessageType type = mapType(req.getType());
+
+        if (type == ChatMessage.MessageType.TEXT) {
+            if (req.getContent() == null || req.getContent().isBlank()) {
+                throw new ChatMessageException(ChatMessageErrorStatus.INVALID_MESSAGE_TYPE);
+            }
+            if (req.getContent().length() > MAX_TEXT_LENGTH) {
+                throw new ChatMessageException(ChatMessageErrorStatus.MESSAGE_TOO_LONG);
+            }
+        }
 
         // IMAGE 메시지는 업로드/검수 완료된 mediaId 필수
         if (type == ChatMessage.MessageType.IMAGE) {
@@ -240,10 +255,17 @@ public class ChatMessageService {
     }
 
     public void read(Long myId, Long roomId, Long messageId) {
+        if (messageId == null) {
+            throw new ChatMessageException(ChatMessageErrorStatus.INVALID_READ_MESSAGE);
+        }
 
         // 참여자 조회 (참여자가 아니면 예외)
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.NOT_ROOM_MEMBER));
+
+        if (!chatMessageRepository.existsByIdAndChatRoomId(messageId, roomId)) {
+            throw new ChatMessageException(ChatMessageErrorStatus.INVALID_READ_MESSAGE);
+        }
 
         // 읽음 처리 (lastReadMessageId 최신화)
         cru.read(messageId);

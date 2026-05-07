@@ -60,13 +60,21 @@ public class Reaction extends BaseEntity {
 
 
     public boolean applyLike() {
-        if (this.liked) return false;
+        if (this.liked) {
+            this.liked = false;
+            return true;
+        }
+        this.disliked = false;
         this.liked = true;
         return true;
     }
 
     public boolean applyDislike() {
-        if (this.disliked) return false;
+        if (this.disliked) {
+            this.disliked = false;
+            return true;
+        }
+        this.liked = false;
         this.disliked = true;
         return true;
     }
