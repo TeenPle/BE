@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +35,7 @@ public class SchoolController {
             summary = "학교생성",
             description = "학교명을 입력 받아 학교를 생성합니다."
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/admin/schools", consumes = "application/json", produces = "application/json")
     public ApiResponse<Long> createSchool(@Valid @RequestBody SchoolCreateRequest schoolCreateRequest) {
         Long id = schoolService.createSchool(schoolCreateRequest);
@@ -98,6 +100,7 @@ public class SchoolController {
             summary = "학교 NEIS 코드 등록",
             description = "학교의 NEIS 시도교육청코드와 행정표준코드를 수동으로 등록합니다."
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/admin/schools/{schoolId}/neis")
     public ApiResponse<Void> updateNeisCodes(
             @PathVariable Long schoolId,
@@ -112,6 +115,7 @@ public class SchoolController {
             description = "NEIS 코드가 없는 모든 학교를 학교명으로 NEIS API에서 검색해 자동 등록합니다. " +
                     "동명 학교가 2개 이상이면 ambiguous 카운트에 집계되며 수동 등록이 필요합니다."
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/schools/sync-neis")
     public ApiResponse<NeisSyncResult> syncAllNeisCodes() {
         NeisSyncResult result = neisSchoolSyncService.syncAllMissing();

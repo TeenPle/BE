@@ -21,6 +21,8 @@ import java.security.Principal;
 @RequiredArgsConstructor
 public class ChatMessageWsController {
 
+    private static final int MAX_TEXT_LENGTH = 500;
+
     private final ChatMessageService chatMessageService;
     private final ChatRealtimePublisher realtimePublisher;
     private final ChatRoomRepository chatRoomRepository;
@@ -61,7 +63,7 @@ public class ChatMessageWsController {
             if (request.getContent() == null || request.getContent().isBlank()) {
                 throw new ChatMessageException(ChatMessageErrorStatus.INVALID_MESSAGE_TYPE);
             }
-            if (request.getContent().length() > 2000) {
+            if (request.getContent().length() > MAX_TEXT_LENGTH) {
                 throw new ChatMessageException(ChatMessageErrorStatus.MESSAGE_TOO_LONG);
             }
         }

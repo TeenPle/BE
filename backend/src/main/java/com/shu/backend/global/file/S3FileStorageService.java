@@ -118,7 +118,8 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     @Override
-    public void deletePublicFile(String key) {
+    public void deletePublicFile(String keyOrUrl) {
+        String key = resolvePublicObjectKey(keyOrUrl);
         if (key == null || key.isBlank()) {
             log.warn("퍼블릭 파일 삭제 생략 — key가 비어있음");
             return;
@@ -179,11 +180,30 @@ public class S3FileStorageService implements FileStorageService {
         return new StoredFile(props.getBucket(), key, props.getBaseUrl() + "/" + key, contentType);
     }
 
+    private String resolvePublicObjectKey(String keyOrUrl) {
+        if (keyOrUrl == null || keyOrUrl.isBlank()) {
+            return keyOrUrl;
+        }
+
+        String value = keyOrUrl.trim();
+        String baseUrlPrefix = props.getBaseUrl() + "/";
+        if (value.startsWith(baseUrlPrefix)) {
+            return value.substring(baseUrlPrefix.length());
+        }
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return extractKeyFromUrl(value);
+        }
+        return value.startsWith("/") ? value.substring(1) : value;
+    }
+
     // S3 URL에서 오브젝트 key 추출 (https://{bucket}.s3.{region}.amazonaws.com/{key})
     private String extractKeyFromUrl(String url) {
         int idx = url.indexOf(".amazonaws.com/");
-        if (idx < 0) return null;
-        return url.substring(idx + ".amazonaws.com/".length());
+        if (idx >= 0) {
+            return url.substring(idx + ".amazonaws.com/".length());
+        }
+        log.warn("퍼블릭 파일 삭제 생략 — S3 key를 추출할 수 없는 URL: {}", url);
+        return null;
     }
 
 }

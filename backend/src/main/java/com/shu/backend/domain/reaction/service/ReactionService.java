@@ -61,19 +61,19 @@ public class ReactionService {
                 .findByUserIdAndTargetTypeAndTargetId(userId, targetType, targetId)
                 .orElseGet(() -> reactionRepository.save(Reaction.create(targetType, targetId, userId)));
 
-        boolean changed;    //클릭으로 실제 반영 되었는지 중복 클릭이었는지 여부를 응답에 포함시키기 위한 변수
+        boolean wasLiked = Boolean.TRUE.equals(reaction.getLiked());
+        boolean wasDisliked = Boolean.TRUE.equals(reaction.getDisliked());
+        boolean changed;
         if (action == ReactionAction.LIKE) {
-            changed = reaction.applyLike(); // false->true일 때만 true
-            if (changed) {
-                increment(targetType, targetId, +1, 0);
-
-
-            }
+            changed = reaction.applyLike();
         } else { // DISLIKE
             changed = reaction.applyDislike();
-            if (changed) {
-                increment(targetType, targetId, 0, +1);
-            }
+        }
+
+        int likeDelta = Boolean.compare(Boolean.TRUE.equals(reaction.getLiked()), wasLiked);
+        int dislikeDelta = Boolean.compare(Boolean.TRUE.equals(reaction.getDisliked()), wasDisliked);
+        if (changed && (likeDelta != 0 || dislikeDelta != 0)) {
+            increment(targetType, targetId, likeDelta, dislikeDelta);
         }
 
         int likeCount;

@@ -6,6 +6,7 @@ import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatu
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import com.shu.backend.domain.penalty.security.PenaltyChecker;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.file.FileStorageService;
@@ -34,8 +35,14 @@ public class ChatImageService {
     private final ChatImageModerationService moderationService;
     private final MediaRepository mediaRepository;
     private final UserRepository userRepository;
+    private final PenaltyChecker penaltyChecker;
+    private final ChatActionRateLimiter chatActionRateLimiter;
 
     public ChatMessageDTO.UploadImageResponse upload(Long uploaderId, MultipartFile file) {
+        if (!penaltyChecker.notPenalized(uploaderId)) {
+            throw new ChatMessageException(ChatMessageErrorStatus.CHAT_PENALIZED);
+        }
+        chatActionRateLimiter.check(uploaderId, "image-upload", 5, 60);
         validateImageFile(file);
 
         StoredFile storedFile = fileStorageService.uploadChatImageFile(file);

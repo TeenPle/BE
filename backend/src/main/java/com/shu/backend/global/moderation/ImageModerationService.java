@@ -33,6 +33,7 @@ import java.util.UUID;
  * 동작 방식:
  *  - 파일 크기 ≤ 5MB : 바이트를 Rekognition에 직접 전송 (S3 업로드 불필요)
  *  - 파일 크기 > 5MB : S3 임시 경로에 업로드 → Rekognition S3 참조 분석 → 검사 후 즉시 삭제
+ *  - Rekognition 검사 실패 시 안전을 위해 업로드 차단
  */
 @Slf4j
 @Service
@@ -88,10 +89,9 @@ public class ImageModerationService {
         } catch (MediaException e) {
             throw e;
         } catch (Exception e) {
-            // Rekognition 호출 자체가 실패하면 업로드를 막지 않고 경고 로그만 남김
-            // (서비스 중단 방지 — 운영 중 AWS 장애 시 대응)
-            log.error("Rekognition 이미지 검사 실패 (업로드는 허용): file={}, error={}",
+            log.error("Rekognition 이미지 검사 실패 (업로드 차단): file={}, error={}",
                     file.getOriginalFilename(), e.getMessage());
+            throw new MediaException(MediaErrorStatus.INAPPROPRIATE_IMAGE);
         }
     }
 
