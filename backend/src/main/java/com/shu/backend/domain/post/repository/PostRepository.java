@@ -318,6 +318,51 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             p.title,
             p.content,
             p.postStatus,
+            p.viewCount,
+            p.anonymous,
+            p.likeCount,
+            p.dislikeCount,
+            b.id,
+            u.id,
+            u.username,
+            p.commentCount,
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
+        from Post p
+        join p.board b
+        join p.user u
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and p.createdAt >= :since
+          and p.likeCount >= 1
+          and (
+                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
+             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
+          )
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
+        order by p.likeCount desc, p.commentCount desc, p.createdAt desc, p.id desc
+    """)
+    List<Object[]> findTopRecommendedPostRows(
+            @Param("schoolId") Long schoolId,
+            @Param("regionId") Long regionId,
+            @Param("since") LocalDateTime since,
+            @Param("currentUserId") Long currentUserId,
+            Pageable pageable
+    );
+
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
             p.likeCount,
             p.createdAt,
             p.commentCount,
@@ -329,4 +374,46 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         order by p.id desc
     """)
     List<Object[]> findMyPostRows(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        select
+            p.id,
+            p.title,
+            p.content,
+            p.postStatus,
+            p.viewCount,
+            p.anonymous,
+            p.likeCount,
+            p.dislikeCount,
+            b.id,
+            u.id,
+            u.username,
+            p.commentCount,
+            u.profileImageUrl,
+            p.createdAt,
+            exists (
+                select poll.id
+                from com.shu.backend.domain.poll.entity.Poll poll
+                where poll.post.id = p.id
+            )
+        from Post p
+        join p.board b
+        join p.user u
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
+          and (
+                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
+             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
+          )
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :currentUserId
+          )
+        order by p.createdAt desc
+    """)
+    List<Object[]> findAllPostRowsBySchool(
+            @Param("schoolId") Long schoolId,
+            @Param("regionId") Long regionId,
+            @Param("currentUserId") Long currentUserId,
+            Pageable pageable
+    );
 }

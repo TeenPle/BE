@@ -119,6 +119,20 @@ public class SchoolService {
     }
 
     /*
+    학교 전체 게시판의 최신 게시글 페이징 조회
+     */
+    public Slice<PostResponse> getAllPostsBySchool(Long schoolId, Pageable pageable, Long currentUserId) {
+        boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
+
+        School school = schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+
+        Long regionId = school.getRegion() != null ? school.getRegion().getId() : -1L;
+
+        return postService.getPostsBySchool(schoolId, regionId, pageable, currentUserId);
+    }
+
+    /*
     특정 학교 상세정보 조회 (기본으로 자유게시판 조회)
      */
     public SchoolDetailResponse getSchoolDetail(Long schoolId, String boardTitle, Pageable pageable, Long currentUserId) {
