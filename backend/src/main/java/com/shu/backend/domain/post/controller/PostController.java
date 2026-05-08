@@ -11,6 +11,7 @@ import com.shu.backend.domain.post.service.PostService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import com.shu.backend.global.ratelimit.RateLimit;
+import com.shu.backend.global.util.PageRequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
@@ -112,7 +113,10 @@ public class PostController {
             @AuthenticationPrincipal User user
     ) {
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection), safeSortBy));
+        Sort.Direction safeDirection = "ASC".equalsIgnoreCase(sortDirection)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Pageable pageable = PageRequestUtils.of(page, size, 50, Sort.by(safeDirection, safeSortBy));
         Slice<PostResponse> postResponses = postService.getPostsByBoardId(boardId, pageable, user.getId());
         return ApiResponse.onSuccess(postResponses);
     }

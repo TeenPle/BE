@@ -4,6 +4,8 @@ import com.google.firebase.messaging.*;
 import com.shu.backend.domain.pushtoken.repository.PushTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -12,6 +14,20 @@ import java.util.*;
 public class PushService {
 
     private final PushTokenRepository pushTokenRepository;
+
+    public void sendToUserAfterCommit(Long userId, String title, String body, Map<String, String> data) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sendToUser(userId, title, body, data);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendToUser(userId, title, body, data);
+            }
+        });
+    }
 
     public void sendToUser(Long userId, String title, String body, Map<String, String> data) {
         var tokens = pushTokenRepository.findByUserIdAndIsActiveTrue(userId);

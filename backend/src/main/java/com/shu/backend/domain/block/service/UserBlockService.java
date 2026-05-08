@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class UserBlockService {
@@ -44,7 +42,12 @@ public class UserBlockService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> getBlockedUsers(Long blockerId) {
-        return userBlockRepository.findBlockedUsers(blockerId);
+    public long getBlockedCount(Long blockerId) {
+        return userBlockRepository.countByBlockerId(blockerId);
+    }
+
+    @Transactional
+    public void unblockAll(Long blockerId) {
+        userBlockRepository.deleteByBlockerId(blockerId);
     }
 }

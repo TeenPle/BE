@@ -5,6 +5,8 @@ import com.shu.backend.domain.board.enums.BoardScope;
 import com.shu.backend.domain.board.exception.BoardException;
 import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
 import com.shu.backend.domain.board.repository.BoardRepository;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
+import com.shu.backend.domain.block.repository.UserBlockRepository;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
 import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
@@ -38,13 +40,13 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaTargetType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import com.shu.backend.global.util.PageRequestUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -67,8 +69,10 @@ public class PostService {
     private final ViewCountAccumulator viewCountAccumulator;
     private final ContentModerationService contentModerationService;
     private final BookmarkRepository bookmarkRepository;
+    private final UserBlockRepository userBlockRepository;
     private final PollService pollService;
     private final ReactionRepository reactionRepository;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -199,12 +203,15 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostDetailResponse getPostDetail(Long postId, Long currentUserId) {
 
-        log.info("tx active={}, readOnly={}",
-                TransactionSynchronizationManager.isActualTransactionActive(),
-                TransactionSynchronizationManager.isCurrentTransactionReadOnly());
-
         Post post = postRepository.findDetailById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+
+        boardAccessPolicy.assertCanAccessPost(currentUserId, post);
+
+        if (!post.getUser().getId().equals(currentUserId)
+                && userBlockRepository.existsByBlockerIdAndBlockedId(currentUserId, post.getUser().getId())) {
+            throw new PostException(PostErrorStatus.BLOCKED_AUTHOR);
+        }
 
         viewCountAccumulator.increment(postId);
 
@@ -223,6 +230,10 @@ public class PostService {
 
     // 특정 게시판의 글 페이징 조회
     public Slice<PostResponse> getPostsByBoardId(Long boardId, Pageable pageable, Long currentUserId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessBoard(currentUserId, board);
+
         Sort.Order order = pageable.getSort().stream().findFirst()
                 .orElse(Sort.Order.desc("createdAt"));
         String sortBy = order.getProperty();
@@ -257,6 +268,8 @@ public class PostService {
     }
 
     public Slice<PostResponse> searchAccessiblePosts(Long schoolId, Long regionId, Long boardId, String keyword, Pageable pageable, Long currentUserId) {
+        pageable = PageRequestUtils.sanitize(pageable, 50);
+
         if (!StringUtils.hasText(keyword)) {
             return new SliceImpl<>(List.of(), pageable, false);
         }
@@ -335,6 +348,8 @@ public class PostService {
 
     // 해당 학교의 HOT 게시글 조회 (filter: TODAY / WEEK / ALL)
     public List<PostResponse> getHotPosts(Long schoolId, String filter, int size, Long currentUserId) {
+        boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
+
         int safeSize = Math.min(Math.max(size, 1), 20);
         LocalDateTime since = switch (filter.toUpperCase()) {
             case "TODAY" -> LocalDate.now().atStartOfDay();

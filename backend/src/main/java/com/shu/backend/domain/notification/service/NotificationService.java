@@ -8,8 +8,8 @@ import com.shu.backend.domain.notification.enums.NotificationType;
 import com.shu.backend.domain.notification.exception.NotificationException;
 import com.shu.backend.domain.notification.exception.status.NotificationErrorStatus;
 import com.shu.backend.domain.notification.repository.NotificationRepository;
+import com.shu.backend.global.util.PageRequestUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
@@ -58,7 +58,7 @@ public class NotificationService {
     }
 
     public Slice<NotificationResponse> getMyNotification(Long userId, int page, int size){
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequestUtils.of(page, size, 50, Sort.by(Sort.Direction.DESC, "createdAt"));
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
                 .map(NotificationResponse::from);
     }

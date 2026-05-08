@@ -1,5 +1,8 @@
 package com.shu.backend.domain.penalty.service;
 
+import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
+import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
+import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.entity.Penalty;
 import com.shu.backend.domain.penalty.enums.PenaltyStatus;
@@ -29,6 +32,7 @@ public class PenaltyService {
 
     private final PenaltyRepository penaltyRepository;
     private final ReportRepository reportRepository;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
     public Long create(Long reportId, int penaltyDays){
@@ -79,6 +83,11 @@ public class PenaltyService {
 
     @Transactional
     public void cancel(Long penaltyId) {
+        cancel(null, penaltyId);
+    }
+
+    @Transactional
+    public void cancel(Long adminId, Long penaltyId) {
         Penalty penalty = penaltyRepository.findById(penaltyId)
                 .orElseThrow(() -> new PenaltyException(PenaltyErrorStatus.PENALTY_NOT_FOUND));
 
@@ -87,6 +96,14 @@ public class PenaltyService {
         }
 
         penalty.cancel();
+        adminAuditLogService.record(
+                adminId,
+                AdminAuditAction.CANCEL_PENALTY,
+                AdminAuditTargetType.PENALTY,
+                penaltyId,
+                "제재 취소",
+                "reportId=" + penalty.getReport().getId()
+        );
     }
 
 }

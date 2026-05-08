@@ -4,11 +4,11 @@ import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.service.PenaltyService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.util.PageRequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,7 +47,7 @@ public class PenaltyController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequestUtils.of(page, size, 50, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ApiResponse.onSuccess(penaltyService.getPenaltiesByUser(user.getId(), pageable));
     }
 }

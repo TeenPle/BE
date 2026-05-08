@@ -15,7 +15,9 @@ import lombok.*;
                 @Index(name = "idx_post_board_id", columnList = "board_id"),
                 @Index(name = "idx_post_user_id", columnList = "user_id"),
                 @Index(name = "idx_post_board_created", columnList = "board_id, created_at"),
-                @Index(name = "idx_post_board_id_id", columnList = "board_id, id")
+                @Index(name = "idx_post_board_id_id", columnList = "board_id, id"),
+                @Index(name = "idx_post_board_status_created", columnList = "board_id, post_status, created_at"),
+                @Index(name = "idx_post_board_status_comment", columnList = "board_id, post_status, comment_count")
         }
 )
 @Entity
@@ -46,6 +48,7 @@ public class Post extends BaseEntity {
     private Integer viewCount = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean anonymous = true;
 
     @Column(name = "like_count", nullable = false)
@@ -55,6 +58,10 @@ public class Post extends BaseEntity {
     @Column(name = "dislike_count", nullable = false)
     @Builder.Default
     private int dislikeCount = 0;
+
+    @Column(name = "comment_count", nullable = false)
+    @Builder.Default
+    private int commentCount = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "board_id", nullable = false)
@@ -80,5 +87,23 @@ public class Post extends BaseEntity {
 
     public void delete(){
         this.postStatus = PostStatus.DELETED;
+    }
+
+    public void hide() {
+        this.postStatus = PostStatus.HIDDEN;
+    }
+
+    public void restore() {
+        this.postStatus = PostStatus.ACTIVE;
+    }
+
+    public void incrementCommentCount() {
+        this.commentCount++;
+    }
+
+    public void decrementCommentCount() {
+        if (this.commentCount > 0) {
+            this.commentCount--;
+        }
     }
 }

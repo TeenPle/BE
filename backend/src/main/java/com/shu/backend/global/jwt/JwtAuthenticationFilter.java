@@ -1,5 +1,6 @@
 package com.shu.backend.global.jwt;
 
+import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,6 +35,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
                     userRepository.findByIdWithSchoolAndRegion(userId).ifPresent(user -> {
+                        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+                            SecurityContextHolder.clearContext();
+                            return;
+                        }
                         List<SimpleGrantedAuthority> authorities =
                                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 

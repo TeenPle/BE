@@ -72,6 +72,7 @@ public class AuthService {
     public LoginResponseDTO login(UserLoginDTO userLoginDTO) {
         User user = userRepository.findByEmail(userLoginDTO.getEmail())
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+        assertActive(user);
 
         if (!passwordEncoder.matches(userLoginDTO.getPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
@@ -113,6 +114,7 @@ public class AuthService {
         }
 
         User user = stored.getUser();
+        assertActive(user);
 
         // 새 토큰 발급 (issueRefreshToken 내부에서 deleteByUser로 기존 토큰 전부 삭제)
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getId());
@@ -183,6 +185,7 @@ public class AuthService {
     ) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+        assertActive(user);
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
@@ -216,6 +219,7 @@ public class AuthService {
     ) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+        assertActive(user);
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
@@ -262,6 +266,7 @@ public class AuthService {
         String normalized = normalizePhoneNumber(request.getPhoneNumber());
         User user = userRepository.findByPhoneNumber(normalized)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        assertActive(user);
 
         if (!user.getUsername().equals(request.getUsername())) {
             throw new UserException(UserErrorStatus.USER_NOT_FOUND);
@@ -285,12 +290,14 @@ public class AuthService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+        assertActive(user);
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new UserException(UserErrorStatus.SAME_PASSWORD);
         }
 
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+        refreshTokenRepository.deleteByUser(user);
     }
 
     // =================== private ===================
@@ -300,6 +307,12 @@ public class AuthService {
         String refreshToken = issueRefreshToken(user);
         Long schoolId = user.getSchool() != null ? user.getSchool().getId() : null;
         return new LoginResponseDTO(user.getId(), accessToken, refreshToken, user.getRole().name(), schoolId);
+    }
+
+    private void assertActive(User user) {
+        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+            throw new UserException(UserErrorStatus.INACTIVE_USER);
+        }
     }
 
     // 새 refresh token 발급 (기존 것 대체)

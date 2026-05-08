@@ -5,12 +5,13 @@ import com.shu.backend.domain.board.service.BoardService;
 import com.shu.backend.domain.board.dto.BoardCreateRequest;
 import com.shu.backend.domain.board.dto.BoardResponse;
 import com.shu.backend.domain.board.exception.status.BoardSuccessStatus;
+import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,8 +44,11 @@ public class BoardController {
             description = "특정 학교의 게시판 전체 목록을 조회할 수 있습니다."
     )
     @GetMapping(value = "/api/schools/{schoolId}/boards")
-    public ApiResponse<List<BoardResponse>> getBoardsBySchool(@PathVariable Long schoolId){
-        List<BoardResponse> boards = boardService.getBoardsBySchool(schoolId);
+    public ApiResponse<List<BoardResponse>> getBoardsBySchool(
+            @PathVariable Long schoolId,
+            @AuthenticationPrincipal User user
+    ){
+        List<BoardResponse> boards = boardService.getBoardsBySchool(schoolId, user.getId());
 
         return ApiResponse.of(BoardSuccessStatus.BOARD_FOUND_SUCCESS, boards);
     }

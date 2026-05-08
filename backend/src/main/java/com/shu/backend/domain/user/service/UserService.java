@@ -3,14 +3,16 @@ package com.shu.backend.domain.user.service;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.repository.PostRepository;
 import com.shu.backend.domain.reaction.repository.ReactionRepository;
+import com.shu.backend.domain.pushtoken.repository.PushTokenRepository;
 import com.shu.backend.domain.user.dto.UserDTO;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
+import com.shu.backend.domain.user.repository.RefreshTokenRepository;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.exception.GeneralException;
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.util.PageRequestUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ public class UserService {
     private final ReactionRepository reactionRepository;
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final PushTokenRepository pushTokenRepository;
 
     @Transactional(readOnly = true)
     public UserDTO.ProfileResponse getMyProfile(Long userId) {
@@ -87,11 +91,12 @@ public class UserService {
         }
 
         user.updatePassword(passwordEncoder.encode(newPassword));
+        refreshTokenRepository.deleteByUser(user);
     }
 
     @Transactional(readOnly = true)
     public List<UserDTO.MyPostResponse> getMyPosts(Long userId, int page, int size) {
-        List<Object[]> rows = postRepository.findMyPostRows(userId, PageRequest.of(page, size));
+        List<Object[]> rows = postRepository.findMyPostRows(userId, PageRequestUtils.of(page, size));
         return rows.stream().map(r -> UserDTO.MyPostResponse.builder()
                 .postId((Long) r[0])
                 .title((String) r[1])
@@ -107,7 +112,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDTO.MyCommentResponse> getMyComments(Long userId, int page, int size) {
-        List<Object[]> rows = commentRepository.findMyCommentRows(userId, PageRequest.of(page, size));
+        List<Object[]> rows = commentRepository.findMyCommentRows(userId, PageRequestUtils.of(page, size));
         return rows.stream().map(r -> UserDTO.MyCommentResponse.builder()
                 .commentId((Long) r[0])
                 .content((String) r[1])
@@ -135,7 +140,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDTO.MyPostResponse> getLikedPosts(Long userId, int page, int size) {
-        List<Long> postIds = reactionRepository.findLikedPostIds(userId, PageRequest.of(page, size));
+        List<Long> postIds = reactionRepository.findLikedPostIds(userId, PageRequestUtils.of(page, size));
         if (postIds.isEmpty()) return Collections.emptyList();
 
         List<Object[]> rows = postRepository.findLikedPostRows(postIds);
@@ -156,5 +161,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
         user.deactivate();
+        refreshTokenRepository.deleteByUser(user);
+        pushTokenRepository.deactivateAllByUserId(userId);
     }
 }

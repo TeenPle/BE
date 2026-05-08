@@ -1,5 +1,6 @@
 package com.shu.backend.domain.reaction.service;
 
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
@@ -38,11 +39,12 @@ public class ReactionService {
     private final NotificationService notificationService;
     private final PushService pushService;
     private final UserSettingRepository userSettingRepository;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
     public ReactionApplyResponse apply(Long userId, ReactionApplyRequest req) {
-        validateTargetExists(req.getTargetType(), req.getTargetId());
+        validateTargetAccessible(userId, req.getTargetType(), req.getTargetId());
 
         try {
             return doApply(userId, req);
@@ -124,7 +126,7 @@ public class ReactionService {
                 var setting = userSettingRepository.findByUserId(ownerUserId).orElse(null);
                 if (setting == null || setting.isLikeNotificationEnabled()) {
                     try {
-                        pushService.sendToUser(
+                        pushService.sendToUserAfterCommit(
                                 ownerUserId,
                                 boardName,
                                 notiMsg,
@@ -152,13 +154,17 @@ public class ReactionService {
 
     }
 
-    private void validateTargetExists(ReactionTargetType targetType, Long targetId) {
+    private void validateTargetAccessible(Long userId, ReactionTargetType targetType, Long targetId) {
         if (targetType == ReactionTargetType.COMMENT) {
-            if (!commentRepository.existsById(targetId)) throw new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND);
+            var comment = commentRepository.findById(targetId)
+                    .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
+            boardAccessPolicy.assertCanAccessComment(userId, comment);
             return;
         }
         if (targetType == ReactionTargetType.POST) {
-            if (!postRepository.existsById(targetId)) throw new PostException(PostErrorStatus.POST_NOT_FOUND);
+            var post = postRepository.findById(targetId)
+                    .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+            boardAccessPolicy.assertCanAccessPost(userId, post);
             return;
         }
         throw new ReactionException(ReactionErrorStatus.UNSUPPORTED_TARGET_TYPE);

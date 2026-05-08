@@ -28,4 +28,30 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     """)
     List<Bookmark> findByUserIdOrderByCreatedAtDesc(
             @Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        select b from Bookmark b
+        join fetch b.post p
+        join fetch p.user u
+        join fetch p.board bo
+        left join fetch bo.school s
+        left join fetch bo.region r
+        where b.user.id = :userId
+          and p.postStatus = 'ACTIVE'
+          and (
+                (bo.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and s.id = :schoolId)
+             or (bo.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and r.id = :regionId)
+          )
+          and p.user.id not in (
+              select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
+              where ub.blocker.id = :userId
+          )
+        order by b.createdAt desc
+    """)
+    List<Bookmark> findAccessibleByUserIdOrderByCreatedAtDesc(
+            @Param("userId") Long userId,
+            @Param("schoolId") Long schoolId,
+            @Param("regionId") Long regionId,
+            Pageable pageable
+    );
 }

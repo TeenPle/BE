@@ -30,6 +30,7 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final SchoolRepository schoolRepository;
     private final RegionRepository regionRepository;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     /*
     * 게시판 생성
@@ -80,7 +81,8 @@ public class BoardService {
     /*
     * 학교별 게시판 조회
     * */
-    public List<BoardResponse> getBoardsBySchool(Long schoolId){
+    public List<BoardResponse> getBoardsBySchool(Long schoolId, Long currentUserId){
+        boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
 
         // School 검증
         School school = schoolRepository.findById(schoolId)

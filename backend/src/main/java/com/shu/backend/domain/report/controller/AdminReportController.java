@@ -11,15 +11,14 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.warning.dto.WarningDTO;
 import com.shu.backend.domain.warning.service.WarningService;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.util.PageRequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +44,7 @@ public class AdminReportController {
             @RequestParam(defaultValue = "20") int size
     ) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Report> reports = reportService.getReports(status, pageable);
 
         return ApiResponse.of(
@@ -81,7 +80,7 @@ public class AdminReportController {
             @PathVariable Long reportId,
             @Valid @RequestBody ReportAdminDTO.ApproveRequest req
             ) {
-        Long penaltyId = reportService.approve(admin.getId(), reportId, req.getPenaltyDays());
+        Long penaltyId = reportService.approve(admin.getId(), reportId, req.getPenaltyDays(), req.getAdminComment());
         return ApiResponse.of(ReportSuccessStatus.REPORT_APPROVE_SUCCESS, penaltyId);
     }
 
@@ -92,9 +91,10 @@ public class AdminReportController {
     @PostMapping("/{reportId}/reject")
     public ApiResponse<Long> rejectReport(
             @AuthenticationPrincipal User admin,
-            @PathVariable Long reportId
+            @PathVariable Long reportId,
+            @Valid @RequestBody ReportAdminDTO.RejectRequest req
     ) {
-        Long id = reportService.reject(admin.getId(), reportId);
+        Long id = reportService.reject(admin.getId(), reportId, req.getAdminComment());
         return ApiResponse.of(ReportSuccessStatus.REPORT_REJECT_SUCCESS, id);
     }
 

@@ -4,8 +4,10 @@ import com.shu.backend.domain.board.entity.Board;
 import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.enums.PostStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,6 +23,9 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
     Slice<Post> findByBoardId(Long boardId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "board", "board.school", "board.region"})
+    Page<Post> findByBoardIdAndPostStatusNot(Long boardId, PostStatus postStatus, Pageable pageable);
 
     /*@Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :postId")
@@ -52,6 +57,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     """)
     Optional<Post> findDetailById(@Param("postId") Long postId);
 
+    @EntityGraph(attributePaths = {"user", "board", "board.school", "board.region"})
+    Optional<Post> findWithAdminContextById(Long postId);
+
     @Query("""
         select p.id
         from Post p
@@ -79,12 +87,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             b.id,
             u.id,
             u.username,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                   and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            ),
+            p.commentCount,
             u.profileImageUrl,
             p.createdAt,
             exists (
@@ -108,18 +111,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           case when :sortDirection = 'DESC' and :sortBy = 'likeCount' then p.likeCount end desc,
           case when :sortDirection = 'ASC' and :sortBy = 'viewCount' then p.viewCount end asc,
           case when :sortDirection = 'DESC' and :sortBy = 'viewCount' then p.viewCount end desc,
-          case when :sortDirection = 'ASC' and :sortBy = 'commentCount' then (
-              select count(c.id)
-              from Comment c
-              where c.post.id = p.id
-                and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-          ) end asc,
-          case when :sortDirection = 'DESC' and :sortBy = 'commentCount' then (
-              select count(c.id)
-              from Comment c
-              where c.post.id = p.id
-                and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-          ) end desc,
+          case when :sortDirection = 'ASC' and :sortBy = 'commentCount' then p.commentCount end asc,
+          case when :sortDirection = 'DESC' and :sortBy = 'commentCount' then p.commentCount end desc,
           p.id desc
     """)
     List<Object[]> findPostRowsByBoardId(
@@ -143,12 +136,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             b.id,
             u.id,
             u.username,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            ),
+            p.commentCount,
             u.profileImageUrl,
             p.createdAt,
             exists (
@@ -220,12 +208,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             b.id,
             u.id,
             u.username,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            ),
+            p.commentCount,
             u.profileImageUrl,
             p.createdAt,
             exists (
@@ -273,12 +256,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             p.postStatus,
             p.likeCount,
             p.createdAt,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            )
+            p.commentCount
         from Post p
         where p.id in :postIds
           and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED
@@ -305,12 +283,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             b.id,
             u.id,
             u.username,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            ),
+            p.commentCount,
             u.profileImageUrl,
             p.createdAt,
             exists (
@@ -347,12 +320,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             p.postStatus,
             p.likeCount,
             p.createdAt,
-            (
-                select count(c.id)
-                from Comment c
-                where c.post.id = p.id
-                  and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED
-            ),
+            p.commentCount,
             b.title
         from Post p
         join p.board b

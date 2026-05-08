@@ -1,6 +1,9 @@
 package com.shu.backend.domain.warning.service;
 
 import com.shu.backend.domain.comment.repository.CommentRepository;
+import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
+import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
+import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.post.repository.PostRepository;
 import com.shu.backend.global.firebase.FcmSender;
 import com.shu.backend.domain.report.entity.Report;
@@ -38,6 +41,7 @@ public class WarningService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final FcmSender fcmSender;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
     public Long issue(Long adminId, Long reportId, String adminComment) {
@@ -64,6 +68,15 @@ public class WarningService {
                 .build();
 
         Long warningId = warningRepository.save(warning).getId();
+
+        adminAuditLogService.record(
+                adminId,
+                AdminAuditAction.WARN_REPORT,
+                AdminAuditTargetType.REPORT,
+                reportId,
+                adminComment,
+                "warningId=" + warningId
+        );
 
         fcmSender.sendToUser(
                 report.getReportedUser().getId(),
