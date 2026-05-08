@@ -80,7 +80,7 @@ public class AdminReportController {
             @PathVariable Long reportId,
             @Valid @RequestBody ReportAdminDTO.ApproveRequest req
             ) {
-        Long penaltyId = reportService.approve(admin.getId(), reportId, req.getPenaltyDays());
+        Long penaltyId = reportService.approve(admin.getId(), reportId, req.getPenaltyDays(), req.getAdminComment());
         return ApiResponse.of(ReportSuccessStatus.REPORT_APPROVE_SUCCESS, penaltyId);
     }
 
@@ -91,9 +91,10 @@ public class AdminReportController {
     @PostMapping("/{reportId}/reject")
     public ApiResponse<Long> rejectReport(
             @AuthenticationPrincipal User admin,
-            @PathVariable Long reportId
+            @PathVariable Long reportId,
+            @Valid @RequestBody ReportAdminDTO.RejectRequest req
     ) {
-        Long id = reportService.reject(admin.getId(), reportId);
+        Long id = reportService.reject(admin.getId(), reportId, req.getAdminComment());
         return ApiResponse.of(ReportSuccessStatus.REPORT_REJECT_SUCCESS, id);
     }
 

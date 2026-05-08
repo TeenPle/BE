@@ -89,6 +89,14 @@ public class Post extends BaseEntity {
         this.postStatus = PostStatus.DELETED;
     }
 
+    public void hide() {
+        this.postStatus = PostStatus.HIDDEN;
+    }
+
+    public void restore() {
+        this.postStatus = PostStatus.ACTIVE;
+    }
+
     public void incrementCommentCount() {
         this.commentCount++;
     }

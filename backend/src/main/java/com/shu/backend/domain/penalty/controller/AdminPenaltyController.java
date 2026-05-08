@@ -3,6 +3,7 @@ package com.shu.backend.domain.penalty.controller;
 
 import com.shu.backend.domain.penalty.dto.PenaltyDTO;
 import com.shu.backend.domain.penalty.service.PenaltyService;
+import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import com.shu.backend.global.util.PageRequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -59,8 +61,11 @@ public class AdminPenaltyController {
             description = "활성 상태의 제재를 즉시 취소합니다."
     )
     @PostMapping("/{penaltyId}/cancel")
-    public ApiResponse<Void> cancel(@PathVariable Long penaltyId) {
-        penaltyService.cancel(penaltyId);
+    public ApiResponse<Void> cancel(
+            @AuthenticationPrincipal User admin,
+            @PathVariable Long penaltyId
+    ) {
+        penaltyService.cancel(admin.getId(), penaltyId);
         return ApiResponse.onSuccess(null);
     }
 }

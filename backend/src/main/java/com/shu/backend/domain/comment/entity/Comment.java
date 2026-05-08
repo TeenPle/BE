@@ -74,6 +74,13 @@ public class Comment extends BaseEntity {
         this.commentStatus = CommentStatus.DELETED;
     }
 
+    public void hide() {
+        this.commentStatus = CommentStatus.HIDDEN;
+    }
+
+    public void restore() {
+        this.commentStatus = CommentStatus.ACTIVE;
+    }
 
 
 
