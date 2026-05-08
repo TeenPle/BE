@@ -1,5 +1,6 @@
 package com.shu.backend.domain.school.controller;
 
+import com.shu.backend.domain.post.dto.PostResponse;
 import com.shu.backend.domain.school.dto.SchoolCreateRequest;
 import com.shu.backend.domain.school.dto.SchoolDetailResponse;
 import com.shu.backend.domain.school.dto.SchoolNeisUpdateRequest;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -76,6 +78,22 @@ public class SchoolController {
                 .toList();
 
         return ApiResponse.of(SchoolSuccessStatus.SCHOOL_FOUND, responses);
+    }
+
+    @Operation(
+            summary = "학교 전체 게시판 최신글 조회",
+            description = "학교 내 모든 게시판(학교+지역)의 최신 게시글을 페이지 단위로 조회합니다. '전체' 탭에 사용됩니다."
+    )
+    @GetMapping(value = "/api/schools/{schoolId}/posts")
+    public ApiResponse<Slice<PostResponse>> getAllPostsBySchool(
+            @PathVariable Long schoolId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal User user
+    ) {
+        Pageable pageable = PageRequestUtils.of(page, size, 50);
+        Slice<PostResponse> posts = schoolService.getAllPostsBySchool(schoolId, pageable, user.getId());
+        return ApiResponse.onSuccess(posts);
     }
 
     @Operation(

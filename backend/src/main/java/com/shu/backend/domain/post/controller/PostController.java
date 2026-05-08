@@ -133,6 +133,18 @@ public class PostController {
         return ApiResponse.onSuccess(hotPosts);
     }
 
+    @Operation(summary = "피드 상단 추천 게시글 조회", description = "기본 3시간 내 추천수가 높은 접근 가능 게시글을 조회합니다.")
+    @GetMapping("/schools/{schoolId}/posts/top-recommended")
+    public ApiResponse<List<PostResponse>> getTopRecommendedPosts(
+            @PathVariable Long schoolId,
+            @RequestParam(defaultValue = "3") int hours,
+            @RequestParam(defaultValue = "3") int size,
+            @AuthenticationPrincipal User user
+    ) {
+        List<PostResponse> topPosts = postService.getTopRecommendedPosts(schoolId, hours, size, user.getId());
+        return ApiResponse.onSuccess(topPosts);
+    }
+
     @GetMapping("/search")
     public ApiResponse<Slice<PostResponse>> searchPosts(
             @RequestParam String keyword,

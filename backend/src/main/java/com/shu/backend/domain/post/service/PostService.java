@@ -346,6 +346,31 @@ public class PostService {
         return false;
     }
 
+    // 학교 전체 게시판(학교+지역)의 최신 게시글 페이징 조회
+    public Slice<PostResponse> getPostsBySchool(Long schoolId, Long regionId, Pageable pageable, Long currentUserId) {
+        Pageable slicePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize() + 1
+        );
+
+        List<Object[]> rows = postRepository.findAllPostRowsBySchool(
+                schoolId, regionId, currentUserId, slicePageable
+        );
+
+        boolean hasNext = rows.size() > pageable.getPageSize();
+        if (hasNext) {
+            rows = rows.subList(0, pageable.getPageSize());
+        }
+
+        List<PostResponse> content = rows.stream()
+                .map(PostResponse::fromRow)
+                .toList();
+
+        content = attachMediaToResponses(content);
+
+        return new SliceImpl<>(content, pageable, hasNext);
+    }
+
     // 해당 학교의 HOT 게시글 조회 (filter: TODAY / WEEK / ALL)
     public List<PostResponse> getHotPosts(Long schoolId, String filter, int size, Long currentUserId) {
         boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
@@ -358,6 +383,31 @@ public class PostService {
         };
         Pageable pageable = PageRequest.of(0, safeSize);
         List<Object[]> rows = postRepository.findHotPostRowsBySchoolId(schoolId, since, currentUserId, pageable);
+        List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
+        return attachMediaToResponses(content);
+    }
+
+    public List<PostResponse> getTopRecommendedPosts(Long schoolId, int hours, int size, Long currentUserId) {
+        User user = boardAccessPolicy.requireActiveUserWithSchool(currentUserId);
+        if (schoolId == null || !schoolId.equals(user.getSchool().getId())) {
+            throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
+        }
+
+        Long regionId = user.getSchool().getRegion() != null
+                ? user.getSchool().getRegion().getId()
+                : null;
+        int safeHours = Math.min(Math.max(hours, 1), 24);
+        int safeSize = Math.min(Math.max(size, 1), 10);
+        LocalDateTime since = LocalDateTime.now().minusHours(safeHours);
+        Pageable pageable = PageRequest.of(0, safeSize);
+
+        List<Object[]> rows = postRepository.findTopRecommendedPostRows(
+                schoolId,
+                regionId,
+                since,
+                currentUserId,
+                pageable
+        );
         List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
         return attachMediaToResponses(content);
     }
