@@ -1,6 +1,7 @@
 package com.shu.backend.domain.comment.service;
 
 import com.shu.backend.global.moderation.ContentModerationService;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.comment.dto.CommentCreateRequest;
 import com.shu.backend.domain.comment.dto.CommentUpdateRequest;
 import com.shu.backend.domain.comment.entity.Comment;
@@ -42,6 +43,7 @@ public class CommentService {
     private final PushService pushService;
     private final UserSettingRepository userSettingRepository;
     private final ContentModerationService contentModerationService;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -56,6 +58,7 @@ public class CommentService {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessPost(userId, post);
 
         Comment parent = null;
         int depth = 0;
@@ -63,6 +66,9 @@ public class CommentService {
         if (req.getParentId() != null){
             parent = commentRepository.findById(req.getParentId())
                     .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
+            if (parent.getCommentStatus() == CommentStatus.DELETED) {
+                throw new CommentException(CommentErrorStatus.COMMENT_ALREADY_DELETED);
+            }
 
             // 같은 게시글인지 검증
             if (parent.getPost() == null || !parent.getPost().getId().equals(postId)) {
@@ -84,6 +90,7 @@ public class CommentService {
                 .build();
 
         Comment saved = commentRepository.save(comment);
+        post.incrementCommentCount();
 
         // ===== 알림 생성(저장 성공 이후) =====
         Long actorId = userId;
@@ -114,7 +121,7 @@ public class CommentService {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
                 if (setting == null || setting.isCommentNotificationEnabled()) {
                     try {
-                        pushService.sendToUser(
+                        pushService.sendToUserAfterCommit(
                                 receiverUserId,
                                 boardName,
                                 message,
@@ -153,7 +160,7 @@ public class CommentService {
                 var setting = userSettingRepository.findByUserId(receiverUserId).orElse(null);
                 if (setting == null || setting.isReplyNotificationEnabled()) {
                     try {
-                        pushService.sendToUser(
+                        pushService.sendToUserAfterCommit(
                                 receiverUserId,
                                 boardName,
                                 message,
@@ -182,9 +189,13 @@ public class CommentService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessComment(userId, comment);
 
         if (comment.getUser() == null || comment.getUser().getId() == null || !comment.getUser().getId().equals(userId)) {
             throw new CommentException(CommentErrorStatus.COMMENT_FORBIDDEN);
+        }
+        if (comment.getCommentStatus() == CommentStatus.DELETED) {
+            throw new CommentException(CommentErrorStatus.COMMENT_ALREADY_DELETED);
         }
 
         comment.update(safeContent, req.isAnonymous());
@@ -198,12 +209,17 @@ public class CommentService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessComment(userId, comment);
 
         if (comment.getUser() == null || comment.getUser().getId() == null || !comment.getUser().getId().equals(userId)) {
             throw new CommentException(CommentErrorStatus.COMMENT_FORBIDDEN);
         }
+        if (comment.getCommentStatus() == CommentStatus.DELETED) {
+            throw new CommentException(CommentErrorStatus.COMMENT_ALREADY_DELETED);
+        }
 
         comment.softDelete();
+        comment.getPost().decrementCommentCount();
         return commentId;
     }
 

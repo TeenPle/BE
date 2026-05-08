@@ -162,7 +162,7 @@ public class ChatMessageService {
             // setting이 없으면 기본값(모든 알림 허용)으로 간주
             if (setting == null || setting.isChatNotificationEnabled()) {
                 try {
-                    pushService.sendToUser(
+                    pushService.sendToUserAfterCommit(
                             receiverId,
                             "새 채팅",
                             notiMsg,

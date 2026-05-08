@@ -1,6 +1,8 @@
 package com.shu.backend.domain.school.repository;
 
 import com.shu.backend.domain.school.entity.School;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +22,15 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
             "AND (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%')) " +
             "ORDER BY s.name ASC")
     List<School> findSchoolsByRegionAndName(@Param("regionId") Long regionId, @Param("keyword") String keyword);
+
+    @Query("""
+        select s
+        from School s
+        left join s.region r
+        where (:keyword is null or :keyword = '' or s.name like concat('%', :keyword, '%'))
+        order by s.name asc
+    """)
+    Page<School> searchAdminSchools(@Param("keyword") String keyword, Pageable pageable);
 
     // 학교명(keyword)으로 전체 학교 검색
     @Query("SELECT s FROM School s " +

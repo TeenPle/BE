@@ -11,11 +11,11 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.global.apiPayload.ApiResponse;
 import com.shu.backend.global.neis.NeisSyncResult;
 import com.shu.backend.global.neis.NeisSchoolSyncService;
+import com.shu.backend.global.util.PageRequestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -89,7 +89,7 @@ public class SchoolController {
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal User user
     ){
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequestUtils.of(page, size, 50);
 
         SchoolDetailResponse response = schoolService.getSchoolDetail(schoolId, "자유게시판", pageable, user.getId());
 

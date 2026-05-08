@@ -18,6 +18,16 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByPostId(Long postId);
 
+    @Query("""
+        select c
+        from Comment c
+        join fetch c.user u
+        left join fetch c.parent p
+        where c.post.id = :postId
+        order by c.createdAt asc
+    """)
+    List<Comment> findAdminCommentsByPostId(@Param("postId") Long postId);
+
     int countByPostId(Long postId);
 
     @Query("select count(c) from Comment c where c.user.id = :userId and c.commentStatus <> com.shu.backend.domain.comment.enums.CommentStatus.DELETED")

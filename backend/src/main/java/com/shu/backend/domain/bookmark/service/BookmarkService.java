@@ -1,20 +1,17 @@
 package com.shu.backend.domain.bookmark.service;
 
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.bookmark.dto.BookmarkResult;
 import com.shu.backend.domain.bookmark.dto.BookmarkedPostResponse;
 import com.shu.backend.domain.bookmark.entity.Bookmark;
 import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
-import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.exception.PostException;
 import com.shu.backend.domain.post.exception.status.PostErrorStatus;
 import com.shu.backend.domain.post.repository.PostRepository;
 import com.shu.backend.domain.user.entity.User;
-import com.shu.backend.domain.user.exception.UserException;
-import com.shu.backend.domain.user.exception.status.UserErrorStatus;
-import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.global.util.PageRequestUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +25,13 @@ public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
     private final PostRepository postRepository;
-    private final UserRepository userRepository;
-    private final CommentRepository commentRepository;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     @Transactional
     public BookmarkResult toggle(Long userId, Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessPost(userId, post);
 
         Optional<Bookmark> existing = bookmarkRepository.findByUserIdAndPostId(userId, postId);
 
@@ -43,8 +40,7 @@ public class BookmarkService {
             return new BookmarkResult(false);
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        User user = boardAccessPolicy.requireActiveUserWithSchool(userId);
 
         bookmarkRepository.save(Bookmark.builder()
                 .user(user)
@@ -56,19 +52,27 @@ public class BookmarkService {
 
     @Transactional(readOnly = true)
     public boolean isBookmarked(Long userId, Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+        boardAccessPolicy.assertCanAccessPost(userId, post);
         return bookmarkRepository.existsByUserIdAndPostId(userId, postId);
     }
 
     @Transactional(readOnly = true)
     public List<BookmarkedPostResponse> getMyBookmarks(Long userId, int page, int size) {
+        User user = boardAccessPolicy.requireActiveUserWithSchool(userId);
+        Long schoolId = user.getSchool().getId();
+        Long regionId = user.getSchool().getRegion() != null ? user.getSchool().getRegion().getId() : null;
         List<Bookmark> bookmarks = bookmarkRepository
-                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+                .findAccessibleByUserIdOrderByCreatedAtDesc(
+                        userId,
+                        schoolId,
+                        regionId,
+                        PageRequestUtils.of(page, size)
+                );
 
         return bookmarks.stream()
-                .map(b -> {
-                    int commentCount = commentRepository.countByPostId(b.getPost().getId());
-                    return BookmarkedPostResponse.from(b, commentCount);
-                })
+                .map(b -> BookmarkedPostResponse.from(b, b.getPost().getCommentCount()))
                 .collect(Collectors.toList());
     }
 }

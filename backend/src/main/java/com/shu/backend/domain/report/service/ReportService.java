@@ -1,8 +1,6 @@
 package com.shu.backend.domain.report.service;
 
-import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
-import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
-import com.shu.backend.domain.chatmessage.repository.ChatMessageRepository;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
@@ -47,9 +45,9 @@ public class ReportService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    private final ChatMessageRepository chatMessageRepository;
     private final PenaltyRepository penaltyRepository;
     private final PenaltyService penaltyService;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#reporterId)")
     @Transactional
@@ -62,6 +60,8 @@ public class ReportService {
 
         User reporter = userRepository.findById(reporterId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+
+        validateReporterCanAccessTarget(reporterId, req.getTargetType(), req.getTargetId());
 
         User reportedUser = resolveReportedUser(req.getTargetType(), req.getTargetId());
 
@@ -191,11 +191,27 @@ public class ReportService {
                     .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND))
                     .getUser();
 
-            case USER -> chatMessageRepository.findById(targetId)
-                    .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.CHAT_ROOM_NOT_FOUND))
-                    .getSender();
+            case USER -> userRepository.findById(targetId)
+                    .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
             default -> throw new ReportException(ReportErrorStatus.UNSUPPORTED_TARGET_TYPE);
         };
+    }
+
+    private void validateReporterCanAccessTarget(Long reporterId, TargetType targetType, Long targetId) {
+        switch (targetType) {
+            case POST -> {
+                Post post = postRepository.findById(targetId)
+                        .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+                boardAccessPolicy.assertCanAccessPost(reporterId, post);
+            }
+            case COMMENT -> {
+                Comment comment = commentRepository.findById(targetId)
+                        .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
+                boardAccessPolicy.assertCanAccessComment(reporterId, comment);
+            }
+            case USER -> boardAccessPolicy.requireActiveUserWithSchool(reporterId);
+            default -> throw new ReportException(ReportErrorStatus.UNSUPPORTED_TARGET_TYPE);
+        }
     }
 }

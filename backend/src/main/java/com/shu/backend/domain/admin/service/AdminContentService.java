@@ -1,0 +1,75 @@
+package com.shu.backend.domain.admin.service;
+
+import com.shu.backend.domain.admin.dto.AdminBoardResponse;
+import com.shu.backend.domain.admin.dto.AdminCommentResponse;
+import com.shu.backend.domain.admin.dto.AdminPostDetailResponse;
+import com.shu.backend.domain.admin.dto.AdminPostSummaryResponse;
+import com.shu.backend.domain.admin.dto.AdminSchoolResponse;
+import com.shu.backend.domain.board.entity.Board;
+import com.shu.backend.domain.board.exception.BoardException;
+import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
+import com.shu.backend.domain.board.repository.BoardRepository;
+import com.shu.backend.domain.comment.repository.CommentRepository;
+import com.shu.backend.domain.post.dto.PostMediaResponse;
+import com.shu.backend.domain.post.entity.Post;
+import com.shu.backend.domain.post.enums.PostStatus;
+import com.shu.backend.domain.post.exception.PostException;
+import com.shu.backend.domain.post.exception.status.PostErrorStatus;
+import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.domain.post.service.PostMediaService;
+import com.shu.backend.domain.school.repository.SchoolRepository;
+import com.shu.backend.global.util.PageRequestUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class AdminContentService {
+
+    private final SchoolRepository schoolRepository;
+    private final BoardRepository boardRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final PostMediaService postMediaService;
+
+    public Page<AdminSchoolResponse> searchSchools(String keyword, int page, int size) {
+        Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.ASC, "name"));
+        String safeKeyword = keyword == null ? "" : keyword.trim();
+        return schoolRepository.searchAdminSchools(safeKeyword, pageable)
+                .map(AdminSchoolResponse::from);
+    }
+
+    public List<AdminBoardResponse> getBoardsBySchool(Long schoolId) {
+        return boardRepository.findAdminBoardsBySchoolId(schoolId).stream()
+                .map(board -> AdminBoardResponse.from(board, postRepository.countByBoard(board)))
+                .toList();
+    }
+
+    public Page<AdminPostSummaryResponse> getPostsByBoard(Long boardId, int page, int size) {
+        if (!boardRepository.existsById(boardId)) {
+            throw new BoardException(BoardErrorStatus.BOARD_NOT_FOUND);
+        }
+        Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return postRepository.findByBoardIdAndPostStatusNot(boardId, PostStatus.DELETED, pageable)
+                .map(AdminPostSummaryResponse::from);
+    }
+
+    public AdminPostDetailResponse getPostDetail(Long postId) {
+        Post post = postRepository.findWithAdminContextById(postId)
+                .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
+
+        List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
+        List<AdminCommentResponse> comments = commentRepository.findAdminCommentsByPostId(postId).stream()
+                .map(AdminCommentResponse::from)
+                .toList();
+
+        return AdminPostDetailResponse.from(post, mediaList, comments);
+    }
+}

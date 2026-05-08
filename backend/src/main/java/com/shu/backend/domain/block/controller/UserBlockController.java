@@ -7,9 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/blocks")
@@ -37,17 +35,19 @@ public class UserBlockController {
     }
 
     @GetMapping
-    public ApiResponse<List<Map<String, Object>>> getBlockedUsers(
+    public ApiResponse<Map<String, Object>> getBlockSummary(
             @AuthenticationPrincipal User me
     ) {
-        List<User> blocked = userBlockService.getBlockedUsers(me.getId());
-        List<Map<String, Object>> result = blocked.stream()
-                .map(u -> Map.<String, Object>of(
-                        "userId", u.getId(),
-                        "nickname", u.getNickname(),
-                        "profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : ""
-                ))
-                .collect(Collectors.toList());
-        return ApiResponse.onSuccess(result);
+        return ApiResponse.onSuccess(Map.of(
+                "blockedCount", userBlockService.getBlockedCount(me.getId())
+        ));
+    }
+
+    @DeleteMapping
+    public ApiResponse<Void> unblockAll(
+            @AuthenticationPrincipal User me
+    ) {
+        userBlockService.unblockAll(me.getId());
+        return ApiResponse.onSuccess(null);
     }
 }
