@@ -34,6 +34,9 @@ public class S3FileStorageService implements FileStorageService {
     // 학생증 presigned URL 만료 시간 (15분)
     private static final Duration STUDENT_CARD_PRESIGNED_EXPIRY = Duration.ofMinutes(15);
 
+    // 퍼블릭 버킷 미디어 presigned URL 만료 시간 (1시간)
+    private static final Duration MEDIA_PRESIGNED_EXPIRY = Duration.ofHours(1);
+
     // 학생증 이미지 업로드 → 프라이빗 버킷에 저장, S3 key 반환
     @Override
     public String uploadStudentCardImage(MultipartFile file) {
@@ -99,6 +102,29 @@ public class S3FileStorageService implements FileStorageService {
         String url = s3Presigner.presignGetObject(presignRequest).url().toString();
         log.info("학생증 presigned URL 발급: key={}", key);
         return url;
+    }
+
+    // 퍼블릭 버킷 presigned GET URL 발급 (1시간 유효)
+    // S3 URL이 아닌 경우(예: default_profile.png)는 그대로 반환
+    @Override
+    public String toPresignedReadUrl(String storedUrl) {
+        if (storedUrl == null || storedUrl.isBlank()) return storedUrl;
+        if (!storedUrl.startsWith("http")) return storedUrl;
+
+        String key = resolvePublicObjectKey(storedUrl);
+        if (key == null || key.isBlank()) return storedUrl;
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(MEDIA_PRESIGNED_EXPIRY)
+                .getObjectRequest(
+                        GetObjectRequest.builder()
+                                .bucket(props.getBucket())
+                                .key(key)
+                                .build()
+                )
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
     // 학생증 이미지 삭제 (프라이빗 버킷)

@@ -81,6 +81,12 @@ public class LocalFileStorageService implements FileStorageService {
         return key;
     }
 
+    @Override
+    public String toPresignedReadUrl(String storedUrl) {
+        // 로컬 환경에서는 URL을 그대로 반환 (개발용)
+        return storedUrl;
+    }
+
     private String upload(
             MultipartFile file,
             String uploadDir,

@@ -36,7 +36,7 @@ public class PostMediaService {
                     MediaType mediaType = resolveMediaType(file);
                     Media media = Media.ofPost(url, postId, mediaType, uploader);
                     mediaRepository.save(media);
-                    return PostMediaResponse.from(media);
+                    return toPresignedResponse(media);
                 })
                 .toList();
     }
@@ -71,8 +71,17 @@ public class PostMediaService {
     public List<PostMediaResponse> getByPostId(Long postId) {
         return mediaRepository.findByTargetTypeAndTargetId(MediaTargetType.POST, postId)
                 .stream()
-                .map(PostMediaResponse::from)
+                .map(this::toPresignedResponse)
                 .toList();
+    }
+
+    private PostMediaResponse toPresignedResponse(Media media) {
+        String presignedUrl = fileStorageService.toPresignedReadUrl(media.getUrl());
+        return PostMediaResponse.builder()
+                .mediaId(media.getId())
+                .url(presignedUrl)
+                .mediaType(media.getMediaType().name())
+                .build();
     }
 
     private MediaType resolveMediaType(MultipartFile file) {

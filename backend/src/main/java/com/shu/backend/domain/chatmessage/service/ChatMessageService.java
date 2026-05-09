@@ -18,6 +18,7 @@ import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
+import com.shu.backend.global.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class ChatMessageService {
     private final PushService pushService;
     private final UserSettingRepository userSettingRepository;
     private final ChatActionRateLimiter chatActionRateLimiter;
+    private final FileStorageService fileStorageService;
 
     // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
@@ -131,7 +133,7 @@ public class ChatMessageService {
 
             mediaItem = ChatMessageDTO.MediaItem.builder()
                     .id(savedMedia.getId())
-                    .url(savedMedia.getUrl())
+                    .url(fileStorageService.toPresignedReadUrl(savedMedia.getUrl()))
                     .mediaType(savedMedia.getMediaType().name())
                     .build();
         }
@@ -228,7 +230,7 @@ public class ChatMessageService {
                             .stream()
                             .map(md -> ChatMessageDTO.MediaItem.builder()
                                     .id(md.getId())
-                                    .url(md.getUrl())
+                                    .url(fileStorageService.toPresignedReadUrl(md.getUrl()))
                                     .mediaType(md.getMediaType().name())
                                     .build())
                             .toList();
