@@ -11,4 +11,7 @@ public interface FileStorageService {
     void deleteStudentCardImage(String key);
     void deletePublicFile(String key);
     String generateStudentCardPresignedUrl(String key);
+
+    /** 퍼블릭 버킷에 저장된 URL(또는 key)을 presigned GET URL로 변환 */
+    String toPresignedReadUrl(String storedUrl);
 }

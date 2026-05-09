@@ -46,6 +46,7 @@ import org.springframework.web.util.HtmlUtils;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaTargetType;
 import com.shu.backend.domain.media.repository.MediaRepository;
+import com.shu.backend.global.file.FileStorageService;
 import com.shu.backend.global.util.PageRequestUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -66,6 +67,7 @@ public class PostService {
     private final CommentQueryService commentQueryService;
     private final PostMediaService postMediaService;
     private final MediaRepository mediaRepository;
+    private final FileStorageService fileStorageService;
     private final ViewCountAccumulator viewCountAccumulator;
     private final ContentModerationService contentModerationService;
     private final BookmarkRepository bookmarkRepository;
@@ -421,7 +423,14 @@ public class PostService {
         Map<Long, List<PostMediaResponse>> mediaByPostId = allMedia.stream()
                 .collect(Collectors.groupingBy(
                         Media::getTargetId,
-                        Collectors.mapping(PostMediaResponse::from, Collectors.toList())
+                        Collectors.mapping(
+                                m -> PostMediaResponse.builder()
+                                        .mediaId(m.getId())
+                                        .url(fileStorageService.toPresignedReadUrl(m.getUrl()))
+                                        .mediaType(m.getMediaType().name())
+                                        .build(),
+                                Collectors.toList()
+                        )
                 ));
 
         return posts.stream()

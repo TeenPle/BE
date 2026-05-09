@@ -47,7 +47,7 @@ public class UserService {
                 .id(user.getId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
-                .profileImageUrl(user.getProfileImageUrl())
+                .profileImageUrl(fileStorageService.toPresignedReadUrl(user.getProfileImageUrl()))
                 .schoolName(user.getSchool().getName())
                 .grade(user.getGrade())
                 .gender(user.getGender())
@@ -135,7 +135,7 @@ public class UserService {
         if (oldUrl != null && oldUrl.startsWith("http")) {
             fileStorageService.deletePublicFile(oldUrl);
         }
-        return imageUrl;
+        return fileStorageService.toPresignedReadUrl(imageUrl);
     }
 
     @Transactional(readOnly = true)
