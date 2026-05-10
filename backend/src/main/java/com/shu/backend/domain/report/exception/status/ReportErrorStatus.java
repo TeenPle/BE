@@ -17,7 +17,8 @@ public enum ReportErrorStatus implements BaseErrorCode {
     SELF_REPORT_FORBIDDEN(HttpStatus.BAD_REQUEST, "REPORT4003", "자기 자신을 신고할 수 없습니다."),
     REPORT_NOT_PENDING(HttpStatus.BAD_REQUEST, "REPORT4004", "이미 처리된 신고는 다시 처리할 수 없습니다."),
     UNSUPPORTED_TARGET_TYPE(HttpStatus.BAD_REQUEST, "REPORT4005", "지원하지 않는 신고 대상 타입입니다."),
-    PENALTY_ALREADY_CREATED(HttpStatus.CONFLICT, "REPORT4006", "해당 신고로 이미 제재가 생성되었습니다.");
+    PENALTY_ALREADY_CREATED(HttpStatus.CONFLICT, "REPORT4006", "해당 신고로 이미 제재가 생성되었습니다."),
+    TARGET_USER_DELETED(HttpStatus.FORBIDDEN, "REPORT4007", "탈퇴한 사용자는 신고할 수 없습니다.");
 
 
 

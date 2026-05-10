@@ -26,6 +26,7 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.user.support.UserDisplay;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -58,20 +59,23 @@ public class ReportService {
     public Long create(Long reporterId, ReportDTO.CreateRequest req) {
 
         //以묐났 ?좉퀬 寃??
-        if(reportRepository.existsByReporterIdAndTargetTypeAndTargetId(reporterId, req.getTargetType(), req.getTargetId())){
-            throw new ReportException(ReportErrorStatus.DUPLICATE_REPORT);
-        }
-
         User reporter = userRepository.findById(reporterId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
         validateReporterCanAccessTarget(reporterId, req.getTargetType(), req.getTargetId());
 
         User reportedUser = resolveReportedUser(req.getTargetType(), req.getTargetId());
+        if (UserDisplay.isDeleted(reportedUser)) {
+            throw new ReportException(ReportErrorStatus.TARGET_USER_DELETED);
+        }
 
         //?좉퀬?먯? ?쇱떊怨좎옄媛 媛숈쓣 寃쎌슦 X
         if (reportedUser.getId().equals(reporterId)) {
             throw new ReportException(ReportErrorStatus.SELF_REPORT_FORBIDDEN);
+        }
+
+        if(reportRepository.existsByReporterIdAndTargetTypeAndTargetId(reporterId, req.getTargetType(), req.getTargetId())){
+            throw new ReportException(ReportErrorStatus.DUPLICATE_REPORT);
         }
 
         Report report = Report.builder()

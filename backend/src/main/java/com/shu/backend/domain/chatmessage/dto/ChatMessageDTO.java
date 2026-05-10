@@ -75,6 +75,10 @@ public class ChatMessageDTO {
         private boolean blocked;
         private boolean blockedByMe;
         private boolean blockedByOther;
+        private boolean otherUserDeleted;
+        private boolean canSendMessage;
+        private boolean canReport;
+        private boolean canBlock;
     }
 
     // =================== 읽음 영수증 (STOMP 브로드캐스트용) ===================

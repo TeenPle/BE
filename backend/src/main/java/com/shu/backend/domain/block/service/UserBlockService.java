@@ -3,6 +3,7 @@ package com.shu.backend.domain.block.service;
 import com.shu.backend.domain.block.entity.UserBlock;
 import com.shu.backend.domain.block.repository.UserBlockRepository;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
@@ -29,6 +30,9 @@ public class UserBlockService {
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
         User blocked = userRepository.findById(blockedId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        if (blocked.getStatus() == UserStatus.DELETED) {
+            throw new UserException(UserErrorStatus.USER_NOT_FOUND);
+        }
 
         userBlockRepository.save(UserBlock.builder()
                 .blocker(blocker)

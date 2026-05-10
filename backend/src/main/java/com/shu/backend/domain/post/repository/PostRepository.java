@@ -94,7 +94,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u
@@ -143,7 +144,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u
@@ -215,7 +217,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u
@@ -290,7 +293,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u
@@ -332,7 +336,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u
@@ -409,7 +414,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 select poll.id
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
-            )
+            ),
+            u.status
         from Post p
         join p.board b
         join p.user u

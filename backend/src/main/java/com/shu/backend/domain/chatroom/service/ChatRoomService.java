@@ -1,6 +1,5 @@
 package com.shu.backend.domain.chatroom.service;
 
-
 import com.shu.backend.domain.chatmessage.entity.ChatMessage;
 import com.shu.backend.domain.chatmessage.repository.ChatMessageRepository;
 import com.shu.backend.domain.chatroom.dto.ChatRoomDTO;
@@ -14,6 +13,7 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.user.support.UserDisplay;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 
 @Slf4j
 @Service
@@ -37,8 +36,12 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    // 게시글 기반 1:1 채팅방 조회 또는 생성
     public ChatRoomDTO.CreateDmResponse findOrCreateDm(Long myId, Long otherId, Long sourcePostId, String roomTitle) {
+        User other = userRepository.findById(otherId)
+                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        if (UserDisplay.isDeleted(other)) {
+            throw new ChatRoomException(ChatRoomErrorStatus.TARGET_USER_DELETED);
+        }
 
         long u1 = Math.min(myId, otherId);
         long u2 = Math.max(myId, otherId);
@@ -49,8 +52,6 @@ public class ChatRoomService {
                     ChatRoom created = chatRoomRepository.save(ChatRoom.ofDm(u1, u2, sourcePostId, title));
 
                     User me = userRepository.findById(myId)
-                            .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
-                    User other = userRepository.findById(otherId)
                             .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
                     chatRoomUserRepository.save(ChatRoomUser.createHidden(created, me));
@@ -65,22 +66,25 @@ public class ChatRoomService {
                 .orElse(null);
         boolean blockedByMe = myCru != null && myCru.isBlocked();
         boolean blockedByOther = otherCru != null && otherCru.isBlocked();
+        boolean blocked = blockedByMe || blockedByOther;
 
         return ChatRoomDTO.CreateDmResponse.builder()
                 .roomId(room.getId())
                 .otherUserId(otherId)
                 .lastMessageAt(room.getLastMessageAt())
-                .displayName(room.getDisplayName())
-                .blocked(blockedByMe || blockedByOther)
+                .displayName(UserDisplay.nicknameOrDeleted(other))
+                .blocked(blocked)
                 .blockedByMe(blockedByMe)
                 .blockedByOther(blockedByOther)
+                .otherUserDeleted(false)
+                .canSendMessage(!blocked)
+                .canReport(true)
+                .canBlock(true)
                 .build();
     }
 
-    // 내 채팅방 목록 조회
     @Transactional(readOnly = true)
     public ChatRoomDTO.RoomListResponse getMyRooms(Long myId) {
-
         List<ChatRoomUser> mine =
                 new java.util.ArrayList<>(chatRoomUserRepository.findByUserIdAndHiddenFalse(myId));
 
@@ -89,7 +93,6 @@ public class ChatRoomService {
                 Comparator.nullsLast(Comparator.reverseOrder())
         ));
 
-        // 마지막 메시지 일괄 조회 (N+1 방지)
         List<Long> lastMsgIds = mine.stream()
                 .map(cru -> cru.getChatRoom().getLastMessageId())
                 .filter(Objects::nonNull)
@@ -120,14 +123,25 @@ public class ChatRoomService {
                         row -> (Long) row[1]
                 ));
 
+        List<Long> otherIds = mine.stream()
+                .map(cru -> otherUserId(cru.getChatRoom(), myId))
+                .distinct()
+                .toList();
+        Map<Long, User> otherUserMap = otherIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(otherIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
         List<ChatRoomDTO.RoomListItem> items = mine.stream().map(cru -> {
             ChatRoom room = cru.getChatRoom();
-            Long otherId = room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
+            Long otherId = otherUserId(room, myId);
+            User other = otherUserMap.get(otherId);
+            boolean otherDeleted = UserDisplay.isDeleted(other);
             boolean blockedByMe = cru.isBlocked();
             ChatRoomUser otherCru = chatRoomUserMap.get(room.getId() + ":" + otherId);
             boolean blockedByOther = otherCru != null && otherCru.isBlocked();
+            boolean blocked = blockedByMe || blockedByOther;
 
-            // 실제 마지막 메시지 내용으로 미리보기
             String preview = "";
             if (room.getLastMessageId() != null) {
                 ChatMessage lastMsg = lastMsgMap.get(room.getLastMessageId());
@@ -146,10 +160,14 @@ public class ChatRoomService {
                     .lastPreview(preview)
                     .lastMessageAt(room.getLastMessageAt())
                     .unreadCount(unread)
-                    .displayName(room.getDisplayName())
-                    .blocked(blockedByMe || blockedByOther)
+                    .displayName(otherDeleted ? UserDisplay.DELETED_USER_NAME : room.getDisplayName())
+                    .blocked(blocked)
                     .blockedByMe(blockedByMe)
                     .blockedByOther(blockedByOther)
+                    .otherUserDeleted(otherDeleted)
+                    .canSendMessage(!otherDeleted && !blocked)
+                    .canReport(!otherDeleted)
+                    .canBlock(!otherDeleted)
                     .build();
         }).toList();
 
@@ -158,32 +176,30 @@ public class ChatRoomService {
                 .build();
     }
 
-    // 채팅방 나가기
     public void leave(Long myId, Long roomId) {
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         cru.leave();
     }
 
-    // 채팅방 차단
     public void block(Long myId, Long roomId) {
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
+        assertOtherUserActive(myId, cru.getChatRoom());
         cru.block();
     }
 
-    // 채팅방 차단 해제
     public void unblock(Long myId, Long roomId) {
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         cru.unblock();
     }
 
-    // 채팅방 신고
     public void report(Long myId, Long roomId, String reason) {
-        chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
+        ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
-        log.info("채팅방 신고 - reporterId={}, roomId={}, reason={}", myId, roomId, reason);
+        assertOtherUserActive(myId, cru.getChatRoom());
+        log.info("Chat room report - reporterId={}, roomId={}, reason={}", myId, roomId, reason);
     }
 
     @Transactional(readOnly = true)
@@ -191,5 +207,18 @@ public class ChatRoomService {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.CHAT_ROOM_NOT_FOUND));
         return List.of(room.getUser1Id(), room.getUser2Id());
+    }
+
+    private Long otherUserId(ChatRoom room, Long myId) {
+        return room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
+    }
+
+    private void assertOtherUserActive(Long myId, ChatRoom room) {
+        Long otherId = otherUserId(room, myId);
+        User other = userRepository.findById(otherId)
+                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        if (UserDisplay.isDeleted(other)) {
+            throw new ChatRoomException(ChatRoomErrorStatus.TARGET_USER_DELETED);
+        }
     }
 }
