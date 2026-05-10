@@ -21,22 +21,46 @@ public class VerificationCodeStore {
         this.redisTemplate = redisTemplate;
     }
 
-    private String key(String phone) {
-        return "sms:code:" + phone;
+    private String key(String target) {
+        return "sms:code:" + target;
+    }
+
+    private String attemptKey(String target) {
+        return "sms:attempts:" + target;
     }
 
     // 이메일 인증번호 저장
-    public void save(String phone, String code) {
-        redisTemplate.opsForValue().set(key(phone), code, 3, TimeUnit.MINUTES);
+    public void save(String target, String code) {
+        redisTemplate.opsForValue().set(key(target), code, 3, TimeUnit.MINUTES);
     }
 
     // 저장된 인증번호 조회
-    public String get(String phone) {
-        return redisTemplate.opsForValue().get(key(phone));
+    public String get(String target) {
+        return redisTemplate.opsForValue().get(key(target));
     }
 
     // 인증 완료 또는 만료 처리 시 인증번호 삭제
-    public void delete(String phone) {
-        redisTemplate.delete(key(phone));
+    public void delete(String target) {
+        redisTemplate.delete(key(target));
+    }
+
+    // 실패 횟수 1 증가 후 현재 값 반환 (처음 카운트 시 TTL을 코드와 동일하게 설정)
+    public int incrementAttempts(String target) {
+        Long count = redisTemplate.opsForValue().increment(attemptKey(target));
+        if (count != null && count == 1) {
+            redisTemplate.expire(attemptKey(target), 3, TimeUnit.MINUTES);
+        }
+        return count != null ? count.intValue() : 1;
+    }
+
+    // 현재 실패 횟수 조회
+    public int getAttemptCount(String target) {
+        String val = redisTemplate.opsForValue().get(attemptKey(target));
+        return val == null ? 0 : Integer.parseInt(val);
+    }
+
+    // 시도 횟수 초기화 (인증 성공 또는 코드 재발급 시)
+    public void deleteAttempts(String target) {
+        redisTemplate.delete(attemptKey(target));
     }
 }

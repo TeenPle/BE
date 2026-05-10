@@ -3,6 +3,7 @@ package com.shu.backend.domain.auth.controller;
 import com.shu.backend.domain.auth.service.VerificationService;
 import com.shu.backend.domain.user.exception.status.UserSuccessStatus;
 import com.shu.backend.global.apiPayload.ApiResponse;
+import com.shu.backend.global.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -32,6 +33,7 @@ public class EmailVerificationController {
      * @param request = 이메일 필드를 가짐.
      * @return 이메일 전송 성공 메시지
      */
+    @RateLimit(key = "auth:email-send", limit = 5, windowSeconds = 600, byIp = true)
     @PostMapping(value = "/send", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<Void> send(@RequestBody @Valid SendRequest request) {
         verificationService.sendCode(request.email());

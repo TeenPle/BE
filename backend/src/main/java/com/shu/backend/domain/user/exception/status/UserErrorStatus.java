@@ -26,6 +26,7 @@ public enum UserErrorStatus implements BaseErrorCode {
     VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "USER4010", "인증번호가 올바르지 않습니다."),
     VERIFICATION_TOKEN_INVALID_OR_EXPIRED(HttpStatus.BAD_REQUEST, "USER4011", "인증 토큰이 만료되었거나 유효하지 않습니다."),
     VERIFICATION_TARGET_MISMATCH(HttpStatus.BAD_REQUEST, "USER4012", "휴대폰 번호가 일치하지 않습니다."),
+    VERIFICATION_CODE_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "USER4013", "인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요."),
 
     // =================== 403 ===================
     SCHOOL_VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "USER4031", "학교 인증이 필요합니다. 학생증을 업로드해주세요."),
