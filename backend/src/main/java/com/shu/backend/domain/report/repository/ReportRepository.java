@@ -7,9 +7,26 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
     boolean existsByReporterIdAndTargetTypeAndTargetId(Long reporterId, TargetType targetType, Long targetId);
 
     Page<Report> findAllByStatus(ReportStatus status, Pageable pageable);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Report r where r.targetType = :targetType and r.targetId = :targetId")
+    void deleteAllByTargetTypeAndTargetId(
+            @Param("targetType") TargetType targetType,
+            @Param("targetId") Long targetId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Report r where r.targetType = :targetType and r.targetId in :targetIds")
+    void deleteAllByTargetTypeAndTargetIdIn(
+            @Param("targetType") TargetType targetType,
+            @Param("targetIds") List<Long> targetIds);
 }

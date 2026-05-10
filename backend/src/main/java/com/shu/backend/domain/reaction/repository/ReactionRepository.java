@@ -4,6 +4,7 @@ import com.shu.backend.domain.reaction.entity.Reaction;
 import com.shu.backend.domain.reaction.enums.ReactionTargetType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -33,4 +34,16 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
           and r.liked = true
     """)
     Set<Long> findLikedCommentIds(@Param("userId") Long userId, @Param("commentIds") List<Long> commentIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Reaction r where r.targetType = :targetType and r.targetId = :targetId")
+    void deleteAllByTargetTypeAndTargetId(@Param("targetType") ReactionTargetType targetType, @Param("targetId") Long targetId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Reaction r where r.targetType = :targetType and r.targetId in :targetIds")
+    void deleteAllByTargetTypeAndTargetIdIn(@Param("targetType") ReactionTargetType targetType, @Param("targetIds") List<Long> targetIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Reaction r where r.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

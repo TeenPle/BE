@@ -12,4 +12,5 @@ public interface UserSchoolVerificationRepository extends JpaRepository<UserScho
     // 유저의 학교 인증 정보 조회
     Optional<UserSchoolVerification> findByUserId(Long userId);
 
+    void deleteByUserId(Long userId);
 }

@@ -16,7 +16,6 @@ public interface UserSchoolVerificationRequestRepository extends JpaRepository<U
 
     boolean existsByUserAndStatus(User user, VerificationStatus status);
 
-    // 최신 요청 1개만 가져오기
     Optional<UserSchoolVerificationRequest> findTopByUserOrderByRequestedAtDesc(User user);
 
     @EntityGraph(attributePaths = {"user", "school"})
@@ -25,8 +24,7 @@ public interface UserSchoolVerificationRequestRepository extends JpaRepository<U
     @EntityGraph(attributePaths = {"user", "school"})
     Optional<UserSchoolVerificationRequest> findWithUserAndSchoolById(Long id);
 
+    List<UserSchoolVerificationRequest> findByUser(User user);
 
-
-
-
+    void deleteByUser(User user);
 }

@@ -376,6 +376,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Object[]> findMyPostRows(@Param("userId") Long userId, Pageable pageable);
 
     @Query("""
+        select p.id
+        from Post p
+        where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.DELETED
+          and p.deletedAt < :threshold
+          and not exists (
+              select r.id from com.shu.backend.domain.report.entity.Report r
+              where r.targetType = com.shu.backend.domain.report.enums.TargetType.POST
+                and r.targetId = p.id
+                and r.status = com.shu.backend.domain.report.enums.ReportStatus.PENDING
+          )
+    """)
+    List<Long> findPurgeablePostIds(@Param("threshold") LocalDateTime threshold, Pageable pageable);
+
+    @Query("""
         select
             p.id,
             p.title,
