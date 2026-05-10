@@ -8,6 +8,7 @@ import com.shu.backend.domain.user.service.AuthService;
 import com.shu.backend.global.apiPayload.ApiResponse;
 
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -80,6 +81,7 @@ public class AuthController {
             summary = "로그인",
             description = "이메일과 비밀번호로 로그인하고, 액세스 토큰을 발급받습니다."
     )
+    @RateLimit(key = "auth:login", limit = 10, windowSeconds = 900, byIp = true)
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LoginResponseDTO> login(
             @RequestBody @Valid UserLoginDTO request
@@ -155,6 +157,7 @@ public class AuthController {
             summary = "비밀번호 재설정 인증번호 발송",
             description = "가입된 이메일로 비밀번호 재설정용 인증번호를 발송합니다."
     )
+    @RateLimit(key = "auth:pw-reset", limit = 5, windowSeconds = 600, byIp = true)
     @PostMapping("/password/send-code")
     public ApiResponse<Void> sendPasswordResetCode(
             @RequestBody @Valid PasswordResetSendRequestDTO request
@@ -193,6 +196,7 @@ public class AuthController {
             summary = "이메일 존재 여부 확인",
             description = "입력한 이메일이 이미 가입된 이메일인지 확인합니다."
     )
+    @RateLimit(key = "auth:check-email", limit = 30, windowSeconds = 60, byIp = true)
     @GetMapping("/check-email")
     public ApiResponse<EmailCheckResponseDTO> checkEmail(
             @RequestParam("email")
@@ -208,6 +212,7 @@ public class AuthController {
             summary = "전화번호 존재 여부 확인",
             description = "입력한 전화번호가 이미 가입된 전화번호인지 확인합니다."
     )
+    @RateLimit(key = "auth:check-phone", limit = 30, windowSeconds = 60, byIp = true)
     @GetMapping("/check-phone")
     public ApiResponse<PhoneCheckResponseDTO> checkPhone(
             @RequestParam("phoneNumber")

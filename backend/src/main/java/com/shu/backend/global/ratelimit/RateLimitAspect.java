@@ -2,6 +2,7 @@ package com.shu.backend.global.ratelimit;
 
 import com.shu.backend.global.apiPayload.code.status.ErrorStatus;
 import com.shu.backend.global.exception.GeneralException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.annotation.Aspect;
@@ -11,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -25,10 +28,16 @@ public class RateLimitAspect {
 
     @Before("@annotation(rateLimit)")
     public void check(RateLimit rateLimit) {
-        String userId = resolveUserId();
-        if (userId == null) return;
+        String subject;
+        if (rateLimit.byIp()) {
+            subject = resolveClientIp();
+            if (subject == null) return;
+        } else {
+            subject = resolveUserId();
+            if (subject == null) return;
+        }
 
-        String redisKey = "rate:" + rateLimit.key() + ":" + userId;
+        String redisKey = "rate:" + rateLimit.key() + ":" + subject;
         long now = Instant.now().toEpochMilli();
         long windowStart = now - (long) rateLimit.windowSeconds() * 1000;
 
@@ -47,7 +56,7 @@ public class RateLimitAspect {
             redisTemplate.expire(redisKey,
                     java.time.Duration.ofSeconds(rateLimit.windowSeconds() + 10));
         } catch (GeneralException e) {
-            throw e; // 실제 rate limit 초과는 그대로 전파
+            throw e;
         } catch (Exception e) {
             log.warn("RateLimit Redis 연결 실패, 제한 없이 통과합니다. key={}", redisKey, e);
         }
@@ -64,5 +73,30 @@ public class RateLimitAspect {
             return ud.getUsername();
         }
         return null;
+    }
+
+    private String resolveClientIp() {
+        try {
+            ServletRequestAttributes attrs =
+                    (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            HttpServletRequest request = attrs.getRequest();
+            return getClientIp(request);
+        } catch (Exception e) {
+            log.warn("RateLimit: 요청 IP를 가져올 수 없습니다.", e);
+            return null;
+        }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            // 프록시 체인의 첫 번째(실제 클라이언트) IP만 사용
+            return forwarded.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
     }
 }

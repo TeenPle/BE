@@ -27,6 +27,7 @@ public class VerificationService {
     public String sendCode(String target) {
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
         codeStore.save(target, code);
+        codeStore.deleteAttempts(target);  // 재발송 시 이전 실패 횟수 초기화
         provider.send(target, code);
         return code;
     }
@@ -37,20 +38,35 @@ public class VerificationService {
     public String sendPasswordResetCode(String target) {
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
         codeStore.save(target, code);
+        codeStore.deleteAttempts(target);  // 재발송 시 이전 실패 횟수 초기화
         provider.sendPasswordReset(target, code);
         return code;
     }
 
     /**
-     *  Redis에 저장되어있는 인증코드와 맞는지 확인
+     * Redis에 저장된 인증코드와 일치하는지 확인.
+     * 5회 연속 실패 시 코드를 무효화하여 브루트포스를 방지한다.
      */
     public String verifyCode(String target, String code) {
         String saved = codeStore.get(target);
-        if (saved == null || !saved.equals(code)) {
+
+        if (saved == null) {
+            throw new UserException(UserErrorStatus.VERIFICATION_CODE_INVALID);
+        }
+
+        if (codeStore.getAttemptCount(target) >= 5) {
+            codeStore.delete(target);
+            codeStore.deleteAttempts(target);
+            throw new UserException(UserErrorStatus.VERIFICATION_CODE_EXCEEDED);
+        }
+
+        if (!saved.equals(code)) {
+            codeStore.incrementAttempts(target);
             throw new UserException(UserErrorStatus.VERIFICATION_CODE_INVALID);
         }
 
         codeStore.delete(target);
+        codeStore.deleteAttempts(target);
 
         String token = "verif_" + UUID.randomUUID();
         tokenStore.save(token, target);
