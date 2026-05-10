@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Table(
         name = "post",
         indexes = {
@@ -74,6 +76,9 @@ public class Post extends BaseEntity {
     @Version
     private Long version;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     public void incrementViewCount() {
         this.viewCount++;
     }
@@ -87,6 +92,7 @@ public class Post extends BaseEntity {
 
     public void delete(){
         this.postStatus = PostStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
     }
 
     public void hide() {

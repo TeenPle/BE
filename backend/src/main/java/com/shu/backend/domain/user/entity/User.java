@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -94,6 +95,21 @@ public class User extends BaseEntity {
     }
 
     public void deactivate() {
+        this.status = UserStatus.DELETED;
+    }
+
+    /** 탈퇴 시 PII 즉시 파기. User 행은 게시글/댓글 FK 보존을 위해 유지. */
+    public void anonymize() {
+        this.username = "탈퇴한 사용자";
+        this.email = "deleted_" + this.id + "@deleted.invalid";
+        this.password = UUID.randomUUID().toString();
+        this.nickname = "탈퇴한사용자_" + this.id;
+        this.phoneNumber = "D" + this.id;
+        this.profileImageUrl = "default_profile.png";
+        this.role = UserRole.USER;
+        this.verified = false;
+        this.phoneVerified = false;
+        this.nicknameChangedAt = null;
         this.status = UserStatus.DELETED;
     }
 }

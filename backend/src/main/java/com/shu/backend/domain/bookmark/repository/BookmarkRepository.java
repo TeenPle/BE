@@ -3,6 +3,7 @@ package com.shu.backend.domain.bookmark.repository;
 import com.shu.backend.domain.bookmark.entity.Bookmark;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,14 @@ import java.util.Optional;
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 
     Optional<Bookmark> findByUserIdAndPostId(Long userId, Long postId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Bookmark b where b.post.id = :postId")
+    void deleteAllByPostId(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Bookmark b where b.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 
     boolean existsByUserIdAndPostId(Long userId, Long postId);
 

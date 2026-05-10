@@ -18,6 +18,17 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByPostId(Long postId);
 
+    @Query("select c.id from Comment c where c.post.id = :postId")
+    List<Long> findIdsByPostId(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Comment c set c.parent = null where c.post.id = :postId")
+    void nullifyParentByPostId(@Param("postId") Long postId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Comment c where c.post.id = :postId")
+    void deleteAllByPostId(@Param("postId") Long postId);
+
     @Query("""
         select c
         from Comment c
