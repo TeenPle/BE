@@ -17,6 +17,7 @@ import com.shu.backend.domain.notification.service.NotificationService;
 import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.domain.user.support.UserDisplay;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.global.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,11 @@ public class ChatMessageService {
 
         // 1:1 DM에서 수신자 ID 계산
         Long receiverId = room.getUser1Id().equals(senderId) ? room.getUser2Id() : room.getUser1Id();
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.NOT_ROOM_MEMBER));
+        if (UserDisplay.isDeleted(receiver)) {
+            throw new ChatMessageException(ChatMessageErrorStatus.TARGET_USER_DELETED);
+        }
 
         // 수신자 참여자 정보 조회 (없으면 예외)
         ChatRoomUser receiverCru = chatRoomUserRepository.findByChatRoomIdAndUserId(room.getId(), receiverId)
@@ -208,6 +214,10 @@ public class ChatMessageService {
         boolean blockedByOther = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, otherId)
                 .map(ChatRoomUser::isBlocked)
                 .orElse(false);
+        boolean otherUserDeleted = userRepository.findById(otherId)
+                .map(UserDisplay::isDeleted)
+                .orElse(true);
+        boolean blocked = myCru.isBlocked() || blockedByOther;
 
         List<ChatMessage> list = (lastId == null)
                 ? chatMessageRepository.findTop50ByChatRoomIdOrderByIdDesc(roomId)
@@ -250,9 +260,13 @@ public class ChatMessageService {
                 .roomId(roomId)
                 .messages(res)
                 .otherLastReadMessageId(otherLastRead)
-                .blocked(myCru.isBlocked() || blockedByOther)
+                .blocked(blocked)
                 .blockedByMe(myCru.isBlocked())
                 .blockedByOther(blockedByOther)
+                .otherUserDeleted(otherUserDeleted)
+                .canSendMessage(!otherUserDeleted && !blocked)
+                .canReport(!otherUserDeleted)
+                .canBlock(!otherUserDeleted)
                 .build();
     }
 

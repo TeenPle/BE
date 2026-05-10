@@ -25,6 +25,10 @@ public class ChatRoomDTO {
         private boolean blocked;
         private boolean blockedByMe;
         private boolean blockedByOther;
+        private boolean otherUserDeleted;
+        private boolean canSendMessage;
+        private boolean canReport;
+        private boolean canBlock;
     }
 
     @Getter @Builder
@@ -41,6 +45,10 @@ public class ChatRoomDTO {
         private boolean blocked;
         private boolean blockedByMe;
         private boolean blockedByOther;
+        private boolean otherUserDeleted;
+        private boolean canSendMessage;
+        private boolean canReport;
+        private boolean canBlock;
     }
 
     @Getter @Builder

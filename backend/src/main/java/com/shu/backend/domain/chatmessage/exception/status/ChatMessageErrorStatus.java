@@ -32,6 +32,7 @@ public enum ChatMessageErrorStatus implements BaseErrorCode {
     MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "CHATMSG4014", "메시지는 500자 이하로 입력해주세요."),
     CHAT_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "CHATMSG4015", "채팅 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
     INVALID_READ_MESSAGE(HttpStatus.BAD_REQUEST, "CHATMSG4016", "읽음 처리할 수 없는 메시지입니다."),
+    TARGET_USER_DELETED(HttpStatus.FORBIDDEN, "CHATMSG4017", "탈퇴한 사용자에게는 메시지를 보낼 수 없습니다."),
 
     CHAT_IMAGE_UPLOAD_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "CHATMSG5001", "채팅 이미지 업로드에 실패했습니다.");
 
