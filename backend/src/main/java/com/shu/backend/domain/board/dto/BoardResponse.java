@@ -16,12 +16,17 @@ public class BoardResponse {
 
     private boolean active;
 
+    // 게시판 범위 (SCHOOL: 학교 게시판, REGION: 지역 게시판)
+    private String scope;
+
     public static BoardResponse toDto(Board board) {
         return BoardResponse.builder()
                 .id(board.getId())
                 .title(board.getTitle())
                 .description(board.getDescription())
                 .active(board.isActive())
+                // scope를 문자열로 직렬화 (null-safe)
+                .scope(board.getScope() != null ? board.getScope().name() : null)
                 .build();
     }
 }
