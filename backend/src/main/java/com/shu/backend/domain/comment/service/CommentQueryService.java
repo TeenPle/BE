@@ -20,7 +20,7 @@ public class CommentQueryService {
     private final CommentRepository commentRepository;
     private final ReactionRepository reactionRepository;
 
-    public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId) {
+    public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId, Long postAuthorId) {
         List<Comment> parents = commentRepository.findParentsForPostDetail(postId, currentUserId);
 
         if (parents.isEmpty()) {
@@ -77,21 +77,21 @@ public class CommentQueryService {
             List<Comment> visibleReplies = parentToVisibleReplies.get(parent.getId());
             if (visibleReplies == null) continue; // was excluded above
 
-            result.add(toDto(parent, currentUserId, likedCommentIds, userAnonNumberMap));
+            result.add(toDto(parent, currentUserId, postAuthorId, likedCommentIds, userAnonNumberMap));
             for (Comment reply : visibleReplies) {
-                result.add(toDto(reply, currentUserId, likedCommentIds, userAnonNumberMap));
+                result.add(toDto(reply, currentUserId, postAuthorId, likedCommentIds, userAnonNumberMap));
             }
         }
 
         return result;
     }
 
-    private CommentResponse toDto(Comment comment, Long currentUserId, Set<Long> likedCommentIds, Map<Long, Integer> userAnonNumberMap) {
+    private CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, Set<Long> likedCommentIds, Map<Long, Integer> userAnonNumberMap) {
         boolean likedByMe = likedCommentIds.contains(comment.getId());
         int anonNumber = 0;
         if (comment.getAnonymous() && comment.getUser() != null) {
             anonNumber = userAnonNumberMap.getOrDefault(comment.getUser().getId(), 0);
         }
-        return CommentResponse.toDto(comment, currentUserId, likedByMe, anonNumber);
+        return CommentResponse.toDto(comment, currentUserId, postAuthorId, likedByMe, anonNumber);
     }
 }
