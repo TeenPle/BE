@@ -209,5 +209,6 @@ public class UserService {
 
         // 4. PII 즉시 익명화 (게시글/댓글 FK 보존을 위해 행은 유지)
         user.anonymize();
+        userRepository.save(user);
     }
 }
