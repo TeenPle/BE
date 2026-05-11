@@ -217,7 +217,7 @@ public class PostService {
 
         viewCountAccumulator.increment(postId);
 
-        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId);
+        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId, post.getUser().getId());
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
         boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
         PollResponse poll = pollService.getPollResponse(postId, currentUserId);

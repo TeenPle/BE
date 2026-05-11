@@ -18,6 +18,8 @@ public class CommentResponse {
     private Long commentId;
     @JsonProperty("isMine")
     private boolean isMine;
+    @JsonProperty("isPostAuthor")
+    private boolean isPostAuthor;
     private Long authorUserId;
     private boolean authorDeleted;
     private boolean canChatWithAuthor;
@@ -43,11 +45,11 @@ public class CommentResponse {
                 : null;
     }
 
-    public static CommentResponse toDto(Comment comment, Long currentUserId) {
-        return toDto(comment, currentUserId, false, 0);
+    public static CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId) {
+        return toDto(comment, currentUserId, postAuthorId, false, 0);
     }
 
-    public static CommentResponse toDto(Comment comment, Long currentUserId, boolean likedByMe, int anonymousNumber) {
+    public static CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, boolean likedByMe, int anonymousNumber) {
         String content = switch (comment.getCommentStatus()) {
             case DELETED -> "삭제된 댓글입니다.";
             case HIDDEN -> "블라인드 처리된 댓글입니다.";
@@ -65,6 +67,9 @@ public class CommentResponse {
         }
 
         boolean isMine = !authorDeleted && comment.getUser().getId().equals(currentUserId);
+        boolean isPostAuthor = !authorDeleted
+                && postAuthorId != null
+                && comment.getUser().getId().equals(postAuthorId);
         boolean canActOnAuthor = !authorDeleted
                 && !isMine
                 && comment.getCommentStatus() == CommentStatus.ACTIVE;
@@ -73,6 +78,7 @@ public class CommentResponse {
         return CommentResponse.builder()
                 .commentId(comment.getId())
                 .isMine(isMine)
+                .isPostAuthor(isPostAuthor)
                 .authorUserId(authorUserId)
                 .authorDeleted(authorDeleted)
                 .canChatWithAuthor(canActOnAuthor)
