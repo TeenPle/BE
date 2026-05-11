@@ -355,7 +355,10 @@ public class AdminInitializer implements CommandLineRunner {
                 .parent(parent)
                 .build();
 
-        return commentRepository.save(comment);
+        Comment saved = commentRepository.save(comment);
+        post.incrementCommentCount();
+        postRepository.save(post);
+        return saved;
     }
 
     /**
