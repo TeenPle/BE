@@ -91,6 +91,7 @@ public class CommentService {
 
         Comment saved = commentRepository.save(comment);
         post.incrementCommentCount();
+        postRepository.save(post);
 
         // ===== 알림 생성(저장 성공 이후) =====
         Long actorId = userId;
@@ -219,7 +220,9 @@ public class CommentService {
         }
 
         comment.softDelete();
-        comment.getPost().decrementCommentCount();
+        Post post = comment.getPost();
+        post.decrementCommentCount();
+        postRepository.save(post);
         return commentId;
     }
 
