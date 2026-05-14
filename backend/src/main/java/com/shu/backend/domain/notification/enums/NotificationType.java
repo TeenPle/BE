@@ -7,5 +7,6 @@ public enum NotificationType {
     POST_LIKE,
     COMMENT_LIKE,
     CHAT,
+    INQUIRY,
     SYSTEM
 }

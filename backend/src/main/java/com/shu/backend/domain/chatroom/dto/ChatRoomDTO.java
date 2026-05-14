@@ -1,5 +1,8 @@
 package com.shu.backend.domain.chatroom.dto;
 
+import com.shu.backend.domain.report.enums.ReportReason;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,6 +61,10 @@ public class ChatRoomDTO {
 
     @Getter @Setter
     public static class ReportRequest {
-        private String reason;
+        @NotNull
+        private ReportReason reason;
+
+        @Size(max = 500)
+        private String detail;
     }
 }

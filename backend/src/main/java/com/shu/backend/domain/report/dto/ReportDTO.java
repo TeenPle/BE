@@ -3,6 +3,7 @@ package com.shu.backend.domain.report.dto;
 import com.shu.backend.domain.report.enums.ReportReason;
 import com.shu.backend.domain.report.enums.TargetType;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,9 @@ public class ReportDTO {
 
         @NotNull
         private ReportReason reportReason;
+
+        @Size(max = 500)
+        private String reportDetail;
     }
 
     @Getter

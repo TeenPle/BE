@@ -54,6 +54,9 @@ public class Report extends BaseEntity {
     @Column(name = "report_reason", nullable = false)
     private ReportReason reportReason;
 
+    @Column(name = "report_detail", length = 500)
+    private String reportDetail;
+
     // 처리 진행 상황
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

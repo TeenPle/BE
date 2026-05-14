@@ -9,6 +9,10 @@ import com.shu.backend.domain.chatroom.exception.status.ChatRoomErrorStatus;
 import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
+import com.shu.backend.domain.report.dto.ReportDTO;
+import com.shu.backend.domain.report.enums.ReportReason;
+import com.shu.backend.domain.report.enums.TargetType;
+import com.shu.backend.domain.report.service.ReportService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
@@ -35,6 +39,7 @@ public class ChatRoomService {
     private final ChatRoomUserRepository chatRoomUserRepository;
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ReportService reportService;
 
     public ChatRoomDTO.CreateDmResponse findOrCreateDm(Long myId, Long otherId, Long sourcePostId, String roomTitle) {
         User other = userRepository.findById(otherId)
@@ -195,11 +200,19 @@ public class ChatRoomService {
         cru.unblock();
     }
 
-    public void report(Long myId, Long roomId, String reason) {
+    public void report(Long myId, Long roomId, ReportReason reason, String detail) {
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
+        Long otherId = otherUserId(cru.getChatRoom(), myId);
         assertOtherUserActive(myId, cru.getChatRoom());
-        log.info("Chat room report - reporterId={}, roomId={}, reason={}", myId, roomId, reason);
+
+        reportService.create(myId, new ReportDTO.CreateRequest(
+                TargetType.USER,
+                otherId,
+                reason,
+                detail
+        ));
+        log.info("Chat room report created - reporterId={}, roomId={}, reportedUserId={}", myId, roomId, otherId);
     }
 
     @Transactional(readOnly = true)

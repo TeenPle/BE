@@ -106,9 +106,9 @@ public class ChatRoomController {
     public ApiResponse<String> report(
             @AuthenticationPrincipal User user,
             @PathVariable Long roomId,
-            @RequestBody ChatRoomDTO.ReportRequest request
+            @Valid @RequestBody ChatRoomDTO.ReportRequest request
     ) {
-        chatRoomService.report(user.getId(), roomId, request.getReason());
+        chatRoomService.report(user.getId(), roomId, request.getReason(), request.getDetail());
         return ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_REPORT_SUCCESS, "OK");
     }
 

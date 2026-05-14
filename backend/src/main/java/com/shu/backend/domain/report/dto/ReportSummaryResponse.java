@@ -25,6 +25,7 @@ public class ReportSummaryResponse {
     private String targetType;
     private Long targetId;
     private String reportReason;
+    private String reportDetail;
     private String status;
     private String createdAt;
     private String processedAt;
@@ -39,6 +40,7 @@ public class ReportSummaryResponse {
                 .targetType(r.getTargetType().name())
                 .targetId(r.getTargetId())
                 .reportReason(r.getReportReason().name())
+                .reportDetail(r.getReportDetail())
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
                 .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
@@ -61,6 +63,7 @@ public class ReportSummaryResponse {
         private String schoolName;
         private String boardTitle;
         private String reportReason;
+        private String reportDetail;
         private String status;
         private String createdAt;
         private String processedAt;

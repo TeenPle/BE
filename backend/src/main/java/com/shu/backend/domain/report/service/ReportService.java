@@ -84,6 +84,7 @@ public class ReportService {
                 .targetType(req.getTargetType())
                 .targetId(req.getTargetId())
                 .reportReason(req.getReportReason())
+                .reportDetail(normalizeReportDetail(req.getReportDetail()))
                 .build();
 
         return reportRepository.save(report).getId();
@@ -167,6 +168,7 @@ public class ReportService {
                 .schoolName(ctx.schoolName())
                 .boardTitle(ctx.boardTitle())
                 .reportReason(r.getReportReason().name())
+                .reportDetail(r.getReportDetail())
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
                 .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
@@ -176,11 +178,14 @@ public class ReportService {
     private String resolveTargetContent(TargetType targetType, Long targetId) {
         return switch (targetType) {
             case POST -> postRepository.findById(targetId)
-                    .map(p -> "[?쒕ぉ] " + p.getTitle() + "\n" + p.getContent())
-                    .orElse("(??젣??寃뚯떆湲)");
+                    .map(p -> "[제목] " + p.getTitle() + "\n" + p.getContent())
+                    .orElse("(삭제된 게시글)");
             case COMMENT -> commentRepository.findById(targetId)
                     .map(Comment::getContent)
-                    .orElse("(??젣???볤?)");
+                    .orElse("(삭제된 댓글)");
+            case USER -> userRepository.findById(targetId)
+                    .map(user -> "채팅 상대 사용자 신고: " + UserDisplay.nicknameOrDeleted(user))
+                    .orElse("(탈퇴한 사용자)");
             default -> "";
         };
     }
@@ -203,6 +208,7 @@ public class ReportService {
                             c.getPost().getBoard().getTitle()
                     ))
                     .orElse(new PostContext(null, null, null));
+            case USER -> new PostContext(null, null, "채팅");
             default -> new PostContext(null, null, null);
         };
     }
@@ -241,5 +247,13 @@ public class ReportService {
             case USER -> boardAccessPolicy.requireActiveUserWithSchool(reporterId);
             default -> throw new ReportException(ReportErrorStatus.UNSUPPORTED_TARGET_TYPE);
         }
+    }
+
+    private String normalizeReportDetail(String reportDetail) {
+        if (reportDetail == null) {
+            return null;
+        }
+        String trimmed = reportDetail.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
