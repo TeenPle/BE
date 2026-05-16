@@ -30,8 +30,11 @@ public class AdminInquiryController {
     }
 
     @GetMapping("/{inquiryId}")
-    public ApiResponse<InquiryDTO.DetailResponse> getInquiry(@PathVariable Long inquiryId) {
-        return ApiResponse.onSuccess(inquiryService.getAdminInquiry(inquiryId));
+    public ApiResponse<InquiryDTO.DetailResponse> getInquiry(
+            @AuthenticationPrincipal User admin,
+            @PathVariable Long inquiryId
+    ) {
+        return ApiResponse.onSuccess(inquiryService.getAdminInquiry(admin.getId(), inquiryId));
     }
 
     @PostMapping("/{inquiryId}/answer")

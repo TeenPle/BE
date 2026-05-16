@@ -47,4 +47,10 @@ public class AdminAuditLog extends BaseEntity {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String metadata;
+
+    @Column(name = "ip_address", length = 45)
+    private String ipAddress;
+
+    @Column(name = "user_agent", length = 500)
+    private String userAgent;
 }

@@ -96,7 +96,7 @@ public class PenaltyService {
         }
 
         penalty.cancel();
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.CANCEL_PENALTY,
                 AdminAuditTargetType.PENALTY,

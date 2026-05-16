@@ -69,7 +69,7 @@ public class WarningService {
 
         Long warningId = warningRepository.save(warning).getId();
 
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.WARN_REPORT,
                 AdminAuditTargetType.REPORT,

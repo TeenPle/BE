@@ -1,5 +1,8 @@
 package com.shu.backend.domain.inquiry.service;
 
+import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
+import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
+import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.inquiry.dto.InquiryDTO;
 import com.shu.backend.domain.inquiry.entity.Inquiry;
 import com.shu.backend.domain.inquiry.enums.InquiryStatus;
@@ -31,6 +34,7 @@ public class InquiryService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PushService pushService;
+    private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
     public Long create(Long userId, InquiryDTO.CreateRequest request) {
@@ -60,8 +64,20 @@ public class InquiryService {
     }
 
     public InquiryDTO.DetailResponse getAdminInquiry(Long inquiryId) {
+        return getAdminInquiry(null, inquiryId);
+    }
+
+    public InquiryDTO.DetailResponse getAdminInquiry(Long adminId, Long inquiryId) {
         Inquiry inquiry = inquiryRepository.findDetailById(inquiryId)
                 .orElseThrow(() -> new InquiryException(InquiryErrorStatus.INQUIRY_NOT_FOUND));
+        adminAuditLogService.record(
+                adminId,
+                AdminAuditAction.VIEW_INQUIRY_DETAIL,
+                AdminAuditTargetType.INQUIRY,
+                inquiryId,
+                "문의 상세 열람",
+                inquiryMetadata(inquiry)
+        );
         return InquiryDTO.DetailResponse.from(inquiry);
     }
 
@@ -77,6 +93,15 @@ public class InquiryService {
         }
         User admin = userRepository.findById(adminId).orElseThrow();
         inquiry.answer(admin, answer);
+
+        adminAuditLogService.recordAfterCommit(
+                adminId,
+                AdminAuditAction.ANSWER_INQUIRY,
+                AdminAuditTargetType.INQUIRY,
+                inquiryId,
+                "문의 답변 등록",
+                inquiryMetadata(inquiry)
+        );
 
         // 문의 답변은 사용자가 놓치면 안 되는 운영 알림이므로 앱 알림과 푸시를 함께 발송한다.
         String message = "문의하신 내용에 답변이 등록되었습니다.";
@@ -104,6 +129,10 @@ public class InquiryService {
         }
 
         return inquiry.getId();
+    }
+
+    private String inquiryMetadata(Inquiry inquiry) {
+        return "userId=" + inquiry.getUser().getId();
     }
 
     private void validateCreateRequest(InquiryDTO.CreateRequest request) {

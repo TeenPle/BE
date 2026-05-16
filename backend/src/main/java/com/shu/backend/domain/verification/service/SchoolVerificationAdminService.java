@@ -1,5 +1,8 @@
 package com.shu.backend.domain.verification.service;
 
+import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
+import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
+import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.verification.dto.VerificationAdminDTO;
 import com.shu.backend.domain.verification.entity.UserSchoolVerification;
@@ -36,6 +39,7 @@ public class SchoolVerificationAdminService {
     private final UserSchoolVerificationRequestRepository requestRepository;
     private final UserSchoolVerificationRepository verificationRepository;
     private final FileStorageService fileStorageService;
+    private final AdminAuditLogService adminAuditLogService;
 
     // 상태별 학교 인증 요청 목록 조회
     @Transactional(readOnly = true)
@@ -49,6 +53,7 @@ public class SchoolVerificationAdminService {
     // 학교 인증 요청 상세 조회
     @Transactional(readOnly = true)
     public VerificationAdminDTO.DetailResponse detail(Long requestId) {
+        Long adminUserId = getCurrentAdminUserId();
         UserSchoolVerificationRequest req = requestRepository.findWithUserAndSchoolById(requestId)
                 .orElseThrow(() ->
                         new GeneralException(VerificationErrorStatus.VERIFICATION_REQUEST_NOT_FOUND)
@@ -58,6 +63,15 @@ public class SchoolVerificationAdminService {
         String presignedUrl = req.getStatus() == VerificationStatus.PENDING
                 ? fileStorageService.generateStudentCardPresignedUrl(req.getRequestImageUrl())
                 : "";
+
+        adminAuditLogService.record(
+                adminUserId,
+                AdminAuditAction.VIEW_VERIFICATION_REQUEST,
+                AdminAuditTargetType.VERIFICATION_REQUEST,
+                requestId,
+                "학교 인증 요청 상세 열람",
+                verificationMetadata(req)
+        );
 
         return toDetail(req, presignedUrl);
     }
@@ -97,6 +111,15 @@ public class SchoolVerificationAdminService {
 
         // 사용자 학교 인증 상태 반영
         user.verifySchool();
+
+        adminAuditLogService.recordAfterCommit(
+                adminUserId,
+                AdminAuditAction.APPROVE_VERIFICATION_REQUEST,
+                AdminAuditTargetType.VERIFICATION_REQUEST,
+                requestId,
+                adminComment,
+                verificationMetadata(req)
+        );
     }
 
     // 학교 인증 요청 거절 처리
@@ -115,6 +138,15 @@ public class SchoolVerificationAdminService {
 
         // 거절 후 S3에서 학생증 이미지 삭제
         fileStorageService.deleteStudentCardImage(req.getRequestImageUrl());
+
+        adminAuditLogService.recordAfterCommit(
+                adminUserId,
+                AdminAuditAction.REJECT_VERIFICATION_REQUEST,
+                AdminAuditTargetType.VERIFICATION_REQUEST,
+                requestId,
+                adminComment,
+                verificationMetadata(req)
+        );
     }
 
     // 처리 가능한 대기 상태 요청인지 검증
@@ -122,6 +154,10 @@ public class SchoolVerificationAdminService {
         if (req.getStatus() != VerificationStatus.PENDING) {
             throw new GeneralException(VerificationErrorStatus.VERIFICATION_ALREADY_PROCESSED);
         }
+    }
+
+    private String verificationMetadata(UserSchoolVerificationRequest req) {
+        return "userId=" + req.getUser().getId() + ",schoolId=" + req.getSchool().getId();
     }
 
     // 목록 응답 DTO 변환

@@ -4,5 +4,7 @@ public enum AdminAuditTargetType {
     POST,
     COMMENT,
     REPORT,
-    PENALTY
+    PENALTY,
+    VERIFICATION_REQUEST,
+    INQUIRY
 }

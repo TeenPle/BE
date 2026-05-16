@@ -20,6 +20,8 @@ public class AdminAuditLogResponse {
     private Long targetId;
     private String reason;
     private String metadata;
+    private String ipAddress;
+    private String userAgent;
     private LocalDateTime createdAt;
 
     public static AdminAuditLogResponse from(AdminAuditLog log) {
@@ -32,6 +34,8 @@ public class AdminAuditLogResponse {
                 .targetId(log.getTargetId())
                 .reason(log.getReason())
                 .metadata(log.getMetadata())
+                .ipAddress(log.getIpAddress())
+                .userAgent(log.getUserAgent())
                 .createdAt(log.getCreatedAt())
                 .build();
     }

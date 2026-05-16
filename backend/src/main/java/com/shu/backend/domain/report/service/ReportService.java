@@ -106,7 +106,7 @@ public class ReportService {
         report.resolve(handler);
 
         Long penaltyId = penaltyService.create(reportId, penaltyDays);
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.APPROVE_REPORT,
                 AdminAuditTargetType.REPORT,
@@ -132,7 +132,7 @@ public class ReportService {
                         .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
         report.reject(handler);
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.REJECT_REPORT,
                 AdminAuditTargetType.REPORT,

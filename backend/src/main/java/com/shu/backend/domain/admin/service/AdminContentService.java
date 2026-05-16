@@ -99,7 +99,7 @@ public class AdminContentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
         post.hide();
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.HIDE_POST,
                 AdminAuditTargetType.POST,
@@ -115,7 +115,7 @@ public class AdminContentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(PostErrorStatus.POST_NOT_FOUND));
         post.restore();
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.RESTORE_POST,
                 AdminAuditTargetType.POST,
@@ -131,7 +131,7 @@ public class AdminContentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
         comment.hide();
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.HIDE_COMMENT,
                 AdminAuditTargetType.COMMENT,
@@ -147,7 +147,7 @@ public class AdminContentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentErrorStatus.COMMENT_NOT_FOUND));
         comment.restore();
-        adminAuditLogService.record(
+        adminAuditLogService.recordAfterCommit(
                 adminId,
                 AdminAuditAction.RESTORE_COMMENT,
                 AdminAuditTargetType.COMMENT,
