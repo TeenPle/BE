@@ -241,11 +241,7 @@ public class PostService {
         String sortBy = order.getProperty();
         String sortDirection = order.getDirection().name();
 
-        // Slice 처리를 위해 size+1로 한 건 더 가져와 hasNext 판정
-        Pageable slicePageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize() + 1
-        );
+        Pageable slicePageable = PageRequestUtils.slice(pageable);
 
         List<Object[]> rows = postRepository.findPostRowsByBoardId(
                 boardId,
@@ -282,10 +278,12 @@ public class PostService {
             return new SliceImpl<>(List.of(), pageable, false);
         }
 
-        Pageable slicePageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize() + 1,
-                Sort.by(Sort.Direction.DESC, "id")
+        Pageable slicePageable = PageRequestUtils.slice(
+                PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        Sort.by(Sort.Direction.DESC, "id")
+                )
         );
 
 
@@ -350,10 +348,7 @@ public class PostService {
 
     // 학교 전체 게시판(학교+지역)의 최신 게시글 페이징 조회
     public Slice<PostResponse> getPostsBySchool(Long schoolId, Long regionId, Pageable pageable, Long currentUserId) {
-        Pageable slicePageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize() + 1
-        );
+        Pageable slicePageable = PageRequestUtils.slice(pageable);
 
         List<Object[]> rows = postRepository.findAllPostRowsBySchool(
                 schoolId, regionId, currentUserId, slicePageable

@@ -28,6 +28,11 @@ public final class PageRequestUtils {
         return PageRequest.of(safePage(pageable.getPageNumber()), safeSize(pageable.getPageSize(), maxSize), sort);
     }
 
+    public static Pageable slice(Pageable pageable) {
+        Sort sort = pageable.getSortOr(Sort.unsorted());
+        return new OffsetLimitPageRequest(pageable.getOffset(), pageable.getPageSize() + 1, sort);
+    }
+
     public static int safePage(int page) {
         return Math.max(page, 0);
     }

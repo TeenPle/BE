@@ -7,6 +7,9 @@ import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.entity.Post;
 import com.shu.backend.domain.post.repository.PostRepository;
+import com.shu.backend.domain.reaction.entity.Reaction;
+import com.shu.backend.domain.reaction.enums.ReactionTargetType;
+import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import com.shu.backend.domain.region.entity.Region;
 import com.shu.backend.domain.region.repository.RegionRepository;
 import com.shu.backend.domain.school.entity.School;
@@ -39,6 +42,7 @@ public class AdminInitializer implements CommandLineRunner {
     private final BoardRepository boardRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final ReactionRepository reactionRepository;
 
     @Override
     @Transactional
@@ -84,7 +88,7 @@ public class AdminInitializer implements CommandLineRunner {
         createRegionBoardIfNotExists(adminRegion, "지역 게시판", "같은 지역 학생들과 이야기해요");
 
         // admin은 그대로 유지
-        User admin = userRepository.findByEmail("leejd8131@naver.com")
+        userRepository.findByEmail("leejd8131@naver.com")
                 .orElseGet(() -> userRepository.save(
                         User.builder()
                                 .username("시스템관리자1")
@@ -123,27 +127,7 @@ public class AdminInitializer implements CommandLineRunner {
                                 .build()
                 ));
 
-        // 오남고 테스트 유저 2명
-        createTestUserIfNotExists(
-                "테스트유저1",
-                "teenple1@example.com",
-                "test1",
-                "Abcd1234!",
-                "01053468131",
-                testSchool
-        );
-
-        createTestUserIfNotExists(
-                "테스트유저2",
-                "teenple2@example.com",
-                "test2",
-                "Abcd1234!",
-                "01053468132",
-                testSchool
-        );
-
-        // 새 오남고 테스트 학생 추가 - 닉네임 가렌
-        createTestUserIfNotExists(
+        User garen = createTestUserIfNotExists(
                 "오남고테스트학생",
                 "garen@example.com",
                 "가렌",
@@ -152,8 +136,35 @@ public class AdminInitializer implements CommandLineRunner {
                 testSchool
         );
 
-        // 기존 시드 게시글/댓글을 전부 오남고등학교 소속으로 생성
-        seedTestSchoolPosts(testSchool, admin2, admin);
+        User lux = createTestUserIfNotExists(
+                "오남고테스트학생2",
+                "lux@example.com",
+                "럭스",
+                "Abcd1234!",
+                "01053468134",
+                testSchool
+        );
+
+        User caitlyn = createTestUserIfNotExists(
+                "오남고테스트학생3",
+                "caitlyn@example.com",
+                "케이틀린",
+                "Abcd1234!",
+                "01053468135",
+                testSchool
+        );
+
+        User sivir = createTestUserIfNotExists(
+                "오남고테스트학생4",
+                "sivir@example.com",
+                "시비르",
+                "Abcd1234!",
+                "01053468136",
+                testSchool
+        );
+
+        // 오남고 테스트 학생 5명이 균일하게 글/댓글/좋아요를 작성한 시드 데이터
+        seedTestSchoolPosts(testSchool, List.of(admin2, garen, lux, caitlyn, sivir));
     }
 
     /**
@@ -231,77 +242,42 @@ public class AdminInitializer implements CommandLineRunner {
     /**
      * 오남고등학교 게시판별 게시글 / 댓글 시드 생성
      */
-    private void seedTestSchoolPosts(
-            School testSchool,
-            User writer1,
-            User writer2
-    ) {
+    private void seedTestSchoolPosts(School testSchool, List<User> testUsers) {
         Board freeBoard = boardRepository.findBySchoolAndTitle(testSchool, "자유게시판").orElseThrow();
         Board firstBoard = boardRepository.findBySchoolAndTitle(testSchool, "1학년 게시판").orElseThrow();
         Board secondBoard = boardRepository.findBySchoolAndTitle(testSchool, "2학년 게시판").orElseThrow();
         Board thirdBoard = boardRepository.findBySchoolAndTitle(testSchool, "3학년 게시판").orElseThrow();
         Board alumniBoard = boardRepository.findBySchoolAndTitle(testSchool, "졸업생 게시판").orElseThrow();
 
-        seedBoardIfEmpty(freeBoard, writer1, writer2,
-                List.of(
-                        new SeedPost("기숙사 <<< 오지마라", "화장실 이게 맞나 진짜로", true, 17),
-                        new SeedPost("나 기상.", "25일 스킵 성공\n아래 틴붕이는 얼른 헤어질 수 있도록 하렴", true, 82),
-                        new SeedPost("오늘 급식 생각보다 괜찮았음", "국이 오랜만에 괜찮더라", true, 9),
-                        new SeedPost("학교 와이파이 또 느림", "과제 제출할 때마다 이럼", false, 5)
-                )
-        );
-
-        seedBoardIfEmpty(firstBoard, writer1, writer2,
-                List.of(
-                        new SeedPost("1학년 과학 수행 어때?", "자료 조사 어디까지 했냐", true, 11),
-                        new SeedPost("1학년 체육대회 기대됨", "반티 뭐로 할지 고민 중", true, 6),
-                        new SeedPost("수학 쌤 진도 너무 빠름", "오늘도 절반은 놓침", true, 13)
-                )
-        );
-
-        seedBoardIfEmpty(secondBoard, writer1, writer2,
-                List.of(
-                        new SeedPost("2학년 모고 난이도 실화?", "국어 왜 이렇게 어려웠냐", true, 21),
-                        new SeedPost("동아리 발표 준비 다 했냐", "PPT 아직 반밖에 못 함", false, 7),
-                        new SeedPost("야자 자리 바꾸고 싶다", "에어컨 바람 직빵 자리임", true, 4)
-                )
-        );
-
-        seedBoardIfEmpty(thirdBoard, writer1, writer2,
-                List.of(
-                        new SeedPost("수시 원서 준비 어디까지 했어?", "자소서 막판 수정 중", true, 28),
-                        new SeedPost("3학년 야자 분위기 빡세다", "다들 예민해진 듯", true, 10),
-                        new SeedPost("면접 준비 스터디 할 사람", "같이 연습할 사람 구함", false, 8)
-                )
-        );
-
-        seedBoardIfEmpty(alumniBoard, writer1, writer2,
-                List.of(
-                        new SeedPost("졸업생 게시판 테스트 글", "졸업생 게시판도 잘 보이는지 확인", false, 3),
-                        new SeedPost("대학 생활 질문 받아요", "후배들 궁금한 거 있으면 댓글 ㄱ", false, 14)
-                )
-        );
+        seedBoardIfNeeded(freeBoard, "자유", testUsers, 0);
+        seedBoardIfNeeded(firstBoard, "1학년", testUsers, 1);
+        seedBoardIfNeeded(secondBoard, "2학년", testUsers, 2);
+        seedBoardIfNeeded(thirdBoard, "3학년", testUsers, 3);
+        seedBoardIfNeeded(alumniBoard, "졸업생", testUsers, 4);
     }
 
     /**
-     * 게시판에 글이 없을 때만 시드 데이터 생성
+     * 게시판별 10개 글을 생성하되, 같은 제목의 시드 글은 중복 생성하지 않는다.
      */
-    private void seedBoardIfEmpty(
+    private void seedBoardIfNeeded(
             Board board,
-            User writer1,
-            User writer2,
-            List<SeedPost> seedPosts
+            String boardLabel,
+            List<User> testUsers,
+            int boardOffset
     ) {
-        if (postRepository.countByBoard(board) > 0) {
-            return;
-        }
+        List<SeedPost> seedPosts = createSeedPosts(boardLabel);
 
         for (int i = 0; i < seedPosts.size(); i++) {
             SeedPost seed = seedPosts.get(i);
+            if (postRepository.existsByBoardAndTitle(board, seed.title())) {
+                continue;
+            }
+
+            User writer = testUsers.get((boardOffset * 2 + i) % testUsers.size());
 
             Post post = createPost(
                     board,
-                    (i % 2 == 0) ? writer1 : writer2,
+                    writer,
                     seed.title(),
                     seed.content(),
                     seed.anonymous(),
@@ -309,10 +285,83 @@ public class AdminInitializer implements CommandLineRunner {
             );
 
             Post savedPost = postRepository.save(post);
+            seedComments(savedPost, testUsers, writer, seed.commentCount(), i);
+            seedPostLikes(savedPost, testUsers, writer, seed.likeCount(), i);
+        }
+    }
 
-            Comment c1 = createComment(savedPost, writer2, "이 글 공감됨", true, null);
-            createComment(savedPost, writer1, "나도 비슷하게 느낌", true, null);
-            createComment(savedPost, writer1, "특히 오늘 더 그랬음", true, c1);
+    private List<SeedPost> createSeedPosts(String boardLabel) {
+        return List.of(
+                new SeedPost(boardLabel + " 공지 확인했어?", boardLabel + " 게시판 공지 본 사람 댓글 남겨줘.", false, 0, 0),
+                new SeedPost(boardLabel + " 오늘 급식 후기", "생각보다 괜찮았는지 다들 의견 궁금함.", true, 1, 2),
+                new SeedPost(boardLabel + " 수행평가 일정 공유", "헷갈리는 일정 있으면 여기서 같이 정리하자.", false, 3, 5),
+                new SeedPost(boardLabel + " 야자 자리 질문", "자리 바꾸고 싶은 사람 있는지 확인 중.", true, 5, 1),
+                new SeedPost(boardLabel + " 동아리 모집 봤어?", "이번 모집 공지 중에 괜찮은 동아리 추천해줘.", false, 8, 4),
+                new SeedPost(boardLabel + " 등교길 버스 상황", "아침에 버스 많이 밀렸는지 공유 부탁.", true, 13, 7),
+                new SeedPost(boardLabel + " 시험 범위 체크", "프린트 포함인지 아닌지 헷갈려서 확인해보자.", false, 21, 10),
+                new SeedPost(boardLabel + " 체육복 챙겨야 함?", "내일 수업 준비물 아는 사람?", true, 34, 3),
+                new SeedPost(boardLabel + " 매점 추천 메뉴", "요즘 제일 괜찮은 메뉴 뭐야?", true, 55, 14),
+                new SeedPost(boardLabel + " 주말 스터디 구함", "같이 공부할 사람 있으면 댓글 줘.", false, 89, 8)
+        );
+    }
+
+    private void seedComments(Post post, List<User> testUsers, User writer, int commentCount, int postIndex) {
+        List<User> commenters = testUsers.stream()
+                .filter(user -> !user.getId().equals(writer.getId()))
+                .toList();
+
+        Comment firstComment = null;
+
+        for (int i = 0; i < commentCount; i++) {
+            User commenter = commenters.get((postIndex + i) % commenters.size());
+            Comment parent = i > 0 && i % 4 == 0 ? firstComment : null;
+            Comment comment = createComment(
+                    post,
+                    commenter,
+                    seedCommentContent(i),
+                    i % 3 != 1,
+                    parent
+            );
+
+            if (firstComment == null) {
+                firstComment = comment;
+            }
+        }
+    }
+
+    private String seedCommentContent(int index) {
+        List<String> comments = List.of(
+                "나도 이거 궁금했어.",
+                "확인해보니까 맞는 것 같아.",
+                "정보 공유 고마워.",
+                "이건 선생님께 다시 물어봐야 할 듯.",
+                "우리 반도 비슷하게 이야기 나왔어.",
+                "내일 아침에 다시 확인해볼게.",
+                "생각보다 많은 사람이 헷갈리는 듯.",
+                "이거 지난번에도 얘기 나왔었어.",
+                "나는 반대로 들었는데 확인 필요함.",
+                "정리되면 본문에도 추가해줘."
+        );
+        return comments.get(index % comments.size());
+    }
+
+    private void seedPostLikes(Post post, List<User> testUsers, User writer, int likeCount, int postIndex) {
+        int reactionCount = Math.min(likeCount, testUsers.size() - 1);
+        int cursor = postIndex + 1;
+        int created = 0;
+
+        while (created < reactionCount) {
+            User voter = testUsers.get(cursor % testUsers.size());
+            cursor++;
+
+            if (voter.getId().equals(writer.getId())) {
+                continue;
+            }
+
+            Reaction reaction = Reaction.create(ReactionTargetType.POST, post.getId(), voter.getId());
+            reaction.applyLike();
+            reactionRepository.save(reaction);
+            created++;
         }
     }
 
@@ -368,7 +417,8 @@ public class AdminInitializer implements CommandLineRunner {
             String title,
             String content,
             boolean anonymous,
-            int likeCount
+            int likeCount,
+            int commentCount
     ) {
     }
 }

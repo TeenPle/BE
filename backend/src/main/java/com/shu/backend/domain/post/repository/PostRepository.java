@@ -269,6 +269,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     int countByBoard(Board board);
 
+    boolean existsByBoardAndTitle(Board board, String title);
+
     @Query("select count(p) from Post p where p.user.id = :userId and p.postStatus <> com.shu.backend.domain.post.enums.PostStatus.DELETED")
     long countActiveByUserId(@Param("userId") Long userId);
 
@@ -428,7 +430,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
               select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
               where ub.blocker.id = :currentUserId
           )
-        order by p.createdAt desc
+        order by p.createdAt desc, p.id desc
     """)
     List<Object[]> findAllPostRowsBySchool(
             @Param("schoolId") Long schoolId,
