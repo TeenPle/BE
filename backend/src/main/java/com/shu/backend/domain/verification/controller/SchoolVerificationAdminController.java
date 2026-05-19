@@ -12,11 +12,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
-import java.util.List;
 
 @Tag(name = "Admin Verification", description = "운영진 학교 인증 관리 API")
 @PreAuthorize("hasRole('ADMIN')")
@@ -32,13 +31,17 @@ public class SchoolVerificationAdminController {
             description = "운영진이 학교 인증 요청을 상태별로 조회합니다. 기본값은 PENDING 입니다."
     )
     @GetMapping
-    public ApiResponse<List<VerificationAdminDTO.ListItemResponse>> list(
+    public ApiResponse<Page<VerificationAdminDTO.ListItemResponse>> list(
             @Parameter(description = "조회할 상태", example = "PENDING")
-            @RequestParam(defaultValue = "PENDING") VerificationStatus status
+            @RequestParam(defaultValue = "PENDING") VerificationStatus status,
+            @Parameter(description = "페이지 번호", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20")
+            @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.of(
                 VerificationSuccessStatus.VERIFICATION_REQUEST_LIST_SUCCESS,
-                adminService.list(status)
+                adminService.list(status, page, size)
         );
     }
 

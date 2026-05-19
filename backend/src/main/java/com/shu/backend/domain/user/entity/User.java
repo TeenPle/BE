@@ -72,6 +72,10 @@ public class User extends BaseEntity {
     @Column(name = "nickname_changed_at")
     private LocalDateTime nicknameChangedAt;
 
+    /** 탈퇴 요청 일시. PENDING_DELETION 상태일 때만 값이 존재하며, 7일 후 스케줄러가 영구 삭제를 수행한다. */
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
     // 학교 인증 완료 처리
     public void verifySchool() {
         this.verified = true;
@@ -98,7 +102,19 @@ public class User extends BaseEntity {
         this.status = UserStatus.DELETED;
     }
 
-    /** 탈퇴 시 PII 즉시 파기. User 행은 게시글/댓글 FK 보존을 위해 유지. */
+    /** 탈퇴 요청: 즉시 삭제하지 않고 7일 유예 기간을 부여한다. */
+    public void requestDeletion() {
+        this.status = UserStatus.PENDING_DELETION;
+        this.deletionRequestedAt = LocalDateTime.now();
+    }
+
+    /** 유예 기간 내 복구: 계정을 ACTIVE 상태로 되돌리고 탈퇴 요청 일시를 초기화한다. */
+    public void restore() {
+        this.status = UserStatus.ACTIVE;
+        this.deletionRequestedAt = null;
+    }
+
+    /** 7일 유예 만료 후 PII 파기. User 행은 게시글/댓글 FK 보존을 위해 유지. */
     public void anonymize() {
         this.username = "탈퇴한 사용자";
         this.email = "deleted_" + this.id + "@deleted.invalid";

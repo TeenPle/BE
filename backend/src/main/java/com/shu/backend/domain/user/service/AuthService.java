@@ -310,9 +310,36 @@ public class AuthService {
     }
 
     private void assertActive(User user) {
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() == null) return;
+        // 탈퇴 유예 기간 중인 계정은 별도 에러 코드로 분리해 프론트에서 복구 화면으로 분기한다.
+        if (user.getStatus() == UserStatus.PENDING_DELETION) {
+            throw new UserException(UserErrorStatus.ACCOUNT_PENDING_DELETION);
+        }
+        if (user.getStatus() != UserStatus.ACTIVE) {
             throw new UserException(UserErrorStatus.INACTIVE_USER);
         }
+    }
+
+    /**
+     * 탈퇴 유예 기간 중 계정 복구.
+     * 이메일·비밀번호로 본인 확인 후 ACTIVE 상태로 되돌리고 새 토큰을 발급한다.
+     */
+    @Transactional
+    public LoginResponseDTO restoreAccount(UserLoginDTO request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+
+        // PENDING_DELETION 상태인 계정만 복구 가능
+        if (user.getStatus() != UserStatus.PENDING_DELETION) {
+            throw new UserException(UserErrorStatus.INACTIVE_USER);
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new UserException(UserErrorStatus.INVALID_PASSWORD);
+        }
+
+        user.restore();
+        return buildLoginResponse(user);
     }
 
     // 새 refresh token 발급 (기존 것 대체)

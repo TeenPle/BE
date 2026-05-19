@@ -237,5 +237,18 @@ public class AuthController {
         return ApiResponse.onSuccess(authService.checkNicknameExists(nickname));
     }
 
+    // =================== 탈퇴 유예 계정 복구 ===================
+    @Operation(
+            summary = "탈퇴 유예 계정 복구",
+            description = "PENDING_DELETION 상태에서 이메일·비밀번호로 본인 확인 후 계정을 ACTIVE로 복구합니다. 성공 시 새 토큰을 발급합니다."
+    )
+    @PostMapping("/restore")
+    public ApiResponse<LoginResponseDTO> restoreAccount(
+            @RequestBody @Valid UserLoginDTO request
+    ) {
+        LoginResponseDTO result = authService.restoreAccount(request);
+        return ApiResponse.of(UserSuccessStatus.USER_RESTORE_SUCCESS, result);
+    }
+
 }
 

@@ -169,45 +169,62 @@ public class UserService {
         ).toList();
     }
 
+    /**
+     * 탈퇴 요청: 즉시 삭제하지 않고 7일 유예 기간을 부여한다.
+     * 실제 PII 파기는 UserWithdrawalScheduler가 만료 시 처리한다.
+     */
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
 
-        // 1. 학생증 인증 이미지 S3(프라이빗) 삭제 후 인증 요청 레코드 삭제
+        // refresh 토큰·푸시 토큰만 즉시 무효화해 추가 API 접근을 차단한다.
+        refreshTokenRepository.deleteByUser(user);
+        pushTokenRepository.deleteAllByUserId(userId);
+
+        user.requestDeletion();
+        userRepository.save(user);
+    }
+
+    /**
+     * 유예 기간 만료 유저의 PII를 실제로 파기한다.
+     * UserWithdrawalScheduler에서만 호출되어야 한다.
+     */
+    @Transactional
+    public void purgeExpiredAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus.USER_NOT_FOUND));
+
+        // 1. 학생증 이미지(프라이빗 S3) 삭제
         List<UserSchoolVerificationRequest> verifications = verificationRequestRepository.findByUser(user);
         for (UserSchoolVerificationRequest v : verifications) {
             try {
                 fileStorageService.deleteStudentCardImage(v.getRequestImageUrl());
             } catch (Exception e) {
-                log.warn("[Withdrawal] 학생증 S3 삭제 실패 (userId={}, url={}): {}", userId, v.getRequestImageUrl(), e.getMessage());
+                log.warn("[Purge] 학생증 S3 삭제 실패 (userId={}, url={}): {}", userId, v.getRequestImageUrl(), e.getMessage());
             }
         }
         verificationRequestRepository.deleteByUser(user);
-
-        // 1-2. 승인된 학교 인증 기록 삭제
         verificationRepository.deleteByUserId(userId);
 
-        // 2. 프로필 이미지 S3(퍼블릭) 삭제
+        // 2. 프로필 이미지(퍼블릭 S3) 삭제
         String profileUrl = user.getProfileImageUrl();
         if (profileUrl != null && profileUrl.startsWith("http")) {
             try {
                 fileStorageService.deletePublicFile(profileUrl);
             } catch (Exception e) {
-                log.warn("[Withdrawal] 프로필 이미지 S3 삭제 실패 (userId={}): {}", userId, e.getMessage());
+                log.warn("[Purge] 프로필 이미지 S3 삭제 실패 (userId={}): {}", userId, e.getMessage());
             }
         }
 
-        // 3. 유저 행동 기록 삭제
+        // 3. 행동 기록 삭제
         bookmarkRepository.deleteAllByUserId(userId);
         reactionRepository.deleteAllByUserId(userId);
         notificationRepository.deleteAllByUserId(userId);
-        userBlockRepository.deleteByBlockerId(userId);   // 내가 차단한 목록
-        userBlockRepository.deleteByBlockedId(userId);   // 나를 차단한 목록
-        refreshTokenRepository.deleteByUser(user);
-        pushTokenRepository.deleteAllByUserId(userId);
+        userBlockRepository.deleteByBlockerId(userId);
+        userBlockRepository.deleteByBlockedId(userId);
 
-        // 4. PII 즉시 익명화 (게시글/댓글 FK 보존을 위해 행은 유지)
+        // 4. PII 익명화 (게시글/댓글 FK 보존을 위해 행은 유지)
         user.anonymize();
         userRepository.save(user);
     }
