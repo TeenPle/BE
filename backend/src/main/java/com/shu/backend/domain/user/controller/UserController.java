@@ -14,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.Slice;
+
 import java.util.List;
 
 @Tag(name = "User", description = "사용자 관련 API")
@@ -57,10 +59,10 @@ public class UserController {
 
     @Operation(summary = "내가 쓴 글 목록")
     @GetMapping("/me/posts")
-    public ApiResponse<List<UserDTO.MyPostResponse>> getMyPosts(
+    public ApiResponse<Slice<UserDTO.MyPostResponse>> getMyPosts(
             @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "10") int size
     ) {
         return ApiResponse.of(
                 UserSuccessStatus.USER_MY_POSTS_SUCCESS,
@@ -70,10 +72,10 @@ public class UserController {
 
     @Operation(summary = "내가 쓴 댓글 목록")
     @GetMapping("/me/comments")
-    public ApiResponse<List<UserDTO.MyCommentResponse>> getMyComments(
+    public ApiResponse<Slice<UserDTO.MyCommentResponse>> getMyComments(
             @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "10") int size
     ) {
         return ApiResponse.of(
                 UserSuccessStatus.USER_MY_COMMENTS_SUCCESS,

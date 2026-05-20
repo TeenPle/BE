@@ -21,6 +21,9 @@ public class UserRequestDTO {
         @Schema(description = "학교명 (영어/한글/숫자/공백, 최대 30자)", example = "서울고등학교")
         private String school;
 
+        @Schema(description = "학교 ID. 같은 이름의 학교가 있을 수 있으므로 가능하면 school 대신 이 값을 사용합니다.", example = "1")
+        private Long schoolId;
+
         // 이름: 한글/영어만, 길이 제한
         @NotBlank(message = "이름은 필수 입력입니다.")
         @Size(max = 20, message = "이름은 최대 20자까지 가능합니다.")

@@ -114,6 +114,13 @@ neis:
   api:
     key: ${NEIS_API_KEY}
     base-url: https://open.neis.go.kr/hub
+  school-sync:
+    enabled: ${NEIS_SCHOOL_SYNC_ENABLED:false}
+    run-on-startup: ${NEIS_SCHOOL_SYNC_RUN_ON_STARTUP:false}
+    create-boards: ${NEIS_SCHOOL_SYNC_CREATE_BOARDS:true}
+    page-size: ${NEIS_SCHOOL_SYNC_PAGE_SIZE:1000}
+    max-pages: ${NEIS_SCHOOL_SYNC_MAX_PAGES:30}
+    request-interval-millis: ${NEIS_SCHOOL_SYNC_REQUEST_INTERVAL_MILLIS:250}
 
 viewcount:
   mode: PESSIMISTIC

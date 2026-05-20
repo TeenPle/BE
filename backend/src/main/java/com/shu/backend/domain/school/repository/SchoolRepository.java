@@ -13,6 +13,12 @@ import java.util.Optional;
 public interface SchoolRepository extends JpaRepository<School, Long> {
     Optional<School> findByName(@Param("name") String name);
 
+    Optional<School> findFirstByNameOrderByIdAsc(String name);
+
+    Optional<School> findByNeisOfficeCodeAndNeisSchoolCode(String neisOfficeCode, String neisSchoolCode);
+
+    Optional<School> findFirstByNameAndNeisOfficeCodeIsNullAndNeisSchoolCodeIsNull(String name);
+
     public List<School> findByRegionId(Long regionId);
 
     List<School> findByRegionIdOrderByNameAsc(Long regionId);

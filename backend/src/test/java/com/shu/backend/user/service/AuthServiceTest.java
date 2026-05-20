@@ -13,10 +13,13 @@ import com.shu.backend.domain.user.enums.Gender;
 import com.shu.backend.domain.user.enums.Grade;
 import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.exception.UserException;
+import com.shu.backend.domain.user.repository.RefreshTokenRepository;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.user.service.AuthService;
+import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.domain.verification.entity.UserSchoolVerificationRequest;
 import com.shu.backend.domain.verification.repository.UserSchoolVerificationRequestRepository;
+import com.shu.backend.global.jwt.JwtProperties;
 import com.shu.backend.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,10 +52,19 @@ public class AuthServiceTest {
     private UserSchoolVerificationRequestRepository verificationRequestRepository;
 
     @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private UserSettingRepository userSettingRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private JwtProperties jwtProperties;
 
     @Mock
     private VerificationService smsVerificationService;
@@ -95,14 +107,14 @@ public class AuthServiceTest {
 
         //  휴대폰 인증 통과 스텁
         willDoNothing().given(smsVerificationService)
-                .verifyTokenOrThrow(verificationToken, phoneNumber);
+                .verifyTokenOrThrow(verificationToken, email);
 
         // 이메일, 닉네임 중복 없음
         given(userRepository.existsByEmail(email)).willReturn(false);
         given(userRepository.existsByNickname(nickname)).willReturn(false);
 
         // 학교 조회 성공
-        given(schoolRepository.findByName(schoolName)).willReturn(Optional.of(school));
+        given(schoolRepository.findFirstByNameOrderByIdAsc(schoolName)).willReturn(Optional.of(school));
 
         // 비밀번호 인코딩
         given(passwordEncoder.encode(rawPassword)).willReturn(encodedPassword);
@@ -119,6 +131,7 @@ public class AuthServiceTest {
 
         // 토큰 발급
         given(jwtTokenProvider.createAccessToken(100L)).willReturn("fake-jwt-token");
+        given(jwtProperties.getRefreshTokenExpiration()).willReturn(1209600000L);
 
         ArgumentCaptor<UserSchoolVerificationRequest> verificationCaptor =
                 ArgumentCaptor.forClass(UserSchoolVerificationRequest.class);
@@ -128,7 +141,7 @@ public class AuthServiceTest {
 
         // then
         // 휴대폰 인증이 실제로 호출됐는지 검증 (추가된 핵심)
-        verify(smsVerificationService).verifyTokenOrThrow(verificationToken, phoneNumber);
+        verify(smsVerificationService).verifyTokenOrThrow(verificationToken, email);
 
         // 응답 검증
         assertThat(response).isNotNull();
@@ -184,7 +197,7 @@ public class AuthServiceTest {
 
         verify(userRepository).existsByEmail(request.getEmail());
         verify(userRepository, never()).existsByNickname(anyString());
-        verify(schoolRepository, never()).findByName(anyString());
+        verify(schoolRepository, never()).findFirstByNameOrderByIdAsc(anyString());
         verify(userRepository, never()).save(any(User.class));
         verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
     }
@@ -215,7 +228,7 @@ public class AuthServiceTest {
 
         verify(userRepository).existsByEmail(request.getEmail());
         verify(userRepository).existsByNickname(request.getNickname());
-        verify(schoolRepository, never()).findByName(anyString());
+        verify(schoolRepository, never()).findFirstByNameOrderByIdAsc(anyString());
         verify(userRepository, never()).save(any(User.class));
         verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
     }
@@ -234,7 +247,7 @@ public class AuthServiceTest {
 
         given(userRepository.existsByEmail(request.getEmail())).willReturn(false);
         given(userRepository.existsByNickname(request.getNickname())).willReturn(false);
-        given(schoolRepository.findByName(request.getSchool())).willReturn(Optional.empty());
+        given(schoolRepository.findFirstByNameOrderByIdAsc(request.getSchool())).willReturn(Optional.empty());
 
         // when
         SchoolException ex = assertThrows(
@@ -247,7 +260,7 @@ public class AuthServiceTest {
 
         verify(userRepository).existsByEmail(request.getEmail());
         verify(userRepository).existsByNickname(request.getNickname());
-        verify(schoolRepository).findByName(request.getSchool());
+        verify(schoolRepository).findFirstByNameOrderByIdAsc(request.getSchool());
         verify(userRepository, never()).save(any(User.class));
         verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
     }
@@ -290,6 +303,7 @@ public class AuthServiceTest {
         given(verificationRequestRepository.findTopByUserOrderByRequestedAtDesc(user))
                 .willReturn(Optional.of(verificationRequest));
         given(jwtTokenProvider.createAccessToken(200L)).willReturn("login-jwt-token");
+        given(jwtProperties.getRefreshTokenExpiration()).willReturn(1209600000L);
 
         // when
         LoginResponseDTO response = authService.login(request);
