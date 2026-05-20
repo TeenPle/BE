@@ -63,11 +63,10 @@ public class InquiryService {
                 .map(InquiryDTO.SummaryResponse::from);
     }
 
-    public InquiryDTO.DetailResponse getAdminInquiry(Long inquiryId) {
-        return getAdminInquiry(null, inquiryId);
-    }
-
     public InquiryDTO.DetailResponse getAdminInquiry(Long adminId, Long inquiryId) {
+        if (adminId == null) {
+            throw new InquiryException(InquiryErrorStatus.INQUIRY_NOT_FOUND);
+        }
         Inquiry inquiry = inquiryRepository.findDetailById(inquiryId)
                 .orElseThrow(() -> new InquiryException(InquiryErrorStatus.INQUIRY_NOT_FOUND));
         adminAuditLogService.record(
