@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 @Component
 public class NeisApiClient {
 
+    private static final String HIGH_SCHOOL = "\uACE0\uB4F1\uD559\uAD50";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String apiKey;
     private final String baseUrl;
@@ -232,6 +234,22 @@ public class NeisApiClient {
             log.warn("[NEIS] schoolInfo 호출 실패: school={}, error={}", schoolName, e.getMessage());
             return List.of();
         }
+    }
+
+    public List<Map<String, Object>> getHighSchoolInfoPage(int page, int size) {
+        String url = UriComponentsBuilder.fromUriString(baseUrl + "/schoolInfo")
+                .queryParam("KEY", apiKey)
+                .queryParam("Type", "json")
+                .queryParam("pIndex", page)
+                .queryParam("pSize", size)
+                .queryParam("SCHUL_KND_SC_NM", HIGH_SCHOOL)
+                .encode()
+                .build()
+                .toUriString();
+
+        return parseNeisResponse(url, "schoolInfo").stream()
+                .filter(row -> HIGH_SCHOOL.equals(String.valueOf(row.getOrDefault("SCHUL_KND_SC_NM", ""))))
+                .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")

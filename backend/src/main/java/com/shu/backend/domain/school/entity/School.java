@@ -6,6 +6,18 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@Table(
+        name = "school",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_school_neis_codes",
+                        columnNames = {"neis_office_code", "neis_school_code"}
+                )
+        },
+        indexes = {
+                @Index(name = "idx_school_name", columnList = "name")
+        }
+)
 @Getter
 @Builder
 @AllArgsConstructor
@@ -16,7 +28,7 @@ public class School extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "logo_image_url")
@@ -43,6 +55,13 @@ public class School extends BaseEntity {
     }
 
     public void updateNeisCodes(String neisOfficeCode, String neisSchoolCode) {
+        this.neisOfficeCode = neisOfficeCode;
+        this.neisSchoolCode = neisSchoolCode;
+    }
+
+    public void updateFromNeis(String name, Region region, String neisOfficeCode, String neisSchoolCode) {
+        this.name = name;
+        this.region = region;
         this.neisOfficeCode = neisOfficeCode;
         this.neisSchoolCode = neisSchoolCode;
     }

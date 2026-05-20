@@ -26,6 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -108,34 +112,46 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDTO.MyPostResponse> getMyPosts(Long userId, int page, int size) {
-        List<Object[]> rows = postRepository.findMyPostRows(userId, PageRequestUtils.of(page, size));
-        return rows.stream().map(r -> UserDTO.MyPostResponse.builder()
-                .postId((Long) r[0])
-                .title((String) r[1])
-                .content((String) r[2])
-                .postStatus(r[3] instanceof Enum<?> e ? e.name() : String.valueOf(r[3]))
-                .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
-                .createdAt((LocalDateTime) r[5])
-                .commentCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
-                .boardTitle((String) r[7])
-                .build()
-        ).toList();
+    public Slice<UserDTO.MyPostResponse> getMyPosts(Long userId, int page, int size) {
+        Pageable pageable = PageRequestUtils.of(page, size, 50);
+        Pageable slicePageable = PageRequestUtils.slice(pageable);
+        List<Object[]> rows = postRepository.findMyPostRows(userId, slicePageable);
+        boolean hasNext = rows.size() > pageable.getPageSize();
+        List<UserDTO.MyPostResponse> content = rows.stream()
+                .limit(pageable.getPageSize())
+                .map(r -> UserDTO.MyPostResponse.builder()
+                        .postId((Long) r[0])
+                        .title((String) r[1])
+                        .content((String) r[2])
+                        .postStatus(r[3] instanceof Enum<?> e ? e.name() : String.valueOf(r[3]))
+                        .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
+                        .createdAt((LocalDateTime) r[5])
+                        .commentCount(r[6] == null ? 0 : ((Number) r[6]).intValue())
+                        .boardTitle((String) r[7])
+                        .build()
+                ).toList();
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     @Transactional(readOnly = true)
-    public List<UserDTO.MyCommentResponse> getMyComments(Long userId, int page, int size) {
-        List<Object[]> rows = commentRepository.findMyCommentRows(userId, PageRequestUtils.of(page, size));
-        return rows.stream().map(r -> UserDTO.MyCommentResponse.builder()
-                .commentId((Long) r[0])
-                .content((String) r[1])
-                .postId((Long) r[2])
-                .postTitle((String) r[3])
-                .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
-                .createdAt((LocalDateTime) r[5])
-                .boardTitle((String) r[6])
-                .build()
-        ).toList();
+    public Slice<UserDTO.MyCommentResponse> getMyComments(Long userId, int page, int size) {
+        Pageable pageable = PageRequestUtils.of(page, size, 50);
+        Pageable slicePageable = PageRequestUtils.slice(pageable);
+        List<Object[]> rows = commentRepository.findMyCommentRows(userId, slicePageable);
+        boolean hasNext = rows.size() > pageable.getPageSize();
+        List<UserDTO.MyCommentResponse> content = rows.stream()
+                .limit(pageable.getPageSize())
+                .map(r -> UserDTO.MyCommentResponse.builder()
+                        .commentId((Long) r[0])
+                        .content((String) r[1])
+                        .postId((Long) r[2])
+                        .postTitle((String) r[3])
+                        .likeCount(r[4] == null ? 0 : ((Number) r[4]).intValue())
+                        .createdAt((LocalDateTime) r[5])
+                        .boardTitle((String) r[6])
+                        .build()
+                ).toList();
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     @Transactional

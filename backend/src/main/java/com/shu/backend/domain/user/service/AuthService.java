@@ -54,7 +54,7 @@ public class AuthService {
                 request.getEmail()
         );
 
-        School school = getSchoolByName(request.getSchool());
+        School school = getSchool(request);
         User newUser = createUser(request, school, true);
         userRepository.save(newUser);
         // 회원가입 시 알림 설정 기본값으로 자동 생성 (없으면 푸시 발송 조건에서 누락됨)
@@ -150,8 +150,16 @@ public class AuthService {
         if (ADMIN_SCHOOL_NAME.equals(schoolName)) {
             throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_FOR_SIGNUP);
         }
-        return schoolRepository.findByName(schoolName)
+        return schoolRepository.findFirstByNameOrderByIdAsc(schoolName)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+    }
+
+    public School getSchool(UserRequestDTO.SignUp request) {
+        if (request.getSchoolId() != null) {
+            return schoolRepository.findById(request.getSchoolId())
+                    .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+        }
+        return getSchoolByName(request.getSchool());
     }
 
     public User createUser(UserRequestDTO.SignUp request, School school, boolean phoneVerified) {

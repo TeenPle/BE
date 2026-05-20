@@ -57,7 +57,7 @@ public class AdminInitializer implements CommandLineRunner {
                 .orElseGet(() -> regionRepository.save(Region.builder().name("의정부시").build()));
 
         // 오남고등학교 생성 or 조회 (region 할당)
-        School testSchool = schoolRepository.findByName(TEST_SCHOOL_NAME)
+        School testSchool = schoolRepository.findFirstByNameOrderByIdAsc(TEST_SCHOOL_NAME)
                 .orElseGet(() -> schoolRepository.save(
                         School.builder()
                                 .name(TEST_SCHOOL_NAME)
@@ -70,7 +70,7 @@ public class AdminInitializer implements CommandLineRunner {
         }
 
         // 운영자 전용 학교 생성 or 조회
-        School adminSchool = schoolRepository.findByName(ADMIN_SCHOOL_NAME)
+        School adminSchool = schoolRepository.findFirstByNameOrderByIdAsc(ADMIN_SCHOOL_NAME)
                 .orElseGet(() -> schoolRepository.save(
                         School.builder()
                                 .name(ADMIN_SCHOOL_NAME)

@@ -139,4 +139,18 @@ public class SchoolController {
         NeisSyncResult result = neisSchoolSyncService.syncAllMissing();
         return ApiResponse.onSuccess(result);
     }
+
+    @Operation(
+            summary = "NEIS 전국 고등학교 일괄 등록/업데이트",
+            description = "NEIS schoolInfo API에서 전국 고등학교를 조회해 학교, 지역, 기본 게시판을 upsert합니다. dryRun=true면 DB에는 반영하지 않고 예상 건수만 반환합니다."
+    )
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/schools/import-neis-high-schools")
+    public ApiResponse<NeisSyncResult> importNeisHighSchools(
+            @RequestParam(defaultValue = "false") boolean dryRun,
+            @RequestParam(required = false) Boolean createBoards
+    ) {
+        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(dryRun, createBoards);
+        return ApiResponse.onSuccess(result);
+    }
 }
