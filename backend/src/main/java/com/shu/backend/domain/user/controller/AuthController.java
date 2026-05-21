@@ -81,7 +81,7 @@ public class AuthController {
             summary = "로그인",
             description = "이메일과 비밀번호로 로그인하고, 액세스 토큰을 발급받습니다."
     )
-    @RateLimit(key = "auth:login", limit = 10, windowSeconds = 900, byIp = true)
+    @RateLimit(key = "auth:login", limit = 10, windowSeconds = 180, byIp = true)
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LoginResponseDTO> login(
             @RequestBody @Valid UserLoginDTO request

@@ -29,6 +29,7 @@ public class ReportSummaryResponse {
     private String status;
     private String createdAt;
     private String processedAt;
+    private Integer penaltyDays;
 
     public static ReportSummaryResponse from(Report r) {
         return ReportSummaryResponse.builder()
@@ -44,6 +45,7 @@ public class ReportSummaryResponse {
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
                 .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
+                .penaltyDays(r.getPenaltyDays())
                 .build();
     }
 
@@ -67,5 +69,6 @@ public class ReportSummaryResponse {
         private String status;
         private String createdAt;
         private String processedAt;
+        private Integer penaltyDays;
     }
 }

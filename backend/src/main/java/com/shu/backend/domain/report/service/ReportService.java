@@ -101,7 +101,7 @@ public class ReportService {
         User handler = userRepository.findById(adminId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
-        report.resolve(handler);
+        report.resolve(handler, penaltyDays);
 
         Long penaltyId = penaltyService.create(reportId, penaltyDays);
         adminAuditLogService.recordAfterCommit(
@@ -170,6 +170,7 @@ public class ReportService {
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
                 .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
+                .penaltyDays(r.getPenaltyDays())
                 .build();
     }
 

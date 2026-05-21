@@ -11,6 +11,8 @@ import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,6 +32,12 @@ public class AdminAuditLogService {
 
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final UserRepository userRepository;
+
+    // afterCommit() 내부에서 self.record()를 프록시를 통해 호출하기 위한 자기 주입.
+    // 직접 this.record()를 호출하면 Spring AOP를 우회해 @Transactional(REQUIRES_NEW)이 무시된다.
+    @Lazy
+    @Autowired
+    private AdminAuditLogService self;
 
     @Transactional(readOnly = true)
     public Page<AdminAuditLogResponse> getLogs(
@@ -97,14 +105,15 @@ public class AdminAuditLogService {
             String metadata
     ) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            record(adminId, action, targetType, targetId, reason, metadata);
+            self.record(adminId, action, targetType, targetId, reason, metadata);
             return;
         }
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                record(adminId, action, targetType, targetId, reason, metadata);
+                // self를 통해 호출해야 Spring 프록시가 @Transactional(REQUIRES_NEW)을 적용한다
+                self.record(adminId, action, targetType, targetId, reason, metadata);
             }
         });
     }

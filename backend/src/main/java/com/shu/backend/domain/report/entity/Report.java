@@ -71,10 +71,14 @@ public class Report extends BaseEntity {
     // 처리 날짜
     private LocalDateTime processedAt;
 
-    public void resolve(User handler) {
+    @Column(name = "penalty_days")
+    private Integer penaltyDays;
+
+    public void resolve(User handler, int penaltyDays) {
         this.status = ReportStatus.RESOLVED;
         this.processedAt = LocalDateTime.now();
         this.handledBy = handler;
+        this.penaltyDays = penaltyDays;
     }
 
     public void reject(User handler) {
