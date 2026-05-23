@@ -3,6 +3,8 @@ package com.shu.backend.global.websocket;
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
+import com.shu.backend.domain.user.enums.UserStatus;
+import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
@@ -23,6 +25,7 @@ public class WsJwtChannelInterceptor implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ChatRoomUserRepository chatRoomUserRepository;
+    private final UserRepository userRepository;
 
     private static final Pattern ROOM_SUB_PATTERN =
             Pattern.compile("^/sub/chat/rooms/(\\d+)$");
@@ -53,6 +56,12 @@ public class WsJwtChannelInterceptor implements ChannelInterceptor {
             }
 
             Long userId = jwtTokenProvider.getUserIdFromToken(token);
+
+            // 탈퇴·비활성 유저는 WebSocket 연결 자체를 차단한다.
+            if (!userRepository.existsByIdAndStatus(userId, UserStatus.ACTIVE)) {
+                throw new ChatMessageException(ChatMessageErrorStatus.UNAUTHORIZED_WS);
+            }
+
             accessor.setUser(new WsPrincipal(userId.toString()));
             return message;
         }

@@ -13,13 +13,20 @@ import java.util.Set;
  * 파일 업로드 보안 검증 유틸리티.
  *
  * 검증 항목:
- *  1. MIME 타입 화이트리스트
- *  2. 매직바이트 (실제 파일 내용이 선언된 형식과 일치하는지)
- *  3. 파일명 정제 (경로 순회 방지)
+ *  1. 파일 크기 상한
+ *  2. MIME 타입 화이트리스트
+ *  3. 매직바이트 (실제 파일 내용이 선언된 형식과 일치하는지)
+ *  4. 파일명 정제 (경로 순회 방지)
  */
 public final class FileValidator {
 
     private FileValidator() {}
+
+    // ─── 파일 크기 상한 ──────────────────────────────────────────────────────────
+    private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;   // 10 MB
+    private static final long MAX_VIDEO_SIZE = 100L * 1024 * 1024;  // 100 MB
+
+    private static final Set<String> VIDEO_TYPES = Set.of("video/mp4", "video/quicktime");
 
     // ─── 허용 MIME 타입 ───────────────────────────────────────────────────────────
     private static final Set<String> IMAGE_ONLY_TYPES = Set.of(
@@ -34,11 +41,17 @@ public final class FileValidator {
     // ─── 공개 API ────────────────────────────────────────────────────────────────
 
     /**
-     * 학생증 이미지 검증 (jpg, png만 허용).
+     * 학생증 이미지 검증 (jpg, png만 허용, 최대 10 MB).
      * 위반 시 UserException 발생.
      */
     public static byte[] validateStudentCard(MultipartFile file) {
         try {
+            if (file.isEmpty()) {
+                throw new UserException(UserErrorStatus.USER_STUDENT_CARD_UPLOAD_FAIL);
+            }
+            if (file.getSize() > MAX_IMAGE_SIZE) {
+                throw new UserException(UserErrorStatus.FILE_TOO_LARGE);
+            }
             validateMimeType(file.getContentType(), IMAGE_ONLY_TYPES, "학생증");
             byte[] bytes = readBytes(file);
             validateMagicBytes(bytes, file.getContentType(), "학생증");
@@ -52,15 +65,25 @@ public final class FileValidator {
 
     /**
      * 게시글 미디어 검증 (jpg, png, gif, webp, mp4, mov 허용).
+     * 이미지 최대 10 MB, 동영상 최대 100 MB.
      * 위반 시 MediaException 발생.
      */
     public static byte[] validatePostMedia(MultipartFile file) {
         try {
-            if (!POST_MEDIA_TYPES.contains(file.getContentType())) {
+            if (file.isEmpty()) {
+                throw new MediaException(MediaErrorStatus.POST_MEDIA_UPLOAD_FAIL);
+            }
+            String contentType = file.getContentType();
+            // Set.of()는 contains(null) 호출 시 NullPointerException 발생 → null 먼저 체크
+            if (contentType == null || !POST_MEDIA_TYPES.contains(contentType)) {
                 throw new MediaException(MediaErrorStatus.INVALID_FILE_TYPE);
             }
+            long maxSize = VIDEO_TYPES.contains(contentType) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+            if (file.getSize() > maxSize) {
+                throw new MediaException(MediaErrorStatus.FILE_TOO_LARGE);
+            }
             byte[] bytes = readBytes(file);
-            validateMagicBytesForMedia(bytes, file.getContentType());
+            validateMagicBytesForMedia(bytes, contentType);
             return bytes;
         } catch (MediaException e) {
             throw e;

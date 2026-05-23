@@ -88,15 +88,43 @@ public class RateLimitAspect {
     }
 
     private String getClientIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        // X-Forwarded-For는 직접 연결이 신뢰할 수 있는 프록시(사설 대역)에서 온 경우에만 신뢰한다.
+        // 외부에서 직접 연결하면 remoteAddr이 공인 IP이므로 헤더를 무시해 스푸핑을 차단한다.
+        if (!isTrustedProxy(remoteAddr)) {
+            return remoteAddr;
+        }
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            // 프록시 체인의 첫 번째(실제 클라이언트) IP만 사용
             return forwarded.split(",")[0].trim();
         }
         String realIp = request.getHeader("X-Real-IP");
         if (realIp != null && !realIp.isBlank()) {
             return realIp.trim();
         }
-        return request.getRemoteAddr();
+        return remoteAddr;
+    }
+
+    /**
+     * 루프백 또는 RFC-1918 사설 대역 주소이면 신뢰할 수 있는 프록시로 판단한다.
+     * 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.x, IPv6 루프백
+     */
+    private boolean isTrustedProxy(String addr) {
+        if (addr == null) return false;
+        if (addr.equals("127.0.0.1") || addr.equals("::1") || addr.equals("0:0:0:0:0:0:0:1")) {
+            return true;
+        }
+        if (addr.startsWith("10.") || addr.startsWith("192.168.")) {
+            return true;
+        }
+        if (addr.startsWith("172.")) {
+            try {
+                int second = Integer.parseInt(addr.split("\\.")[1]);
+                return second >= 16 && second <= 31;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return false;
     }
 }

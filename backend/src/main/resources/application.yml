@@ -46,8 +46,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 20MB
-      max-request-size: 20MB
+      max-file-size: 105MB    # 동영상 최대 100 MB + 여유
+      max-request-size: 315MB # 파일 최대 3개 기준
 
   jackson:
     serialization:
