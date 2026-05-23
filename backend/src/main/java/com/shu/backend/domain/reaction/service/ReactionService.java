@@ -42,13 +42,15 @@ public class ReactionService {
     private final BoardAccessPolicy boardAccessPolicy;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
-    @Transactional
+    @Transactional(noRollbackFor = DataIntegrityViolationException.class)
     public ReactionApplyResponse apply(Long userId, ReactionApplyRequest req) {
         validateTargetAccessible(userId, req.getTargetType(), req.getTargetId());
 
         try {
             return doApply(userId, req);
         } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 unique 제약 충돌 발생: noRollbackFor로 트랜잭션을 살려두고
+            // 이미 저장된 레코드를 조회해 재처리한다.
             return doApply(userId, req);
         }
     }

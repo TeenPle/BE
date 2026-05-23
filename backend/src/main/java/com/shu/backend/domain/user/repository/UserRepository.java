@@ -2,6 +2,7 @@ package com.shu.backend.domain.user.repository;
 
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.enums.UserRole;
+import com.shu.backend.domain.user.enums.UserStatus;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +30,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameAndPhoneNumber(String username, String phoneNumber);
 
     boolean existsByRole(UserRole role);
+
+    boolean existsByIdAndStatus(Long id, UserStatus status);
 
     Optional<User> findByPhoneNumber(String phoneNumber);
 
