@@ -34,6 +34,8 @@ public class SchoolVerificationAdminController {
     public ApiResponse<Page<VerificationAdminDTO.ListItemResponse>> list(
             @Parameter(description = "조회할 상태", example = "PENDING")
             @RequestParam(defaultValue = "PENDING") VerificationStatus status,
+            @Parameter(description = "학교명, 사용자명, 이메일 검색어")
+            @RequestParam(required = false) String keyword,
             @Parameter(description = "페이지 번호", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "20")
@@ -41,7 +43,7 @@ public class SchoolVerificationAdminController {
     ) {
         return ApiResponse.of(
                 VerificationSuccessStatus.VERIFICATION_REQUEST_LIST_SUCCESS,
-                adminService.list(status, page, size)
+                adminService.list(status, keyword, page, size)
         );
     }
 

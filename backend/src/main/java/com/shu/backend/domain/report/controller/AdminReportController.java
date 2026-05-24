@@ -40,12 +40,13 @@ public class AdminReportController {
     @GetMapping
     public ApiResponse<Page<ReportSummaryResponse>> getReports(
             @RequestParam(defaultValue = "PENDING") ReportStatus status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
 
         Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Report> reports = reportService.getReports(status, pageable);
+        Page<Report> reports = reportService.getReports(status, keyword, pageable);
 
         return ApiResponse.of(
                 ReportSuccessStatus.REPORT_LIST_SUCCESS,

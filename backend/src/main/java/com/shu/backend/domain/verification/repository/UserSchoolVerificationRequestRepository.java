@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -25,6 +27,25 @@ public interface UserSchoolVerificationRequestRepository extends JpaRepository<U
 
     @EntityGraph(attributePaths = {"user", "school"})
     Page<UserSchoolVerificationRequest> findByStatus(VerificationStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "school"})
+    @Query("""
+            select r from UserSchoolVerificationRequest r
+            join r.user u
+            join r.school s
+            where r.status = :status
+              and (
+                :keyword is null
+                or :keyword = ''
+                or lower(u.username) like lower(concat('%', :keyword, '%'))
+                or lower(u.email) like lower(concat('%', :keyword, '%'))
+                or lower(s.name) like lower(concat('%', :keyword, '%'))
+              )
+            """)
+    Page<UserSchoolVerificationRequest> searchByStatus(
+            @Param("status") VerificationStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "school"})
     Optional<UserSchoolVerificationRequest> findWithUserAndSchoolById(Long id);

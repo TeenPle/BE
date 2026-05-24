@@ -18,6 +18,24 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     Page<Report> findAllByStatus(ReportStatus status, Pageable pageable);
 
+    @Query("""
+            select r from Report r
+            join r.reporter reporter
+            join r.reportedUser reportedUser
+            where r.status = :status
+              and (
+                :keyword is null
+                or :keyword = ''
+                or lower(reporter.nickname) like lower(concat('%', :keyword, '%'))
+                or lower(reportedUser.nickname) like lower(concat('%', :keyword, '%'))
+                or lower(coalesce(r.reportDetail, '')) like lower(concat('%', :keyword, '%'))
+              )
+            """)
+    Page<Report> searchByStatus(
+            @Param("status") ReportStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Report r where r.targetType = :targetType and r.targetId = :targetId")
     void deleteAllByTargetTypeAndTargetId(

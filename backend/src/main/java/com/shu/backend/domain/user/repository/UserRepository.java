@@ -33,6 +33,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByRole(UserRole role);
 
+    List<User> findByRoleAndStatus(UserRole role, UserStatus status);
+
     Optional<User> findByPhoneNumber(String phoneNumber);
 
     @Query("""

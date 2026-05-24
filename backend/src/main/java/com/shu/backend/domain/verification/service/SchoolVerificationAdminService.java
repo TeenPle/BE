@@ -61,9 +61,22 @@ public class SchoolVerificationAdminService {
      */
     @Transactional(readOnly = true)
     public Page<VerificationAdminDTO.ListItemResponse> list(VerificationStatus status, int page, int size) {
+        return list(status, null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminDTO.ListItemResponse> list(VerificationStatus status, String keyword, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "requestedAt");
-        return requestRepository.findByStatus(
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (normalizedKeyword == null) {
+            return requestRepository.findByStatus(
+                    status,
+                    PageRequestUtils.of(page, size, 50, sort)
+            ).map(this::toListItem);
+        }
+        return requestRepository.searchByStatus(
                 status,
+                normalizedKeyword,
                 PageRequestUtils.of(page, size, 50, sort)
         ).map(this::toListItem);
     }
@@ -176,6 +189,14 @@ public class SchoolVerificationAdminService {
 
     private String verificationMetadata(UserSchoolVerificationRequest req) {
         return "userId=" + req.getUser().getId() + ",schoolId=" + req.getSchool().getId();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     // 목록 응답 DTO 변환

@@ -23,10 +23,11 @@ public class AdminInquiryController {
     @GetMapping
     public ApiResponse<Page<InquiryDTO.SummaryResponse>> getInquiries(
             @RequestParam(defaultValue = "PENDING") InquiryStatus status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return ApiResponse.onSuccess(inquiryService.getAdminInquiries(status, page, size));
+        return ApiResponse.onSuccess(inquiryService.getAdminInquiries(status, keyword, page, size));
     }
 
     @GetMapping("/{inquiryId}")

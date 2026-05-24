@@ -1,6 +1,7 @@
 package com.shu.backend.domain.user.service;
 
 import com.shu.backend.domain.auth.service.VerificationService;
+import com.shu.backend.domain.admin.service.AdminPushService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -42,6 +44,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
     private final VerificationService smsVerificationService;
+    private final AdminPushService adminPushService;
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
 
@@ -70,7 +73,8 @@ public class AuthService {
     // 로그인
     @Transactional
     public LoginResponseDTO login(UserLoginDTO userLoginDTO) {
-        User user = userRepository.findByEmail(userLoginDTO.getEmail())
+        String email = userLoginDTO.getEmail() == null ? "" : userLoginDTO.getEmail().trim();
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
         assertActive(user);
 
@@ -176,7 +180,8 @@ public class AuthService {
 
     public void createVerificationRequest(User user, School school, String imageUrl) {
         UserSchoolVerificationRequest verificationRequest = new UserSchoolVerificationRequest(imageUrl, user, school);
-        verificationRequestRepository.save(verificationRequest);
+        UserSchoolVerificationRequest saved = verificationRequestRepository.save(verificationRequest);
+        notifyVerificationRequest(saved, school.getName());
     }
 
     @Transactional(readOnly = true)
@@ -244,7 +249,25 @@ public class AuthService {
                         .school(school)
                         .build();
 
-        return verificationRequestRepository.save(newRequest).getId();
+        Long requestId = verificationRequestRepository.save(newRequest).getId();
+        notifyVerificationRequest(requestId, school.getName());
+        return requestId;
+    }
+
+    private void notifyVerificationRequest(UserSchoolVerificationRequest request, String schoolName) {
+        notifyVerificationRequest(request.getId(), schoolName);
+    }
+
+    private void notifyVerificationRequest(Long requestId, String schoolName) {
+        adminPushService.notifyActiveAdmins(
+                "새 학교 인증 요청",
+                schoolName + " 인증 요청이 접수되었습니다.",
+                Map.of(
+                        "type", "ADMIN_VERIFICATION",
+                        "targetType", "VERIFICATION_REQUEST",
+                        "targetId", String.valueOf(requestId)
+                )
+        );
     }
 
     @Transactional(readOnly = true)

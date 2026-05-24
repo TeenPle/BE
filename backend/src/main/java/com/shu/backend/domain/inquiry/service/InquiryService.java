@@ -3,6 +3,7 @@ package com.shu.backend.domain.inquiry.service;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
+import com.shu.backend.domain.admin.service.AdminPushService;
 import com.shu.backend.domain.inquiry.dto.InquiryDTO;
 import com.shu.backend.domain.inquiry.entity.Inquiry;
 import com.shu.backend.domain.inquiry.enums.InquiryStatus;
@@ -35,6 +36,7 @@ public class InquiryService {
     private final NotificationService notificationService;
     private final PushService pushService;
     private final AdminAuditLogService adminAuditLogService;
+    private final AdminPushService adminPushService;
 
     @Transactional
     public Long create(Long userId, InquiryDTO.CreateRequest request) {
@@ -42,6 +44,15 @@ public class InquiryService {
         User user = userRepository.findById(userId).orElseThrow();
         Inquiry inquiry = inquiryRepository.save(
                 Inquiry.create(user, request.getTitle(), request.getContent()));
+        adminPushService.notifyActiveAdmins(
+                "새 문의 접수",
+                "사용자 문의가 접수되었습니다.",
+                Map.of(
+                        "type", "ADMIN_INQUIRY",
+                        "targetType", "INQUIRY",
+                        "targetId", String.valueOf(inquiry.getId())
+                )
+        );
         return inquiry.getId();
     }
 
@@ -60,6 +71,17 @@ public class InquiryService {
     public Page<InquiryDTO.SummaryResponse> getAdminInquiries(InquiryStatus status, int page, int size) {
         Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
         return inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
+                .map(InquiryDTO.SummaryResponse::from);
+    }
+
+    public Page<InquiryDTO.SummaryResponse> getAdminInquiries(InquiryStatus status, String keyword, int page, int size) {
+        Pageable pageable = PageRequestUtils.of(page, size, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (normalizedKeyword == null) {
+            return inquiryRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
+                    .map(InquiryDTO.SummaryResponse::from);
+        }
+        return inquiryRepository.searchByStatus(status, normalizedKeyword, pageable)
                 .map(InquiryDTO.SummaryResponse::from);
     }
 
@@ -141,5 +163,11 @@ public class InquiryService {
         if (request.getContent() == null || request.getContent().trim().isEmpty()) {
             throw new InquiryException(InquiryErrorStatus.INQUIRY_CONTENT_REQUIRED);
         }
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) return null;
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
