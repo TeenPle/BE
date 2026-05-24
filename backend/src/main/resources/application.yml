@@ -14,7 +14,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:7165}
     driver-class-name: ${DB_DRIVER:com.p6spy.engine.spy.P6SpyDriver}
 
   jpa:
@@ -112,7 +112,7 @@ firebase:
 
 neis:
   api:
-    key: ${NEIS_API_KEY}
+    key: ${NEIS_API_KEY:}
     base-url: https://open.neis.go.kr/hub
   school-sync:
     enabled: ${NEIS_SCHOOL_SYNC_ENABLED:false}

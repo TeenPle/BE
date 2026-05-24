@@ -9,6 +9,7 @@ import com.shu.backend.domain.chatroom.entity.ChatRoom;
 import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.notification.enums.NotificationTargetType;
@@ -51,6 +52,7 @@ public class ChatMessageService {
 
     private final UserRepository userRepository;
     private final MediaRepository mediaRepository;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     private final NotificationService notificationService;
     private final PushService pushService;
@@ -61,6 +63,7 @@ public class ChatMessageService {
     // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
     public ChatMessageDTO.MessageResponse send(Long senderId, ChatMessageDTO.SendRequest req) {
+        User sender = boardAccessPolicy.requireVerifiedActiveUserWithSchool(senderId);
         chatActionRateLimiter.check(senderId, "message", MESSAGE_RATE_LIMIT, MESSAGE_RATE_WINDOW_SECONDS);
 
         // 채팅방 조회 (없으면 예외)
@@ -78,6 +81,7 @@ public class ChatMessageService {
         if (UserDisplay.isDeleted(receiver)) {
             throw new ChatMessageException(ChatMessageErrorStatus.TARGET_USER_DELETED);
         }
+        assertSameSchool(sender, receiver);
 
         // 수신자 참여자 정보 조회 (없으면 예외)
         ChatRoomUser receiverCru = chatRoomUserRepository.findByChatRoomIdAndUserId(room.getId(), receiverId)
@@ -93,8 +97,6 @@ public class ChatMessageService {
         senderCru.rejoinIfLeftOrHidden();
 
         // 발신자 User 레퍼런스 조회(프록시)
-        User sender = userRepository.getReferenceById(senderId);
-
         // 요청 타입(TEXT/IMAGE) 변환 및 검증
         ChatMessage.MessageType type = mapType(req.getType());
 
@@ -199,6 +201,7 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public ChatMessageDTO.MessageListResponse getMessages(Long myId, Long roomId, Long lastId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
 
         ChatRoomUser myCru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatMessageException(ChatMessageErrorStatus.NOT_ROOM_MEMBER));
@@ -271,6 +274,8 @@ public class ChatMessageService {
     }
 
     public void read(Long myId, Long roomId, Long messageId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         if (messageId == null) {
             throw new ChatMessageException(ChatMessageErrorStatus.INVALID_READ_MESSAGE);
         }
@@ -308,5 +313,13 @@ public class ChatMessageService {
             return singleLine;
         }
         return singleLine.substring(0, maxLength) + "...";
+    }
+
+    private void assertSameSchool(User sender, User receiver) {
+        if (sender.getSchool() == null
+                || receiver.getSchool() == null
+                || !sender.getSchool().getId().equals(receiver.getSchool().getId())) {
+            throw new ChatMessageException(ChatMessageErrorStatus.NOT_ROOM_MEMBER);
+        }
     }
 }

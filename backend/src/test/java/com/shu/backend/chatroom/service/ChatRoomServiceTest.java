@@ -4,6 +4,7 @@ import com.shu.backend.domain.chatmessage.dto.ChatMessageDTO;
 import com.shu.backend.domain.chatmessage.entity.ChatMessage;
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.repository.ChatMessageRepository;
+import com.shu.backend.domain.chatmessage.service.ChatActionRateLimiter;
 import com.shu.backend.domain.chatmessage.service.ChatMessageService;
 import com.shu.backend.domain.chatroom.dto.ChatRoomDTO;
 import com.shu.backend.domain.chatroom.entity.ChatRoom;
@@ -12,20 +13,30 @@ import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroom.service.ChatRoomService;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.notification.service.NotificationService;
 import com.shu.backend.domain.push.service.PushService;
+import com.shu.backend.domain.region.entity.Region;
+import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.domain.user.enums.Gender;
+import com.shu.backend.domain.user.enums.Grade;
+import com.shu.backend.domain.user.enums.UserRole;
+import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
+import com.shu.backend.global.file.FileStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -40,6 +51,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ChatFeatureServiceTest {
 
     @Mock ChatRoomRepository chatRoomRepository;
@@ -50,6 +62,9 @@ class ChatFeatureServiceTest {
     @Mock NotificationService notificationService;
     @Mock PushService pushService;
     @Mock UserSettingRepository userSettingRepository;
+    @Mock BoardAccessPolicy boardAccessPolicy;
+    @Mock ChatActionRateLimiter chatActionRateLimiter;
+    @Mock FileStorageService fileStorageService;
 
     @InjectMocks ChatRoomService chatRoomService;
     @InjectMocks ChatMessageService chatMessageService;
@@ -62,6 +77,10 @@ class ChatFeatureServiceTest {
         // notificationService.create() → null 반환 (push 로직 skip)
         lenient().when(notificationService.create(any(), any(), anyLong(), anyString(), anyLong(), anyLong()))
                 .thenReturn(null);
+        lenient().when(boardAccessPolicy.requireVerifiedActiveUserWithSchool(anyLong()))
+                .thenAnswer(invocation -> mockUser(invocation.getArgument(0)));
+        lenient().when(userRepository.findById(anyLong()))
+                .thenAnswer(invocation -> Optional.of(mockUser(invocation.getArgument(0))));
     }
 
     // =========================
@@ -79,9 +98,6 @@ class ChatFeatureServiceTest {
         when(chatRoomRepository.findByUser1IdAndUser2IdAndSourcePostId(1L, 2L, SOURCE_POST_ID))
                 .thenReturn(Optional.empty());
         when(chatRoomRepository.save(any(ChatRoom.class))).thenReturn(created);
-
-        when(userRepository.getReferenceById(myId)).thenReturn(mock(User.class));
-        when(userRepository.getReferenceById(otherId)).thenReturn(mock(User.class));
 
         ChatRoomDTO.CreateDmResponse res = chatRoomService.findOrCreateDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE);
 
@@ -112,6 +128,21 @@ class ChatFeatureServiceTest {
         verify(chatRoomRepository, never()).save(any());
         verify(chatRoomUserRepository, never()).save(any());
         verify(userRepository, never()).getReferenceById(any());
+    }
+
+    @Test
+    void DM_요청은_같은_학교_학생끼리만_가능하다() {
+        Long myId = 1L;
+        Long otherId = 2L;
+
+        when(boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId)).thenReturn(mockUser(myId, 20L));
+        when(boardAccessPolicy.requireVerifiedActiveUserWithSchool(otherId)).thenReturn(mockUser(otherId, 21L));
+
+        assertThatThrownBy(() -> chatRoomService.findOrCreateDm(myId, otherId, SOURCE_POST_ID, ROOM_TITLE))
+                .isInstanceOf(ChatRoomException.class);
+
+        verify(chatRoomRepository, never()).save(any());
+        verify(chatRoomUserRepository, never()).save(any());
     }
 
     @Test
@@ -204,8 +235,11 @@ class ChatFeatureServiceTest {
         Long myId = 1L;
         Long roomId = 10L;
 
+        ChatRoom room = ChatRoom.ofDm(1L, 2L, SOURCE_POST_ID, ROOM_TITLE);
         ChatRoomUser cru = mock(ChatRoomUser.class);
+        when(cru.getChatRoom()).thenReturn(room);
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)).thenReturn(Optional.of(cru));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(mockUser(2L)));
 
         chatRoomService.block(myId, roomId);
 
@@ -305,12 +339,14 @@ class ChatFeatureServiceTest {
         when(savedMedia.getId()).thenReturn(300L);
         when(savedMedia.getUrl()).thenReturn("https://s3/.../img.png");
         when(savedMedia.getMediaType()).thenReturn(MediaType.IMAGE);
-        when(mediaRepository.save(any(Media.class))).thenReturn(savedMedia);
+        when(savedMedia.isApprovedChatUploadBy(senderId)).thenReturn(true);
+        when(mediaRepository.findByIdAndUploaderId(300L, senderId)).thenReturn(Optional.of(savedMedia));
+        when(fileStorageService.toPresignedReadUrl("https://s3/.../img.png")).thenReturn("https://s3/.../img.png");
 
         ChatMessageDTO.SendRequest req = new ChatMessageDTO.SendRequest();
         req.setRoomId(10L);
         req.setType(ChatMessageDTO.MessageType.IMAGE);
-        req.setImageUrl("https://s3/.../img.png");
+        req.setMediaId(300L);
 
         ChatMessageDTO.MessageResponse res = chatMessageService.send(senderId, req);
 
@@ -320,7 +356,6 @@ class ChatFeatureServiceTest {
         assertThat(res.getMedias()).hasSize(1);
         assertThat(res.getMedias().get(0).getId()).isEqualTo(300L);
 
-        verify(mediaRepository).save(any(Media.class));
         verify(receiverCru).rejoinIfLeftOrHidden();
     }
 
@@ -350,13 +385,12 @@ class ChatFeatureServiceTest {
         ChatMessageDTO.SendRequest req = new ChatMessageDTO.SendRequest();
         req.setRoomId(10L);
         req.setType(ChatMessageDTO.MessageType.IMAGE);
-        req.setImageUrl("  ");
 
         assertThatThrownBy(() -> chatMessageService.send(senderId, req))
                 .isInstanceOf(ChatMessageException.class);
 
         verify(chatMessageRepository, never()).save(any());
-        verify(mediaRepository, never()).save(any());
+        verify(mediaRepository, never()).findByIdAndUploaderId(anyLong(), anyLong());
     }
 
     @Test
@@ -441,8 +475,15 @@ class ChatFeatureServiceTest {
         Long myId = 1L;
         Long roomId = 10L;
 
+        ChatRoom room = ChatRoom.ofDm(myId, 2L, SOURCE_POST_ID, ROOM_TITLE);
+        ChatRoomUser myCru = mock(ChatRoomUser.class);
+        when(myCru.getChatRoom()).thenReturn(room);
+        when(myCru.isBlocked()).thenReturn(false);
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId))
-                .thenReturn(Optional.of(mock(ChatRoomUser.class)));
+                .thenReturn(Optional.of(myCru));
+        when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, 2L))
+                .thenReturn(Optional.empty());
+        when(userRepository.findById(2L)).thenReturn(Optional.of(mockUser(2L)));
 
         User sender = mockUser();
 
@@ -480,8 +521,15 @@ class ChatFeatureServiceTest {
         Long roomId = 10L;
         Long lastId = 50L;
 
+        ChatRoom room = ChatRoom.ofDm(myId, 2L, SOURCE_POST_ID, ROOM_TITLE);
+        ChatRoomUser myCru = mock(ChatRoomUser.class);
+        when(myCru.getChatRoom()).thenReturn(room);
+        when(myCru.isBlocked()).thenReturn(false);
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId))
-                .thenReturn(Optional.of(mock(ChatRoomUser.class)));
+                .thenReturn(Optional.of(myCru));
+        when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, 2L))
+                .thenReturn(Optional.empty());
+        when(userRepository.findById(2L)).thenReturn(Optional.of(mockUser(2L)));
 
         User sender = mockUser();
 
@@ -514,6 +562,7 @@ class ChatFeatureServiceTest {
 
         ChatRoomUser cru = mock(ChatRoomUser.class);
         when(chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)).thenReturn(Optional.of(cru));
+        when(chatMessageRepository.existsByIdAndChatRoomId(messageId, roomId)).thenReturn(true);
 
         chatMessageService.read(myId, roomId, messageId);
 
@@ -537,7 +586,39 @@ class ChatFeatureServiceTest {
     }
 
     private static User mockUser() {
-        return mock(User.class);
+        return mockUser(1L);
+    }
+
+    private static User mockUser(Long id) {
+        return mockUser(id, 20L);
+    }
+
+    private static User mockUser(Long id, Long schoolId) {
+        Region region = Region.builder().name("Seoul").build();
+        setId(region, 10L);
+
+        School school = School.builder()
+                .name("Teenple High " + schoolId)
+                .region(region)
+                .build();
+        setId(school, schoolId);
+
+        User user = User.builder()
+                .username("student" + id)
+                .email("student" + id + "@example.com")
+                .password("password")
+                .nickname(ROOM_TITLE)
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .school(school)
+                .verified(true)
+                .gender(Gender.MALE)
+                .grade(Grade.FIRST)
+                .phoneNumber("0101234567" + id)
+                .phoneVerified(true)
+                .build();
+        setId(user, id);
+        return user;
     }
 
     private static ChatRoomUser mockCruForList(ChatRoom room) {

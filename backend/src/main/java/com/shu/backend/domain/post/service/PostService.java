@@ -83,6 +83,9 @@ public class PostService {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
 
+        User verifiedUser = boardAccessPolicy.requireVerifiedActiveUserWithSchool(userId);
+        boardAccessPolicy.assertCanAccessBoard(verifiedUser, board);
+
         if (!board.isActive()) {
             throw new BoardException(BoardErrorStatus.BOARD_INACTIVE);
         }
@@ -156,6 +159,8 @@ public class PostService {
             throw new PostException(PostErrorStatus.POST_ALREADY_DELETED);
         }
 
+        boardAccessPolicy.assertCanAccessPost(userId, post);
+
         if (!post.getUser().getId().equals(userId)){
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
         }
@@ -190,6 +195,8 @@ public class PostService {
         if (post.getPostStatus() == PostStatus.DELETED) {
             throw new PostException(PostErrorStatus.POST_ALREADY_DELETED);
         }
+
+        boardAccessPolicy.assertCanAccessPost(userId, post);
 
         if (!post.getUser().getId().equals(userId)) {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_WRITE);
@@ -309,7 +316,7 @@ public class PostService {
             }
             ids = postRepository.findSearchPostIdsByBoardId(escapedKeyword, boardId, currentUserId, slicePageable);
         } else {
-            ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, regionId, currentUserId, slicePageable);
+            ids = postRepository.findSearchPostIds(escapedKeyword, schoolId, currentUserId, slicePageable);
         }
 
         boolean hasNext = ids.size() > pageable.getPageSize();
@@ -338,20 +345,16 @@ public class PostService {
         if (board.getScope() == BoardScope.SCHOOL) {
             return board.getSchool() != null && board.getSchool().getId().equals(schoolId);
         }
-        if (board.getScope() == BoardScope.REGION) {
-            return board.getRegion() != null
-                    && regionId != null
-                    && board.getRegion().getId().equals(regionId);
-        }
         return false;
     }
 
     // 학교 전체 게시판(학교+지역)의 최신 게시글 페이징 조회
-    public Slice<PostResponse> getPostsBySchool(Long schoolId, Long regionId, Pageable pageable, Long currentUserId) {
+    public Slice<PostResponse> getPostsBySchool(Long schoolId, Pageable pageable, Long currentUserId) {
+        boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
         Pageable slicePageable = PageRequestUtils.slice(pageable);
 
         List<Object[]> rows = postRepository.findAllPostRowsBySchool(
-                schoolId, regionId, currentUserId, slicePageable
+                schoolId, currentUserId, slicePageable
         );
 
         boolean hasNext = rows.size() > pageable.getPageSize();
@@ -385,14 +388,11 @@ public class PostService {
     }
 
     public List<PostResponse> getTopRecommendedPosts(Long schoolId, int hours, int size, Long currentUserId) {
-        User user = boardAccessPolicy.requireActiveUserWithSchool(currentUserId);
+        User user = boardAccessPolicy.requireVerifiedActiveUserWithSchool(currentUserId);
         if (schoolId == null || !schoolId.equals(user.getSchool().getId())) {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
         }
 
-        Long regionId = user.getSchool().getRegion() != null
-                ? user.getSchool().getRegion().getId()
-                : null;
         int safeHours = Math.min(Math.max(hours, 1), 24);
         int safeSize = Math.min(Math.max(size, 1), 10);
         LocalDateTime since = LocalDateTime.now().minusHours(safeHours);
@@ -400,7 +400,6 @@ public class PostService {
 
         List<Object[]> rows = postRepository.findTopRecommendedPostRows(
                 schoolId,
-                regionId,
                 since,
                 currentUserId,
                 pageable

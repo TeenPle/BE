@@ -1,6 +1,7 @@
 package com.shu.backend.domain.board.entity;
 
 import com.shu.backend.domain.board.enums.BoardScope;
+import com.shu.backend.domain.board.enums.BoardType;
 import com.shu.backend.domain.region.entity.Region;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.global.common.BaseEntity;
@@ -45,5 +46,24 @@ public class Board extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private BoardScope scope = BoardScope.SCHOOL;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private BoardType type;
 
+    @Builder.Default
+    @Column(name = "default_board", nullable = false)
+    private boolean defaultBoard = false;
+
+    @Builder.Default
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder = 999;
+
+    public void markAsDefault(BoardType type) {
+        this.type = type;
+        this.defaultBoard = true;
+        this.sortOrder = type.getSortOrder();
+        this.active = true;
+        this.scope = BoardScope.SCHOOL;
+        this.description = type.getDescription();
+    }
 }

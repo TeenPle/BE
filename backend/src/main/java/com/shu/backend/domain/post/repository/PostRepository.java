@@ -154,16 +154,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 p.title like concat('%', :keyword, '%') escape '\\'
              or p.content like concat('%', :keyword, '%') escape '\\'
           )
-          and (
-                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
-             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
-          )
+          and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and b.defaultBoard = true
+          and b.school.id = :schoolId
         order by p.id desc
     """)
     List<Object[]> searchAccessiblePostRowsByKeyword(
             @Param("keyword") String keyword,
             @Param("schoolId") Long schoolId,
-            @Param("regionId") Long regionId,
             Pageable pageable
     );
 
@@ -177,10 +175,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 p.title like concat('%', :keyword, '%') escape '\\'
              or p.content like concat('%', :keyword, '%') escape '\\'
           )
-          and (
-                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
-             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
-          )
+          and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and b.defaultBoard = true
+          and b.school.id = :schoolId
           and p.user.id not in (
               select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
               where ub.blocker.id = :currentUserId
@@ -190,7 +187,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Long> findSearchPostIds(
             @Param("keyword") String keyword,
             @Param("schoolId") Long schoolId,
-            @Param("regionId") Long regionId,
             @Param("currentUserId") Long currentUserId,
             Pageable pageable
     );
@@ -302,6 +298,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.user u
         where b.school.id = :schoolId
           and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and b.defaultBoard = true
           and p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.createdAt >= :since
           and p.likeCount >= 1
@@ -346,10 +343,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.createdAt >= :since
           and p.likeCount >= 1
-          and (
-                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
-             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
-          )
+          and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and b.defaultBoard = true
+          and b.school.id = :schoolId
           and p.user.id not in (
               select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
               where ub.blocker.id = :currentUserId
@@ -358,7 +354,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     """)
     List<Object[]> findTopRecommendedPostRows(
             @Param("schoolId") Long schoolId,
-            @Param("regionId") Long regionId,
             @Param("since") LocalDateTime since,
             @Param("currentUserId") Long currentUserId,
             Pageable pageable
@@ -422,10 +417,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         join p.board b
         join p.user u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
-          and (
-                (b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL and b.school.id = :schoolId)
-             or (b.scope = com.shu.backend.domain.board.enums.BoardScope.REGION and b.region.id = :regionId)
-          )
+          and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
+          and b.defaultBoard = true
+          and b.school.id = :schoolId
           and p.user.id not in (
               select ub.blocked.id from com.shu.backend.domain.block.entity.UserBlock ub
               where ub.blocker.id = :currentUserId
@@ -434,7 +428,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     """)
     List<Object[]> findAllPostRowsBySchool(
             @Param("schoolId") Long schoolId,
-            @Param("regionId") Long regionId,
             @Param("currentUserId") Long currentUserId,
             Pageable pageable
     );
