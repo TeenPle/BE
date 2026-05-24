@@ -53,6 +53,11 @@ public class NeisApiClient {
     }
 
     private List<Map<String, Object>> fetchPagedRows(String rootKey, java.util.function.IntFunction<String> urlFactory) {
+        if (!hasApiKey()) {
+            log.warn("[NEIS] API key is not configured. Skip {} request.", rootKey);
+            return List.of();
+        }
+
         final int maxPages = 50;
         ArrayList<Map<String, Object>> allRows = new ArrayList<>();
         Set<String> seenRows = new HashSet<>();
@@ -184,6 +189,11 @@ public class NeisApiClient {
      * HttpURLConnection 을 직접 사용해 브라우저와 동일한 헤더만 전송한다.
      */
     public List<Map<String, Object>> getSchoolInfo(String schoolName) {
+        if (!hasApiKey()) {
+            log.warn("[NEIS] API key is not configured. Skip schoolInfo request: school={}", schoolName);
+            return List.of();
+        }
+
         try {
             String encodedName = URLEncoder.encode(schoolName, StandardCharsets.UTF_8);
             String urlStr = baseUrl + "/schoolInfo?KEY=" + apiKey + "&Type=json&SCHUL_NM=" + encodedName;
@@ -237,6 +247,11 @@ public class NeisApiClient {
     }
 
     public List<Map<String, Object>> getHighSchoolInfoPage(int page, int size) {
+        if (!hasApiKey()) {
+            log.warn("[NEIS] API key is not configured. Skip high school import request.");
+            return List.of();
+        }
+
         String url = UriComponentsBuilder.fromUriString(baseUrl + "/schoolInfo")
                 .queryParam("KEY", apiKey)
                 .queryParam("Type", "json")
@@ -329,5 +344,9 @@ public class NeisApiClient {
             }
         }
         return null;
+    }
+
+    private boolean hasApiKey() {
+        return apiKey != null && !apiKey.isBlank();
     }
 }

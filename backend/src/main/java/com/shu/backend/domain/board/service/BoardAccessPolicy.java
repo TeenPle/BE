@@ -41,8 +41,16 @@ public class BoardAccessPolicy {
         return user;
     }
 
-    public void assertSchoolMember(Long userId, Long schoolId) {
+    public User requireVerifiedActiveUserWithSchool(Long userId) {
         User user = requireActiveUserWithSchool(userId);
+        if (!user.isVerified()) {
+            throw new UserException(UserErrorStatus.SCHOOL_VERIFICATION_REQUIRED);
+        }
+        return user;
+    }
+
+    public void assertSchoolMember(Long userId, Long schoolId) {
+        User user = requireVerifiedActiveUserWithSchool(userId);
         if (schoolId == null || !schoolId.equals(user.getSchool().getId())) {
             throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
         }
@@ -56,7 +64,18 @@ public class BoardAccessPolicy {
             throw new BoardException(BoardErrorStatus.BOARD_INACTIVE);
         }
 
-        User user = requireActiveUserWithSchool(userId);
+        User user = requireVerifiedActiveUserWithSchool(userId);
+        assertCanAccessBoard(user, board);
+    }
+
+    public void assertCanAccessBoard(User user, Board board) {
+        if (board == null) {
+            throw new BoardException(BoardErrorStatus.BOARD_NOT_FOUND);
+        }
+        if (!board.isActive()) {
+            throw new BoardException(BoardErrorStatus.BOARD_INACTIVE);
+        }
+
         if (board.getScope() == BoardScope.SCHOOL) {
             if (board.getSchool() == null || !board.getSchool().getId().equals(user.getSchool().getId())) {
                 throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
@@ -65,13 +84,7 @@ public class BoardAccessPolicy {
         }
 
         if (board.getScope() == BoardScope.REGION) {
-            Long userRegionId = user.getSchool().getRegion() != null
-                    ? user.getSchool().getRegion().getId()
-                    : null;
-            if (board.getRegion() == null || userRegionId == null || !board.getRegion().getId().equals(userRegionId)) {
-                throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
-            }
-            return;
+            throw new PostException(PostErrorStatus.NO_PERMISSION_TO_ACCESS);
         }
 
         throw new BoardException(BoardErrorStatus.INVALID_BOARD_SCOPE);

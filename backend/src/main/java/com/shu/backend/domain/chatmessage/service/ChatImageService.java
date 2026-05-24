@@ -3,12 +3,12 @@ package com.shu.backend.domain.chatmessage.service;
 import com.shu.backend.domain.chatmessage.dto.ChatMessageDTO;
 import com.shu.backend.domain.chatmessage.exception.ChatMessageException;
 import com.shu.backend.domain.chatmessage.exception.status.ChatMessageErrorStatus;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.media.entity.Media;
 import com.shu.backend.domain.media.enums.MediaType;
 import com.shu.backend.domain.media.repository.MediaRepository;
 import com.shu.backend.domain.penalty.security.PenaltyChecker;
 import com.shu.backend.domain.user.entity.User;
-import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.file.FileStorageService;
 import com.shu.backend.global.file.StoredFile;
 import lombok.RequiredArgsConstructor;
@@ -34,11 +34,12 @@ public class ChatImageService {
     private final FileStorageService fileStorageService;
     private final ChatImageModerationService moderationService;
     private final MediaRepository mediaRepository;
-    private final UserRepository userRepository;
     private final PenaltyChecker penaltyChecker;
     private final ChatActionRateLimiter chatActionRateLimiter;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     public ChatMessageDTO.UploadImageResponse upload(Long uploaderId, MultipartFile file) {
+        User uploader = boardAccessPolicy.requireVerifiedActiveUserWithSchool(uploaderId);
         if (!penaltyChecker.notPenalized(uploaderId)) {
             throw new ChatMessageException(ChatMessageErrorStatus.CHAT_PENALIZED);
         }
@@ -48,7 +49,6 @@ public class ChatImageService {
         StoredFile storedFile = fileStorageService.uploadChatImageFile(file);
         try {
             String moderationLabels = moderationService.validate(storedFile.bucket(), storedFile.key());
-            User uploader = userRepository.getReferenceById(uploaderId);
             Media media = mediaRepository.save(Media.ofChatUpload(
                     storedFile.url(),
                     storedFile.key(),

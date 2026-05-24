@@ -1,6 +1,8 @@
 package com.shu.backend.domain.board.repository;
 
 import com.shu.backend.domain.board.entity.Board;
+import com.shu.backend.domain.board.enums.BoardScope;
+import com.shu.backend.domain.board.enums.BoardType;
 import com.shu.backend.domain.region.entity.Region;
 import com.shu.backend.domain.school.entity.School;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +16,13 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     List<Board> findBySchoolId(Long schoolId);
 
+    List<Board> findBySchoolIdAndScopeAndActiveTrueOrderBySortOrderAscIdAsc(Long schoolId, BoardScope scope);
+
+    List<Board> findBySchoolIdAndScopeAndActiveTrueAndDefaultBoardTrueOrderBySortOrderAscIdAsc(Long schoolId, BoardScope scope);
+
     Optional<Board> findBySchoolIdAndTitle(Long schoolId, String boardTitle);
+
+    Optional<Board> findBySchoolIdAndType(Long schoolId, BoardType type);
 
     List<Board> findByRegionId(Long regionId);
 

@@ -9,6 +9,7 @@ import com.shu.backend.domain.chatroom.exception.status.ChatRoomErrorStatus;
 import com.shu.backend.domain.chatroom.repository.ChatRoomRepository;
 import com.shu.backend.domain.chatroomuser.entity.ChatRoomUser;
 import com.shu.backend.domain.chatroomuser.repository.ChatRoomUserRepository;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.report.dto.ReportDTO;
 import com.shu.backend.domain.report.enums.ReportReason;
 import com.shu.backend.domain.report.enums.TargetType;
@@ -40,13 +41,15 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ReportService reportService;
+    private final BoardAccessPolicy boardAccessPolicy;
 
     public ChatRoomDTO.CreateDmResponse findOrCreateDm(Long myId, Long otherId, Long sourcePostId, String roomTitle) {
-        User other = userRepository.findById(otherId)
-                .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
+        User me = boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+        User other = boardAccessPolicy.requireVerifiedActiveUserWithSchool(otherId);
         if (UserDisplay.isDeleted(other)) {
             throw new ChatRoomException(ChatRoomErrorStatus.TARGET_USER_DELETED);
         }
+        assertSameSchool(me, other);
 
         long u1 = Math.min(myId, otherId);
         long u2 = Math.max(myId, otherId);
@@ -55,9 +58,6 @@ public class ChatRoomService {
                 .orElseGet(() -> {
                     String title = (roomTitle != null && !roomTitle.isBlank()) ? roomTitle : "채팅방";
                     ChatRoom created = chatRoomRepository.save(ChatRoom.ofDm(u1, u2, sourcePostId, title));
-
-                    User me = userRepository.findById(myId)
-                            .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
                     chatRoomUserRepository.save(ChatRoomUser.createHidden(created, me));
                     chatRoomUserRepository.save(ChatRoomUser.createHidden(created, other));
@@ -90,6 +90,8 @@ public class ChatRoomService {
 
     @Transactional(readOnly = true)
     public ChatRoomDTO.RoomListResponse getMyRooms(Long myId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         List<ChatRoomUser> mine =
                 new java.util.ArrayList<>(chatRoomUserRepository.findByUserIdAndHiddenFalse(myId));
 
@@ -182,12 +184,16 @@ public class ChatRoomService {
     }
 
     public void leave(Long myId, Long roomId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         cru.leave();
     }
 
     public void block(Long myId, Long roomId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         assertOtherUserActive(myId, cru.getChatRoom());
@@ -195,12 +201,16 @@ public class ChatRoomService {
     }
 
     public void unblock(Long myId, Long roomId) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         cru.unblock();
     }
 
     public void report(Long myId, Long roomId, ReportReason reason, String detail) {
+        boardAccessPolicy.requireVerifiedActiveUserWithSchool(myId);
+
         ChatRoomUser cru = chatRoomUserRepository.findByChatRoomIdAndUserId(roomId, myId)
                 .orElseThrow(() -> new ChatRoomException(ChatRoomErrorStatus.NOT_ROOM_MEMBER));
         Long otherId = otherUserId(cru.getChatRoom(), myId);
@@ -224,6 +234,14 @@ public class ChatRoomService {
 
     private Long otherUserId(ChatRoom room, Long myId) {
         return room.getUser1Id().equals(myId) ? room.getUser2Id() : room.getUser1Id();
+    }
+
+    private void assertSameSchool(User me, User other) {
+        if (me.getSchool() == null
+                || other.getSchool() == null
+                || !me.getSchool().getId().equals(other.getSchool().getId())) {
+            throw new ChatRoomException(ChatRoomErrorStatus.SCHOOL_MISMATCH);
+        }
     }
 
     private void assertOtherUserActive(Long myId, ChatRoom room) {

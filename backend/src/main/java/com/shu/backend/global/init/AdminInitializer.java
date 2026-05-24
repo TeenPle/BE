@@ -2,7 +2,9 @@ package com.shu.backend.global.init;
 
 import com.shu.backend.domain.board.entity.Board;
 import com.shu.backend.domain.board.enums.BoardScope;
+import com.shu.backend.domain.board.enums.BoardType;
 import com.shu.backend.domain.board.repository.BoardRepository;
+import com.shu.backend.domain.board.service.DefaultSchoolBoardService;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.post.entity.Post;
@@ -43,6 +45,7 @@ public class AdminInitializer implements CommandLineRunner {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final ReactionRepository reactionRepository;
+    private final DefaultSchoolBoardService defaultSchoolBoardService;
 
     @Override
     @Transactional
@@ -88,6 +91,8 @@ public class AdminInitializer implements CommandLineRunner {
         createRegionBoardIfNotExists(adminRegion, "지역 게시판", "같은 지역 학생들과 이야기해요");
 
         // admin은 그대로 유지
+        defaultSchoolBoardService.ensureDefaultBoards(testSchool);
+
         userRepository.findByEmail("leejd8131@naver.com")
                 .orElseGet(() -> userRepository.save(
                         User.builder()
@@ -176,6 +181,11 @@ public class AdminInitializer implements CommandLineRunner {
             String description,
             BoardScope scope
     ) {
+        if (scope == BoardScope.SCHOOL) {
+            defaultSchoolBoardService.ensureDefaultBoards(school);
+            return boardRepository.findBySchoolIdAndType(school.getId(), BoardType.FREE).orElse(null);
+        }
+
         return boardRepository.findBySchoolAndTitle(school, title)
                 .orElseGet(() -> boardRepository.save(
                         Board.builder()
@@ -242,7 +252,25 @@ public class AdminInitializer implements CommandLineRunner {
     /**
      * 오남고등학교 게시판별 게시글 / 댓글 시드 생성
      */
+    private void seedDefaultBoardPosts(School testSchool, List<User> testUsers) {
+        Board freeBoard = boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.FREE).orElseThrow();
+        Board firstBoard = boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.GRADE_1).orElseThrow();
+        Board secondBoard = boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.GRADE_2).orElseThrow();
+        Board thirdBoard = boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.GRADE_3).orElseThrow();
+        Board alumniBoard = boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.GRADUATE).orElseThrow();
+
+        seedBoardIfNeeded(freeBoard, "자유", testUsers, 0);
+        seedBoardIfNeeded(firstBoard, "1학년", testUsers, 1);
+        seedBoardIfNeeded(secondBoard, "2학년", testUsers, 2);
+        seedBoardIfNeeded(thirdBoard, "3학년", testUsers, 3);
+        seedBoardIfNeeded(alumniBoard, "졸업생", testUsers, 4);
+    }
+
     private void seedTestSchoolPosts(School testSchool, List<User> testUsers) {
+        if (boardRepository.findBySchoolIdAndType(testSchool.getId(), BoardType.FREE).isPresent()) {
+            seedDefaultBoardPosts(testSchool, testUsers);
+            return;
+        }
         Board freeBoard = boardRepository.findBySchoolAndTitle(testSchool, "자유게시판").orElseThrow();
         Board firstBoard = boardRepository.findBySchoolAndTitle(testSchool, "1학년 게시판").orElseThrow();
         Board secondBoard = boardRepository.findBySchoolAndTitle(testSchool, "2학년 게시판").orElseThrow();

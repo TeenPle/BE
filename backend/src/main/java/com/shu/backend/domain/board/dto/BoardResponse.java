@@ -19,6 +19,12 @@ public class BoardResponse {
     // 게시판 범위 (SCHOOL: 학교 게시판, REGION: 지역 게시판)
     private String scope;
 
+    private String type;
+
+    private boolean defaultBoard;
+
+    private int sortOrder;
+
     public static BoardResponse toDto(Board board) {
         return BoardResponse.builder()
                 .id(board.getId())
@@ -27,6 +33,9 @@ public class BoardResponse {
                 .active(board.isActive())
                 // scope를 문자열로 직렬화 (null-safe)
                 .scope(board.getScope() != null ? board.getScope().name() : null)
+                .type(board.getType() != null ? board.getType().name() : null)
+                .defaultBoard(board.isDefaultBoard())
+                .sortOrder(board.getSortOrder())
                 .build();
     }
 }

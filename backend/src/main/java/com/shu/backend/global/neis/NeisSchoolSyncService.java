@@ -3,6 +3,7 @@ package com.shu.backend.global.neis;
 import com.shu.backend.domain.board.entity.Board;
 import com.shu.backend.domain.board.enums.BoardScope;
 import com.shu.backend.domain.board.repository.BoardRepository;
+import com.shu.backend.domain.board.service.DefaultSchoolBoardService;
 import com.shu.backend.domain.region.entity.Region;
 import com.shu.backend.domain.region.repository.RegionRepository;
 import com.shu.backend.domain.school.entity.School;
@@ -36,6 +37,7 @@ public class NeisSchoolSyncService {
     private final SchoolRepository schoolRepository;
     private final RegionRepository regionRepository;
     private final BoardRepository boardRepository;
+    private final DefaultSchoolBoardService defaultSchoolBoardService;
     private final NeisSchoolSyncProperties properties;
     private final TransactionTemplate transactionTemplate;
 
@@ -194,15 +196,7 @@ public class NeisSchoolSyncService {
     }
 
     private void createDefaultBoards(School school) {
-        createSchoolBoardIfNotExists(school, FREE_BOARD_TITLE, "\uC790\uC720\uB86D\uAC8C \uC774\uC57C\uAE30\uD574\uC694");
-        createSchoolBoardIfNotExists(school, FIRST_GRADE_BOARD_TITLE, "1\uD559\uB144\uC744 \uC704\uD55C \uAC8C\uC2DC\uD310");
-        createSchoolBoardIfNotExists(school, SECOND_GRADE_BOARD_TITLE, "2\uD559\uB144\uC744 \uC704\uD55C \uAC8C\uC2DC\uD310");
-        createSchoolBoardIfNotExists(school, THIRD_GRADE_BOARD_TITLE, "3\uD559\uB144\uC744 \uC704\uD55C \uAC8C\uC2DC\uD310");
-        createSchoolBoardIfNotExists(school, ALUMNI_BOARD_TITLE, "\uC878\uC5C5\uC0DD\uC744 \uC704\uD55C \uAC8C\uC2DC\uD310");
-
-        if (school.getRegion() != null) {
-            createRegionBoardIfNotExists(school.getRegion());
-        }
+        defaultSchoolBoardService.ensureDefaultBoards(school);
     }
 
     private void createSchoolBoardIfNotExists(School school, String title, String description) {

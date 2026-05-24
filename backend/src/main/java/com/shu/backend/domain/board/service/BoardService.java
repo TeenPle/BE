@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
@@ -31,25 +30,22 @@ public class BoardService {
     private final SchoolRepository schoolRepository;
     private final RegionRepository regionRepository;
     private final BoardAccessPolicy boardAccessPolicy;
+    private final DefaultSchoolBoardService defaultSchoolBoardService;
 
-    /*
-    * 게시판 생성
-    * */
     @Transactional
     public Long createBoard(BoardCreateRequest req) {
-
         String title = req.getTitle();
         if (title == null || title.isBlank()) {
             throw new BoardException(BoardErrorStatus.INVALID_BOARD_TITLE);
         }
 
+        BoardScope scope = req.getScope() != null ? req.getScope() : BoardScope.SCHOOL;
         Board.BoardBuilder builder = Board.builder()
-                .scope(req.getScope())
+                .scope(scope)
                 .title(title.trim())
                 .description(req.getDescription());
 
-        if (req.getScope() == BoardScope.SCHOOL) {
-
+        if (scope == BoardScope.SCHOOL) {
             if (req.getSchoolId() == null) {
                 throw new BoardException(BoardErrorStatus.SCHOOL_ID_REQUIRED);
             }
@@ -58,9 +54,7 @@ public class BoardService {
                     .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
 
             builder.school(school).region(null);
-
         } else {
-            // REGION 게시판 생성
             if (req.getRegionId() == null) {
                 throw new BoardException(BoardErrorStatus.REGION_ID_REQUIRED);
             }
@@ -75,32 +69,20 @@ public class BoardService {
         boardRepository.save(board);
 
         return board.getId();
-
     }
 
-    /*
-    * 학교별 게시판 조회
-    * */
-    public List<BoardResponse> getBoardsBySchool(Long schoolId, Long currentUserId){
+    public List<BoardResponse> getBoardsBySchool(Long schoolId, Long currentUserId) {
         boardAccessPolicy.assertSchoolMember(currentUserId, schoolId);
 
-        // School 검증
         School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
 
-        Long regionId = school.getRegion().getId();
+        defaultSchoolBoardService.ensureDefaultBoards(school);
 
-
-        //해당 학교의 지역 게시판 + 그 외 게시판 전부 조회
-        List<Board> schoolBoards = boardRepository.findBySchoolId(schoolId);
-        List<Board> regionBoards = boardRepository.findByRegionId(regionId);
-
-        return Stream.concat(schoolBoards.stream(), regionBoards.stream())
+        return boardRepository
+                .findBySchoolIdAndScopeAndActiveTrueAndDefaultBoardTrueOrderBySortOrderAscIdAsc(schoolId, BoardScope.SCHOOL)
+                .stream()
                 .map(BoardResponse::toDto)
                 .toList();
-
     }
-
-
-
 }
