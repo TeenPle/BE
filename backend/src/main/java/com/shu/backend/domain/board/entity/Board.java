@@ -44,6 +44,7 @@ public class Board extends BaseEntity {
     private Region region;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private BoardScope scope = BoardScope.SCHOOL;
 
     @Enumerated(EnumType.STRING)

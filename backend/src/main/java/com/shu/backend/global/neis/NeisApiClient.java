@@ -8,6 +8,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -200,7 +201,7 @@ public class NeisApiClient {
 
             log.info("[NEIS] schoolInfo 요청: {}", urlStr);
 
-            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            HttpURLConnection conn = openConnection(urlStr);
             try {
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("User-Agent",
@@ -270,7 +271,7 @@ public class NeisApiClient {
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> parseNeisResponse(String url, String rootKey) {
         try {
-            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            HttpURLConnection conn = openConnection(url);
             try {
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("User-Agent",
@@ -348,5 +349,10 @@ public class NeisApiClient {
 
     private boolean hasApiKey() {
         return apiKey != null && !apiKey.isBlank();
+    }
+
+    private HttpURLConnection openConnection(String url) throws Exception {
+        URL targetUrl = URI.create(url).toURL();
+        return (HttpURLConnection) targetUrl.openConnection();
     }
 }

@@ -36,14 +36,17 @@ public class User extends BaseEntity {
     private String nickname;
 
     @Column(name = "profile_image_url")
+    @Builder.Default
     private String profileImageUrl = "default_profile.png";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private UserRole role = UserRole.USER;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -67,6 +70,7 @@ public class User extends BaseEntity {
     private String phoneNumber;
 
     @Column(name = "phone_verified", nullable = false)
+    @Builder.Default
     private boolean phoneVerified = false;
 
     @Column(name = "nickname_changed_at")
