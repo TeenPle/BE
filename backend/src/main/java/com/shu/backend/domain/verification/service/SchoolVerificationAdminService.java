@@ -13,8 +13,11 @@ import com.shu.backend.domain.verification.repository.UserSchoolVerificationRequ
 import com.shu.backend.domain.verification.status.VerificationStatus;
 import com.shu.backend.global.exception.GeneralException;
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.util.PageRequestUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,34 @@ public class SchoolVerificationAdminService {
                 .stream()
                 .map(this::toListItem)
                 .toList();
+    }
+
+    /**
+     * 상태별 학교 인증 요청을 20개 단위로 조회한다.
+     *
+     * 관리자 앱 목록은 스크롤 하단에서 다음 페이지를 이어 붙이므로,
+     * 전체 요청을 한 번에 내려주지 않고 page/size 기반 Page 응답을 사용한다.
+     */
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminDTO.ListItemResponse> list(VerificationStatus status, int page, int size) {
+        return list(status, null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminDTO.ListItemResponse> list(VerificationStatus status, String keyword, int page, int size) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "requestedAt");
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (normalizedKeyword == null) {
+            return requestRepository.findByStatus(
+                    status,
+                    PageRequestUtils.of(page, size, 50, sort)
+            ).map(this::toListItem);
+        }
+        return requestRepository.searchByStatus(
+                status,
+                normalizedKeyword,
+                PageRequestUtils.of(page, size, 50, sort)
+        ).map(this::toListItem);
     }
 
     // 학교 인증 요청 상세 조회
@@ -158,6 +189,14 @@ public class SchoolVerificationAdminService {
 
     private String verificationMetadata(UserSchoolVerificationRequest req) {
         return "userId=" + req.getUser().getId() + ",schoolId=" + req.getSchool().getId();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     // 목록 응답 DTO 변환

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -31,6 +33,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByRole(UserRole role);
 
+    List<User> findByRoleAndStatus(UserRole role, UserStatus status);
+
     boolean existsByIdAndStatus(Long id, UserStatus status);
 
     Optional<User> findByPhoneNumber(String phoneNumber);
@@ -42,4 +46,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     where u.id = :userId
     """)
     Optional<User> findByIdWithSchoolAndRegion(@Param("userId") Long userId);
+
+    /** 탈퇴 유예 기간이 만료된 유저 ID 목록 조회 (스케줄러 전용) */
+    @Query("select u.id from User u where u.status = :status and u.deletionRequestedAt < :threshold")
+    List<Long> findExpiredPendingDeletionUserIds(
+            @Param("status") UserStatus status,
+            @Param("threshold") LocalDateTime threshold
+    );
 }

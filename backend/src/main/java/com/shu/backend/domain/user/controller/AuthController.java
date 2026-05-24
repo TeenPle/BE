@@ -81,7 +81,7 @@ public class AuthController {
             summary = "로그인",
             description = "이메일과 비밀번호로 로그인하고, 액세스 토큰을 발급받습니다."
     )
-    @RateLimit(key = "auth:login", limit = 10, windowSeconds = 900, byIp = true)
+    @RateLimit(key = "auth:login", limit = 10, windowSeconds = 180, byIp = true)
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LoginResponseDTO> login(
             @RequestBody @Valid UserLoginDTO request
@@ -235,6 +235,19 @@ public class AuthController {
             String nickname
     ) {
         return ApiResponse.onSuccess(authService.checkNicknameExists(nickname));
+    }
+
+    // =================== 탈퇴 유예 계정 복구 ===================
+    @Operation(
+            summary = "탈퇴 유예 계정 복구",
+            description = "PENDING_DELETION 상태에서 이메일·비밀번호로 본인 확인 후 계정을 ACTIVE로 복구합니다. 성공 시 새 토큰을 발급합니다."
+    )
+    @PostMapping("/restore")
+    public ApiResponse<LoginResponseDTO> restoreAccount(
+            @RequestBody @Valid UserLoginDTO request
+    ) {
+        LoginResponseDTO result = authService.restoreAccount(request);
+        return ApiResponse.of(UserSuccessStatus.USER_RESTORE_SUCCESS, result);
     }
 
 }

@@ -22,6 +22,8 @@ public enum UserErrorStatus implements BaseErrorCode {
     SAME_PASSWORD(HttpStatus.BAD_REQUEST, "USER4007", "현재와 동일한 비밀번호입니다."),
     NICKNAME_CHANGE_COOLDOWN(HttpStatus.BAD_REQUEST, "USER4008", "닉네임은 30일에 한 번만 변경할 수 있습니다."),
     INACTIVE_USER(HttpStatus.FORBIDDEN, "USER4009", "Inactive user."),
+    /** 탈퇴 유예 기간 중 로그인 시도 — 복구 화면으로 분기하기 위한 전용 코드 */
+    ACCOUNT_PENDING_DELETION(HttpStatus.FORBIDDEN, "USER4051", "탈퇴 대기 중인 계정입니다. 7일 이내에 복구할 수 있습니다."),
 
     VERIFICATION_CODE_INVALID(HttpStatus.BAD_REQUEST, "USER4010", "인증번호가 올바르지 않습니다."),
     VERIFICATION_TOKEN_INVALID_OR_EXPIRED(HttpStatus.BAD_REQUEST, "USER4011", "인증 토큰이 만료되었거나 유효하지 않습니다."),

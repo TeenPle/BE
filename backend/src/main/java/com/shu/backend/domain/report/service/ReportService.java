@@ -1,9 +1,10 @@
 package com.shu.backend.domain.report.service;
 
-import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
+import com.shu.backend.domain.admin.service.AdminPushService;
+import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
@@ -35,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -52,6 +54,7 @@ public class ReportService {
     private final PenaltyService penaltyService;
     private final BoardAccessPolicy boardAccessPolicy;
     private final AdminAuditLogService adminAuditLogService;
+    private final AdminPushService adminPushService;
 
     @Transactional
     public Long create(Long reporterId, ReportDTO.CreateRequest req) {
@@ -85,7 +88,17 @@ public class ReportService {
                 .reportDetail(normalizeReportDetail(req.getReportDetail()))
                 .build();
 
-        return reportRepository.save(report).getId();
+        Long reportId = reportRepository.save(report).getId();
+        adminPushService.notifyActiveAdmins(
+                "새 신고 접수",
+                report.getTargetType().name() + " 신고가 접수되었습니다.",
+                Map.of(
+                        "type", "ADMIN_REPORT",
+                        "targetType", "REPORT",
+                        "targetId", String.valueOf(reportId)
+                )
+        );
+        return reportId;
     }
 
     @Transactional
@@ -101,7 +114,7 @@ public class ReportService {
         User handler = userRepository.findById(adminId)
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
-        report.resolve(handler);
+        report.resolve(handler, penaltyDays);
 
         Long penaltyId = penaltyService.create(reportId, penaltyDays);
         adminAuditLogService.recordAfterCommit(
@@ -142,8 +155,12 @@ public class ReportService {
 
     }
 
-    public Page<Report> getReports(ReportStatus status, Pageable pageable){
-        return reportRepository.findAllByStatus(status, pageable);
+    public Page<Report> getReports(ReportStatus status, String keyword, Pageable pageable){
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (normalizedKeyword == null) {
+            return reportRepository.findAllByStatus(status, pageable);
+        }
+        return reportRepository.searchByStatus(status, normalizedKeyword, pageable);
     }
 
     public ReportSummaryResponse.DetailResponse getReportDetail(Long reportId) {
@@ -170,6 +187,7 @@ public class ReportService {
                 .status(r.getStatus().name())
                 .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().format(ISO_FMT) : null)
                 .processedAt(r.getProcessedAt() != null ? r.getProcessedAt().format(ISO_FMT) : null)
+                .penaltyDays(r.getPenaltyDays())
                 .build();
     }
 
@@ -252,6 +270,14 @@ public class ReportService {
             return null;
         }
         String trimmed = reportDetail.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

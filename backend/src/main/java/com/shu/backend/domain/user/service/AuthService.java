@@ -1,6 +1,7 @@
 package com.shu.backend.domain.user.service;
 
 import com.shu.backend.domain.auth.service.VerificationService;
+import com.shu.backend.domain.admin.service.AdminPushService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -42,6 +44,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
     private final VerificationService smsVerificationService;
+    private final AdminPushService adminPushService;
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
 
@@ -54,7 +57,7 @@ public class AuthService {
                 request.getEmail()
         );
 
-        School school = getSchool(request);
+        School school = getSchoolByName(request.getSchool());
         User newUser = createUser(request, school, true);
         userRepository.save(newUser);
         // 회원가입 시 알림 설정 기본값으로 자동 생성 (없으면 푸시 발송 조건에서 누락됨)
@@ -70,7 +73,8 @@ public class AuthService {
     // 로그인
     @Transactional
     public LoginResponseDTO login(UserLoginDTO userLoginDTO) {
-        User user = userRepository.findByEmail(userLoginDTO.getEmail())
+        String email = userLoginDTO.getEmail() == null ? "" : userLoginDTO.getEmail().trim();
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
         assertActive(user);
 
@@ -184,7 +188,8 @@ public class AuthService {
 
     public void createVerificationRequest(User user, School school, String imageUrl) {
         UserSchoolVerificationRequest verificationRequest = new UserSchoolVerificationRequest(imageUrl, user, school);
-        verificationRequestRepository.save(verificationRequest);
+        UserSchoolVerificationRequest saved = verificationRequestRepository.save(verificationRequest);
+        notifyVerificationRequest(saved, school.getName());
     }
 
     @Transactional(readOnly = true)
@@ -252,7 +257,25 @@ public class AuthService {
                         .school(school)
                         .build();
 
-        return verificationRequestRepository.save(newRequest).getId();
+        Long requestId = verificationRequestRepository.save(newRequest).getId();
+        notifyVerificationRequest(requestId, school.getName());
+        return requestId;
+    }
+
+    private void notifyVerificationRequest(UserSchoolVerificationRequest request, String schoolName) {
+        notifyVerificationRequest(request.getId(), schoolName);
+    }
+
+    private void notifyVerificationRequest(Long requestId, String schoolName) {
+        adminPushService.notifyActiveAdmins(
+                "새 학교 인증 요청",
+                schoolName + " 인증 요청이 접수되었습니다.",
+                Map.of(
+                        "type", "ADMIN_VERIFICATION",
+                        "targetType", "VERIFICATION_REQUEST",
+                        "targetId", String.valueOf(requestId)
+                )
+        );
     }
 
     @Transactional(readOnly = true)
@@ -318,9 +341,36 @@ public class AuthService {
     }
 
     private void assertActive(User user) {
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() == null) return;
+        // 탈퇴 유예 기간 중인 계정은 별도 에러 코드로 분리해 프론트에서 복구 화면으로 분기한다.
+        if (user.getStatus() == UserStatus.PENDING_DELETION) {
+            throw new UserException(UserErrorStatus.ACCOUNT_PENDING_DELETION);
+        }
+        if (user.getStatus() != UserStatus.ACTIVE) {
             throw new UserException(UserErrorStatus.INACTIVE_USER);
         }
+    }
+
+    /**
+     * 탈퇴 유예 기간 중 계정 복구.
+     * 이메일·비밀번호로 본인 확인 후 ACTIVE 상태로 되돌리고 새 토큰을 발급한다.
+     */
+    @Transactional
+    public LoginResponseDTO restoreAccount(UserLoginDTO request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserException(UserErrorStatus.EMAIL_NOT_FOUND));
+
+        // PENDING_DELETION 상태인 계정만 복구 가능
+        if (user.getStatus() != UserStatus.PENDING_DELETION) {
+            throw new UserException(UserErrorStatus.INACTIVE_USER);
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new UserException(UserErrorStatus.INVALID_PASSWORD);
+        }
+
+        user.restore();
+        return buildLoginResponse(user);
     }
 
     // 새 refresh token 발급 (기존 것 대체)
