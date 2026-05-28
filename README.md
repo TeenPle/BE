@@ -61,9 +61,6 @@
 
 ![TeenPle Backend Architecture](https://github.com/user-attachments/assets/335c5f92-5f2f-49e6-b652-5def74e8ad27)
 
-> 본 아키텍처 다이어그램은 현재 초기 설계안이며,  
-> 기능 확장 및 트래픽 증가에 따라 추후 수정·보완될 예정입니다.
-
 ---
 
 ## 📁 프로젝트 구조
