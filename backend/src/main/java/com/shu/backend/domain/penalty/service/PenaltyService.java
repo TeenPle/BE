@@ -14,6 +14,7 @@ import com.shu.backend.domain.report.exception.ReportException;
 import com.shu.backend.domain.report.exception.status.ReportErrorStatus;
 import com.shu.backend.domain.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class PenaltyService {
 
     private static final DateTimeFormatter ISO_FMT =
@@ -54,7 +56,10 @@ public class PenaltyService {
                 .expiresAt(expiresAt)
                 .build();
 
-        return penaltyRepository.save(penalty).getId();
+        Long penaltyId = penaltyRepository.save(penalty).getId();
+        log.info("Penalty created: penaltyId={}, reportId={}, userId={}, penaltyDays={}",
+                penaltyId, reportId, report.getReportedUser().getId(), penaltyDays);
+        return penaltyId;
     }
 
     public PenaltyDTO.MyActiveResponse getMyActivePenalty(Long myId) {
@@ -104,6 +109,8 @@ public class PenaltyService {
                 "제재 취소",
                 "reportId=" + penalty.getReport().getId()
         );
+        log.info("Penalty cancelled: penaltyId={}, adminId={}, userId={}, reportId={}",
+                penaltyId, adminId, penalty.getUser().getId(), penalty.getReport().getId());
     }
 
 }

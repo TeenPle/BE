@@ -23,6 +23,7 @@ import com.shu.backend.domain.verification.status.VerificationStatus;
 import com.shu.backend.global.jwt.JwtProperties;
 import com.shu.backend.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthService {
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
@@ -67,6 +69,9 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(newUser.getId());
         String refreshToken = issueRefreshToken(newUser);
 
+        log.info("User signed up: userId={}, schoolId={}, verificationRequestCreated=true",
+                newUser.getId(), school.getId());
+
         return new SignUpResponseDTO(newUser.getId(), accessToken, refreshToken);
     }
 
@@ -79,6 +84,7 @@ public class AuthService {
         assertActive(user);
 
         if (!passwordEncoder.matches(userLoginDTO.getPassword(), user.getPassword())) {
+            log.warn("Login failed: userId={}, reason=invalid_password", user.getId());
             throw new UserException(UserErrorStatus.INVALID_PASSWORD);
         }
 
@@ -124,6 +130,8 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getId());
         String newRefreshToken = issueRefreshToken(user);
 
+        log.info("Token refreshed: userId={}", user.getId());
+
         return new TokenRefreshResponseDTO(newAccessToken, newRefreshToken);
     }
 
@@ -131,7 +139,11 @@ public class AuthService {
     @Transactional
     public void logout(String rawRefreshToken) {
         refreshTokenRepository.findByToken(rawRefreshToken)
-                .ifPresent(refreshTokenRepository::delete);
+                .ifPresent(refreshToken -> {
+                    Long userId = refreshToken.getUser() != null ? refreshToken.getUser().getId() : null;
+                    refreshTokenRepository.delete(refreshToken);
+                    log.info("User logged out: userId={}", userId);
+                });
     }
 
     // 이메일 존재 여부 확인
@@ -259,6 +271,8 @@ public class AuthService {
 
         Long requestId = verificationRequestRepository.save(newRequest).getId();
         notifyVerificationRequest(requestId, school.getName());
+        log.info("School verification reapplied: userId={}, schoolId={}, requestId={}",
+                user.getId(), school.getId(), requestId);
         return requestId;
     }
 
@@ -329,6 +343,7 @@ public class AuthService {
 
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
         refreshTokenRepository.deleteByUser(user);
+        log.info("Password reset completed: userId={}", user.getId());
     }
 
     // =================== private ===================
@@ -337,6 +352,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId());
         String refreshToken = issueRefreshToken(user);
         Long schoolId = user.getSchool() != null ? user.getSchool().getId() : null;
+        log.info("Login succeeded: userId={}, role={}, schoolId={}", user.getId(), user.getRole().name(), schoolId);
         return new LoginResponseDTO(user.getId(), accessToken, refreshToken, user.getRole().name(), schoolId);
     }
 
@@ -370,6 +386,7 @@ public class AuthService {
         }
 
         user.restore();
+        log.info("Account restored: userId={}", user.getId());
         return buildLoginResponse(user);
     }
 

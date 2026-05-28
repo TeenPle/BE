@@ -29,6 +29,7 @@ import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.user.support.UserDisplay;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ import java.util.Map;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class ReportService {
 
     private static final DateTimeFormatter ISO_FMT =
@@ -98,6 +100,8 @@ public class ReportService {
                         "targetId", String.valueOf(reportId)
                 )
         );
+        log.info("Report created: reportId={}, reporterId={}, reportedUserId={}, targetType={}, targetId={}, reason={}",
+                reportId, reporterId, reportedUser.getId(), req.getTargetType(), req.getTargetId(), req.getReportReason());
         return reportId;
     }
 
@@ -125,6 +129,8 @@ public class ReportService {
                 adminComment,
                 "penaltyId=" + penaltyId
         );
+        log.info("Report approved: reportId={}, adminId={}, reportedUserId={}, penaltyDays={}, penaltyId={}",
+                reportId, adminId, report.getReportedUser().getId(), penaltyDays, penaltyId);
         return penaltyId;
     }
 
@@ -151,6 +157,7 @@ public class ReportService {
                 adminComment,
                 null
         );
+        log.info("Report rejected: reportId={}, adminId={}", reportId, adminId);
         return reportId;
 
     }

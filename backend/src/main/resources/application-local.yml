@@ -1,0 +1,62 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:7165}
+    driver-class-name: ${DB_DRIVER:com.p6spy.engine.spy.P6SpyDriver}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:create}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:true}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+mail:
+  from: ${MAIL_FROM:${MAIL_USERNAME:}}
+
+logging:
+  file:
+    path: ${LOG_PATH:log}
+  level:
+    root: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.data.repository.config: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.web: INFO
+    com.shu.backend: DEBUG
+    p6spy: INFO
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+
+websocket:
+  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+
+firebase:
+  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:keys/firebase-service-account.json}
+
+file:
+  storage:
+    bucket: ${FILE_BUCKET:teenple-media}
+    student-card-bucket: ${FILE_STUDENT_CARD_BUCKET:teenple-student-card}
+    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
+    chat-dir: ${FILE_CHAT_DIR:chat}
+    post-dir: ${FILE_POST_DIR:post}
+    base-url: ${FILE_BASE_URL:https://teenple-media.s3.ap-northeast-2.amazonaws.com}
+    region: ${AWS_REGION:ap-northeast-2}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    region:
+      static: ${AWS_REGION:ap-northeast-2}

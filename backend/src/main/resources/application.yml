@@ -12,17 +12,17 @@ spring:
     baseline-description: "baseline"
 
   datasource:
-    url: ${DB_URL:jdbc:p6spy:mysql://localhost:3306/shu?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:7165}
-    driver-class-name: ${DB_DRIVER:com.p6spy.engine.spy.P6SpyDriver}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER}
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_FORMAT_SQL:false}
         dialect: org.hibernate.dialect.MySQLDialect
     show-sql: false
 
@@ -55,24 +55,13 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
 mail:
-  from: ${MAIL_FROM:${MAIL_USERNAME:}}
+  from: ${MAIL_FROM}
 
 debug: ${DEBUG:false}
-
-logging:
-  level:
-    root: INFO
-    org.springframework.boot.autoconfigure: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: warn
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
-    org.springframework.web: INFO
-    com.shu.backend: DEBUG
-    p6spy: INFO
 
 jwt:
   secret: ${JWT_SECRET}
@@ -80,14 +69,14 @@ jwt:
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}    # 14일 (ms)
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000, https://your-app-domain.com}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
   allowed-headers: ${CORS_ALLOWED_HEADERS:*}
   allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
 
 websocket:
   endpoint: ${WS_ENDPOINT:/ws/chat}
-  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+  allowed-origins: ${WS_ALLOWED_ORIGINS}
 
 chat:
   realtime:
@@ -108,7 +97,7 @@ chat:
 #    base-url: http://localhost:8080/uploads
 
 firebase:
-  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:keys/firebase-service-account.json}
+  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH}
 
 neis:
   api:
@@ -153,19 +142,19 @@ management:
 #  # S3 기반 파일 스토리지 설정 （배포후 이를 활성화）
 file:
   storage:
-    bucket: ${FILE_BUCKET:teenple-media}
-    student-card-bucket: ${FILE_STUDENT_CARD_BUCKET:teenple-student-card}
-    student-card-dir: ${FILE_STUDENT_CARD_DIR:student-card}
-    chat-dir: ${FILE_CHAT_DIR:chat}
-    post-dir: ${FILE_POST_DIR:post}
-    base-url: ${FILE_BASE_URL:https://teenple-media.s3.ap-northeast-2.amazonaws.com}
-    region: ${AWS_REGION:ap-northeast-2}
+    bucket: ${FILE_BUCKET}
+    student-card-bucket: ${FILE_STUDENT_CARD_BUCKET}
+    student-card-dir: ${FILE_STUDENT_CARD_DIR}
+    chat-dir: ${FILE_CHAT_DIR}
+    post-dir: ${FILE_POST_DIR}
+    base-url: ${FILE_BASE_URL}
+    region: ${AWS_REGION}
 
 #배포후 접근키 비밀키 삽입
 cloud:
   aws:
     credentials:
-      access-key: ${AWS_ACCESS_KEY_ID:}
-      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
     region:
-      static: ${AWS_REGION:ap-northeast-2}
+      static: ${AWS_REGION}

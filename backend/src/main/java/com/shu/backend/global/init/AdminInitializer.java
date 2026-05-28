@@ -23,6 +23,7 @@ import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AdminInitializer implements CommandLineRunner {
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
@@ -51,9 +53,10 @@ public class AdminInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
 
-        System.out.println("java.version = " + System.getProperty("java.version"));
-        System.out.println("java.home = " + System.getProperty("java.home"));
-        System.out.println("javax.net.ssl.trustStore = " + System.getProperty("javax.net.ssl.trustStore"));
+        log.debug("AdminInitializer runtime: javaVersion={}, javaHome={}, trustStore={}",
+                System.getProperty("java.version"),
+                System.getProperty("java.home"),
+                System.getProperty("javax.net.ssl.trustStore"));
 
         // 지역 생성 or 조회
         Region adminRegion = regionRepository.findByName("의정부시")

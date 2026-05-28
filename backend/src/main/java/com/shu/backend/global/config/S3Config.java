@@ -3,6 +3,7 @@ package com.shu.backend.global.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -15,6 +16,7 @@ import java.net.URI;
 
 @Configuration
 //@Profile("prod")
+@Slf4j
 public class S3Config {
 
     @Value("${cloud.aws.credentials.access-key}")
@@ -31,8 +33,7 @@ public class S3Config {
         AwsBasicCredentials credentials =
                 AwsBasicCredentials.create(accessKey, secretKey);
 
-        System.out.println("cloud.aws.region.static = " + region);
-        System.out.println("cloud.aws.credentials.access-key startsWith = " + accessKey.substring(0, 4));
+        log.info("S3 client initialized: region={}", region);
 
         return S3Client.builder()
                 .region(Region.of(region))

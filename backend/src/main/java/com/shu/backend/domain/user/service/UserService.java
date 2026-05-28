@@ -93,6 +93,7 @@ public class UserService {
         }
 
         user.updateNickname(nickname);
+        log.info("Nickname updated: userId={}", userId);
     }
 
     @Transactional
@@ -109,6 +110,7 @@ public class UserService {
 
         user.updatePassword(passwordEncoder.encode(newPassword));
         refreshTokenRepository.deleteByUser(user);
+        log.info("User password updated: userId={}", userId);
     }
 
     @Transactional(readOnly = true)
@@ -164,6 +166,7 @@ public class UserService {
         if (oldUrl != null && oldUrl.startsWith("http")) {
             fileStorageService.deletePublicFile(oldUrl);
         }
+        log.info("Profile image updated: userId={}", userId);
         return fileStorageService.toPresignedReadUrl(imageUrl);
     }
 
@@ -200,6 +203,7 @@ public class UserService {
 
         user.requestDeletion();
         userRepository.save(user);
+        log.info("Account deletion requested: userId={}", userId);
     }
 
     /**
@@ -243,5 +247,6 @@ public class UserService {
         // 4. PII 익명화 (게시글/댓글 FK 보존을 위해 행은 유지)
         user.anonymize();
         userRepository.save(user);
+        log.info("Account purged: userId={}", userId);
     }
 }
