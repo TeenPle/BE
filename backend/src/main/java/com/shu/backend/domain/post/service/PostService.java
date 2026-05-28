@@ -146,6 +146,10 @@ public class PostService {
             postMediaService.uploadAndSave(post.getId(), files, user);
         }
 
+        log.info("Post created: postId={}, userId={}, boardId={}, fileCount={}, hasPoll={}",
+                post.getId(), userId, boardId, files != null ? files.size() : 0,
+                req.getPollOptions() != null && !req.getPollOptions().isEmpty());
+
         return post.getId();
     }
 
@@ -182,6 +186,13 @@ public class PostService {
             postMediaService.uploadAndSave(postId, files, user);
         }
 
+        log.info("Post updated: postId={}, userId={}, fileCount={}, deletedMediaCount={}, hasPoll={}",
+                postId,
+                userId,
+                files != null ? files.size() : 0,
+                req.getDeleteMediaIds() != null ? req.getDeleteMediaIds().size() : 0,
+                req.getPollOptions() != null && !req.getPollOptions().isEmpty());
+
         return post.getId();
     }
 
@@ -204,6 +215,8 @@ public class PostService {
 
         postMediaService.deleteAllByPostId(postId);
         post.delete();
+
+        log.info("Post deleted: postId={}, userId={}", postId, userId);
 
         return post.getId();
     }

@@ -26,6 +26,7 @@ import com.shu.backend.domain.post.service.PostMediaService;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.global.util.PageRequestUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -37,6 +38,7 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class AdminContentService {
 
     private final SchoolRepository schoolRepository;
@@ -107,6 +109,7 @@ public class AdminContentService {
                 reason,
                 "boardId=" + post.getBoard().getId()
         );
+        log.info("Admin hid post: adminId={}, postId={}, boardId={}", adminId, postId, post.getBoard().getId());
         return getPostDetail(postId);
     }
 
@@ -123,6 +126,7 @@ public class AdminContentService {
                 reason,
                 "boardId=" + post.getBoard().getId()
         );
+        log.info("Admin restored post: adminId={}, postId={}, boardId={}", adminId, postId, post.getBoard().getId());
         return getPostDetail(postId);
     }
 
@@ -139,6 +143,7 @@ public class AdminContentService {
                 reason,
                 "postId=" + comment.getPost().getId()
         );
+        log.info("Admin hid comment: adminId={}, commentId={}, postId={}", adminId, commentId, comment.getPost().getId());
         return getPostDetail(comment.getPost().getId());
     }
 
@@ -155,6 +160,7 @@ public class AdminContentService {
                 reason,
                 "postId=" + comment.getPost().getId()
         );
+        log.info("Admin restored comment: adminId={}, commentId={}, postId={}", adminId, commentId, comment.getPost().getId());
         return getPostDetail(comment.getPost().getId());
     }
 }

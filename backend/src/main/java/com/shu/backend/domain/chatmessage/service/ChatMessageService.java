@@ -22,6 +22,7 @@ import com.shu.backend.domain.user.support.UserDisplay;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.global.file.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ChatMessageService {
 
     private static final int MAX_TEXT_LENGTH = 500;
@@ -183,9 +185,15 @@ public class ChatMessageService {
                                     "targetId", String.valueOf(room.getId())
                             )
                     );
-                } catch (Exception ignore) {}
+                } catch (Exception e) {
+                    log.warn("Chat push scheduling failed: notificationId={}, roomId={}, receiverId={}, senderId={}",
+                            notificationId, room.getId(), receiverId, senderId, e);
+                }
             }
         }
+
+        log.info("Chat message sent: messageId={}, roomId={}, senderId={}, receiverId={}, type={}, mediaId={}",
+                saved.getId(), room.getId(), senderId, receiverId, type, req.getMediaId());
 
         // 응답 DTO 반환
         return ChatMessageDTO.MessageResponse.builder()

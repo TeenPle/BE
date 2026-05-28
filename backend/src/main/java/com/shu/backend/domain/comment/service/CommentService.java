@@ -23,6 +23,7 @@ import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ import java.util.Map;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class CommentService {
 
     private final CommentRepository commentRepository;
@@ -92,6 +94,8 @@ public class CommentService {
         Comment saved = commentRepository.save(comment);
         post.incrementCommentCount();
         postRepository.save(post);
+        log.info("Comment created: commentId={}, postId={}, userId={}, parentId={}, depth={}",
+                saved.getId(), postId, userId, req.getParentId(), depth);
 
         // ===== 알림 생성(저장 성공 이후) =====
         Long actorId = userId;
@@ -133,7 +137,10 @@ public class CommentService {
                                         "targetId", String.valueOf(post.getId())
                                 )
                         );
-                    } catch (Exception ignore) {}
+                    } catch (Exception e) {
+                        log.warn("Comment push scheduling failed: notificationId={}, receiverUserId={}, postId={}",
+                                notificationId, receiverUserId, post.getId(), e);
+                    }
                 }
             }
 
@@ -172,7 +179,10 @@ public class CommentService {
                                         "targetId", String.valueOf(post.getId())
                                 )
                         );
-                    } catch (Exception ignore) {}
+                    } catch (Exception e) {
+                        log.warn("Reply push scheduling failed: notificationId={}, receiverUserId={}, postId={}, parentId={}",
+                                notificationId, receiverUserId, post.getId(), parent.getId(), e);
+                    }
                 }
             }
         }
@@ -200,6 +210,7 @@ public class CommentService {
         }
 
         comment.update(safeContent, req.isAnonymous());
+        log.info("Comment updated: commentId={}, userId={}", commentId, userId);
 
         return commentId;
     }
@@ -223,6 +234,7 @@ public class CommentService {
         Post post = comment.getPost();
         post.decrementCommentCount();
         postRepository.save(post);
+        log.info("Comment deleted: commentId={}, postId={}, userId={}", commentId, post.getId(), userId);
         return commentId;
     }
 

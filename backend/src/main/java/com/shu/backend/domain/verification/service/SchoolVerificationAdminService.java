@@ -151,6 +151,8 @@ public class SchoolVerificationAdminService {
                 adminComment,
                 verificationMetadata(req)
         );
+        log.info("School verification approved: requestId={}, adminId={}, userId={}, schoolId={}",
+                requestId, adminUserId, user.getId(), req.getSchool().getId());
     }
 
     // 학교 인증 요청 거절 처리
@@ -178,6 +180,8 @@ public class SchoolVerificationAdminService {
                 adminComment,
                 verificationMetadata(req)
         );
+        log.info("School verification rejected: requestId={}, adminId={}, userId={}, schoolId={}",
+                requestId, adminUserId, req.getUser().getId(), req.getSchool().getId());
     }
 
     // 처리 가능한 대기 상태 요청인지 검증

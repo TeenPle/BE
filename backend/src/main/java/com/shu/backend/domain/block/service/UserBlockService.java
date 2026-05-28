@@ -8,11 +8,13 @@ import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserBlockService {
 
     private final UserBlockRepository userBlockRepository;
@@ -38,11 +40,13 @@ public class UserBlockService {
                 .blocker(blocker)
                 .blocked(blocked)
                 .build());
+        log.info("User blocked: blockerId={}, blockedId={}", blockerId, blockedId);
     }
 
     @Transactional
     public void unblockUser(Long blockerId, Long blockedId) {
         userBlockRepository.deleteByBlockerIdAndBlockedId(blockerId, blockedId);
+        log.info("User unblocked: blockerId={}, blockedId={}", blockerId, blockedId);
     }
 
     @Transactional(readOnly = true)
@@ -53,5 +57,6 @@ public class UserBlockService {
     @Transactional
     public void unblockAll(Long blockerId) {
         userBlockRepository.deleteByBlockerId(blockerId);
+        log.info("All blocked users cleared: blockerId={}", blockerId);
     }
 }

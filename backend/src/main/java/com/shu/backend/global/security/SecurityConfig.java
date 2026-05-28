@@ -3,6 +3,7 @@ package com.shu.backend.global.security;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.jwt.JwtAuthenticationFilter;
 import com.shu.backend.global.jwt.JwtTokenProvider;
+import com.shu.backend.global.logging.RequestLoggingFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -103,7 +104,8 @@ public class SecurityConfig {
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider, userRepository),
                         UsernamePasswordAuthenticationFilter.class
-                );
+                )
+                .addFilterAfter(new RequestLoggingFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }

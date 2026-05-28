@@ -1,0 +1,61 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:false}
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+mail:
+  from: ${MAIL_FROM}
+
+logging:
+  file:
+    path: ${LOG_PATH}
+  level:
+    root: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.web: INFO
+    com.shu.backend: INFO
+    p6spy: WARN
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+websocket:
+  allowed-origins: ${WS_ALLOWED_ORIGINS}
+
+firebase:
+  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH}
+
+file:
+  storage:
+    bucket: ${FILE_BUCKET}
+    student-card-bucket: ${FILE_STUDENT_CARD_BUCKET}
+    student-card-dir: ${FILE_STUDENT_CARD_DIR}
+    chat-dir: ${FILE_CHAT_DIR}
+    post-dir: ${FILE_POST_DIR}
+    base-url: ${FILE_BASE_URL}
+    region: ${AWS_REGION}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION}

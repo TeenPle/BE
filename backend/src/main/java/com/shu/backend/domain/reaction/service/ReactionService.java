@@ -21,6 +21,7 @@ import com.shu.backend.domain.reaction.exception.status.ReactionErrorStatus;
 import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class ReactionService {
 
     private final ReactionRepository reactionRepository;
@@ -139,7 +141,10 @@ public class ReactionService {
                                         "targetId", String.valueOf(targetId)
                                 )
                         );
-                    } catch (Exception ignore) {}
+                    } catch (Exception e) {
+                        log.warn("Reaction push scheduling failed: notificationId={}, receiverUserId={}, targetType={}, targetId={}",
+                                notificationId, ownerUserId, targetType, targetId, e);
+                    }
                 }
             }
         }

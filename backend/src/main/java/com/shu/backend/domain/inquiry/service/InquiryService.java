@@ -18,6 +18,7 @@ import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.global.util.PageRequestUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,6 +30,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
@@ -53,6 +55,7 @@ public class InquiryService {
                         "targetId", String.valueOf(inquiry.getId())
                 )
         );
+        log.info("Inquiry created: inquiryId={}, userId={}", inquiry.getId(), userId);
         return inquiry.getId();
     }
 
@@ -136,18 +139,26 @@ public class InquiryService {
         );
 
         if (notificationId != null) {
-            pushService.sendToUserAfterCommit(
-                    inquiry.getUser().getId(),
-                    "문의 답변",
-                    message,
-                    Map.of(
-                            "notificationId", String.valueOf(notificationId),
-                            "type", NotificationType.INQUIRY.name(),
-                            "targetType", NotificationTargetType.INQUIRY.name(),
-                            "targetId", String.valueOf(inquiry.getId())
-                    )
-            );
+            try {
+                pushService.sendToUserAfterCommit(
+                        inquiry.getUser().getId(),
+                        "문의 답변",
+                        message,
+                        Map.of(
+                                "notificationId", String.valueOf(notificationId),
+                                "type", NotificationType.INQUIRY.name(),
+                                "targetType", NotificationTargetType.INQUIRY.name(),
+                                "targetId", String.valueOf(inquiry.getId())
+                        )
+                );
+            } catch (Exception e) {
+                log.warn("Inquiry answer push scheduling failed: notificationId={}, inquiryId={}, receiverUserId={}",
+                        notificationId, inquiry.getId(), inquiry.getUser().getId(), e);
+            }
         }
+
+        log.info("Inquiry answered: inquiryId={}, adminId={}, userId={}",
+                inquiry.getId(), adminId, inquiry.getUser().getId());
 
         return inquiry.getId();
     }
