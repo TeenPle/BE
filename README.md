@@ -6,7 +6,7 @@
 본 저장소는 인증, 게시판, 채팅, 통계 등 TeenPle의 핵심 서버 기능을 담당합니다.
 
 <div align="center">
-  <img width="380" alt="TeenPle Poster" src="https://github.com/user-attachments/assets/32a46079-7c57-42dc-83c8-bef7ee8c14ad" />
+  <img width="380" alt="TeenPle Poster" src="https://github.com/user-attachments/files/28346924/default.bmp" />
 </div>
 
 ---
@@ -38,7 +38,7 @@
 
 ### Database
 
-![Amazon Aurora](https://img.shields.io/badge/Amazon%20Aurora-527FFF?style=for-the-badge&logo=amazonaws&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 ![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white)
 
 ### Infrastructure & CI/CD
@@ -59,7 +59,7 @@
 
 ### Backend Infrastructure Overview
 
-![TeenPle Backend Architecture](assets/TeenPle_Arch.png)
+![TeenPle Backend Architecture](https://github.com/user-attachments/assets/335c5f92-5f2f-49e6-b652-5def74e8ad27)
 
 > 본 아키텍처 다이어그램은 현재 초기 설계안이며,  
 > 기능 확장 및 트래픽 증가에 따라 추후 수정·보완될 예정입니다.
