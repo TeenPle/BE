@@ -22,6 +22,9 @@ import com.shu.backend.domain.user.enums.Grade;
 import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
+import com.shu.backend.global.neis.NeisSchoolSyncProperties;
+import com.shu.backend.global.neis.NeisSchoolSyncService;
+import com.shu.backend.global.neis.NeisSyncResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -48,6 +51,8 @@ public class AdminInitializer implements CommandLineRunner {
     private final CommentRepository commentRepository;
     private final ReactionRepository reactionRepository;
     private final DefaultSchoolBoardService defaultSchoolBoardService;
+    private final NeisSchoolSyncService neisSchoolSyncService;
+    private final NeisSchoolSyncProperties neisSchoolSyncProperties;
 
     @Override
     @Transactional
@@ -57,6 +62,8 @@ public class AdminInitializer implements CommandLineRunner {
                 System.getProperty("java.version"),
                 System.getProperty("java.home"),
                 System.getProperty("javax.net.ssl.trustStore"));
+
+        importAllHighSchoolsWithDefaultBoards();
 
         // 지역 생성 or 조회
         Region adminRegion = regionRepository.findByName("의정부시")
@@ -91,7 +98,6 @@ public class AdminInitializer implements CommandLineRunner {
         createBoardIfNotExists(testSchool, "2학년 게시판", "2학년 전용 게시판", BoardScope.SCHOOL);
         createBoardIfNotExists(testSchool, "3학년 게시판", "3학년 전용 게시판", BoardScope.SCHOOL);
         createBoardIfNotExists(testSchool, "졸업생 게시판", "졸업생 전용 게시판", BoardScope.SCHOOL);
-        createRegionBoardIfNotExists(adminRegion, "지역 게시판", "같은 지역 학생들과 이야기해요");
 
         // admin은 그대로 유지
         defaultSchoolBoardService.ensureDefaultBoards(testSchool);
@@ -175,6 +181,22 @@ public class AdminInitializer implements CommandLineRunner {
         seedTestSchoolPosts(testSchool, List.of(admin2, garen, lux, caitlyn, sivir));
     }
 
+    private void importAllHighSchoolsWithDefaultBoards() {
+        if (!neisSchoolSyncProperties.isEnabled() || !neisSchoolSyncProperties.isRunOnStartup()) {
+            System.out.println("[NEIS School Import] AdminInitializer skipped: enabled="
+                    + neisSchoolSyncProperties.isEnabled()
+                    + ", runOnStartup="
+                    + neisSchoolSyncProperties.isRunOnStartup());
+            return;
+        }
+
+        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(
+                false,
+                neisSchoolSyncProperties.isCreateBoards()
+        );
+        System.out.println("[NEIS School Import] AdminInitializer result = " + result);
+    }
+
     /**
      * 학교 게시판이 없으면 생성하고, 있으면 기존 게시판 반환
      */
@@ -196,25 +218,6 @@ public class AdminInitializer implements CommandLineRunner {
                                 .description(description)
                                 .school(school)
                                 .scope(scope)
-                                .build()
-                ));
-    }
-
-    /**
-     * 지역 게시판이 없으면 생성하고, 있으면 기존 게시판 반환
-     */
-    private Board createRegionBoardIfNotExists(
-            Region region,
-            String title,
-            String description
-    ) {
-        return boardRepository.findByRegionAndTitle(region, title)
-                .orElseGet(() -> boardRepository.save(
-                        Board.builder()
-                                .title(title)
-                                .description(description)
-                                .region(region)
-                                .scope(BoardScope.REGION)
                                 .build()
                 ));
     }
