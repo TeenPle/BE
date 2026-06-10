@@ -4,8 +4,11 @@ import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
+import com.shu.backend.domain.notification.enums.NotificationTargetType;
+import com.shu.backend.domain.notification.enums.NotificationType;
+import com.shu.backend.domain.notification.service.NotificationService;
 import com.shu.backend.domain.post.repository.PostRepository;
-import com.shu.backend.global.firebase.FcmSender;
+import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.report.entity.Report;
 import com.shu.backend.domain.report.enums.ReportStatus;
 import com.shu.backend.domain.report.enums.TargetType;
@@ -22,14 +25,17 @@ import com.shu.backend.domain.warning.exception.WarningException;
 import com.shu.backend.domain.warning.exception.status.WarningErrorStatus;
 import com.shu.backend.domain.warning.repository.WarningRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -40,7 +46,8 @@ public class WarningService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    private final FcmSender fcmSender;
+    private final NotificationService notificationService;
+    private final PushService pushService;
     private final AdminAuditLogService adminAuditLogService;
 
     @Transactional
@@ -78,11 +85,39 @@ public class WarningService {
                 "warningId=" + warningId
         );
 
-        fcmSender.sendToUser(
-                report.getReportedUser().getId(),
-                "경고 발령",
-                "관리자로부터 경고가 발령되었습니다. 앱을 열어 확인해주세요."
+        // 경고는 사용자가 놓치면 안 되는 운영 알림이므로
+        // 알림 설정과 무관하게 앱 알림과 푸시를 함께 발송한다. (문의 답변과 동일한 정책)
+        String message = "커뮤니티 가이드 위반으로 경고를 받았어요. 경고 내역을 확인해 주세요.";
+        Long receiverUserId = report.getReportedUser().getId();
+        Long notificationId = notificationService.create(
+                NotificationType.WARNING,
+                NotificationTargetType.WARNING,
+                warningId,
+                message,
+                receiverUserId,
+                adminId
         );
+
+        // 알림 저장 실패가 경고 발령 자체를 막지 않도록 푸시는 별도로 보호한다.
+        if (notificationId != null) {
+            try {
+                // 트랜잭션 커밋 후 발송 — 롤백 시 푸시만 나가는 상황을 방지한다.
+                pushService.sendToUserAfterCommit(
+                        receiverUserId,
+                        "경고 안내",
+                        message,
+                        Map.of(
+                                "notificationId", String.valueOf(notificationId),
+                                "type", NotificationType.WARNING.name(),
+                                "targetType", NotificationTargetType.WARNING.name(),
+                                "targetId", String.valueOf(warningId)
+                        )
+                );
+            } catch (Exception e) {
+                log.warn("Warning push scheduling failed: notificationId={}, warningId={}, receiverUserId={}",
+                        notificationId, warningId, receiverUserId, e);
+            }
+        }
 
         return warningId;
     }

@@ -128,7 +128,8 @@ public class InquiryService {
         );
 
         // 문의 답변은 사용자가 놓치면 안 되는 운영 알림이므로 앱 알림과 푸시를 함께 발송한다.
-        String message = "문의하신 내용에 답변이 등록되었습니다.";
+        // 다른 알림 문구와 어투(해요체)를 통일한다.
+        String message = "문의하신 내용에 답변이 등록되었어요.";
         Long notificationId = notificationService.create(
                 NotificationType.INQUIRY,
                 NotificationTargetType.INQUIRY,

@@ -3,6 +3,10 @@ package com.shu.backend.domain.verification.service;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
+import com.shu.backend.domain.notification.enums.NotificationTargetType;
+import com.shu.backend.domain.notification.enums.NotificationType;
+import com.shu.backend.domain.notification.service.NotificationService;
+import com.shu.backend.domain.push.service.PushService;
 import com.shu.backend.domain.user.entity.User;
 import com.shu.backend.domain.verification.dto.VerificationAdminDTO;
 import com.shu.backend.domain.verification.entity.UserSchoolVerification;
@@ -25,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 학교 인증 요청에 대한 관리자 검토 업무를 처리하는 서비스.
@@ -43,6 +48,8 @@ public class SchoolVerificationAdminService {
     private final UserSchoolVerificationRepository verificationRepository;
     private final FileStorageService fileStorageService;
     private final AdminAuditLogService adminAuditLogService;
+    private final NotificationService notificationService;
+    private final PushService pushService;
 
     // 상태별 학교 인증 요청 목록 조회
     @Transactional(readOnly = true)
@@ -151,6 +158,16 @@ public class SchoolVerificationAdminService {
                 adminComment,
                 verificationMetadata(req)
         );
+
+        // 신청자에게 승인 결과를 알린다. (운영 알림 — 알림 설정과 무관하게 발송)
+        notifyVerificationResult(
+                user.getId(),
+                requestId,
+                NotificationType.VERIFICATION_APPROVED,
+                "학교 인증 완료",
+                "학교 인증이 승인되었어요. 지금부터 모든 기능을 이용할 수 있어요!"
+        );
+
         log.info("School verification approved: requestId={}, adminId={}, userId={}, schoolId={}",
                 requestId, adminUserId, user.getId(), req.getSchool().getId());
     }
@@ -180,8 +197,62 @@ public class SchoolVerificationAdminService {
                 adminComment,
                 verificationMetadata(req)
         );
+
+        // 신청자에게 거절 결과와 사유를 알린다. (운영 알림 — 알림 설정과 무관하게 발송)
+        String rejectMessage = "학교 인증이 거절되었어요. 학생증을 다시 확인한 뒤 재신청해 주세요.";
+        if (adminComment != null && !adminComment.isBlank()) {
+            rejectMessage += " (사유: " + adminComment.trim() + ")";
+        }
+        notifyVerificationResult(
+                req.getUser().getId(),
+                requestId,
+                NotificationType.VERIFICATION_REJECTED,
+                "학교 인증 결과",
+                rejectMessage
+        );
+
         log.info("School verification rejected: requestId={}, adminId={}, userId={}, schoolId={}",
                 requestId, adminUserId, req.getUser().getId(), req.getSchool().getId());
+    }
+
+    /**
+     * 학교 인증 처리 결과(승인/거절)를 신청자에게 앱 알림 + 푸시로 발송한다.
+     *
+     * 알림/푸시 실패가 인증 처리 자체를 막아선 안 되므로 전체를 try-catch로 보호하고,
+     * 푸시는 트랜잭션 커밋 후 발송해 롤백 시 푸시만 나가는 상황을 방지한다.
+     * actorId는 null: 처리한 관리자를 알림에 노출하지 않는 시스템 알림으로 처리한다.
+     */
+    private void notifyVerificationResult(Long receiverUserId,
+                                          Long requestId,
+                                          NotificationType type,
+                                          String pushTitle,
+                                          String message) {
+        try {
+            Long notificationId = notificationService.create(
+                    type,
+                    NotificationTargetType.VERIFICATION_REQUEST,
+                    requestId,
+                    message,
+                    receiverUserId,
+                    null
+            );
+            if (notificationId != null) {
+                pushService.sendToUserAfterCommit(
+                        receiverUserId,
+                        pushTitle,
+                        message,
+                        Map.of(
+                                "notificationId", String.valueOf(notificationId),
+                                "type", type.name(),
+                                "targetType", NotificationTargetType.VERIFICATION_REQUEST.name(),
+                                "targetId", String.valueOf(requestId)
+                        )
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Verification result notify failed: requestId={}, receiverUserId={}, type={}",
+                    requestId, receiverUserId, type, e);
+        }
     }
 
     // 처리 가능한 대기 상태 요청인지 검증

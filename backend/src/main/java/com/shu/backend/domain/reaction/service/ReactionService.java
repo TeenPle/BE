@@ -105,7 +105,7 @@ public class ReactionService {
             throw new ReactionException(ReactionErrorStatus.UNSUPPORTED_TARGET_TYPE);
         }
 
-        // 좋아요가 새로 적용됐고, 자신의 글/댓글이 아니며, 공감 수가 10의 배수일 때만 알림 발송
+        // 좋아요가 새로 적용됐고, 자신의 글/댓글이 아니며, 좋아요 수가 10의 배수일 때만 알림 발송
         if (changed && action == ReactionAction.LIKE && !ownerUserId.equals(userId)
                 && likeCount > 0 && likeCount % 10 == 0) {
 
@@ -114,7 +114,8 @@ public class ReactionService {
             NotificationTargetType notiTargetType = (targetType == ReactionTargetType.POST)
                     ? NotificationTargetType.POST : NotificationTargetType.COMMENT;
             String targetLabel = (targetType == ReactionTargetType.POST) ? "게시글" : "댓글";
-            String notiMsg = "내 " + targetLabel + "의 공감이 " + likeCount + "개가 되었어요!";
+            // 서비스 전반에서 '공감' 대신 '좋아요'로 용어를 통일한다. (FE 설정 화면의 '좋아요 알림'과 일치)
+            String notiMsg = "내 " + targetLabel + "에 좋아요가 " + likeCount + "개 모였어요!";
 
             Long notificationId = notificationService.create(
                     notiType,
