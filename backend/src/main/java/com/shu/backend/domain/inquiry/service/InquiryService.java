@@ -46,14 +46,14 @@ public class InquiryService {
         User user = userRepository.findById(userId).orElseThrow();
         Inquiry inquiry = inquiryRepository.save(
                 Inquiry.create(user, request.getTitle(), request.getContent()));
+        // 관리자 알림함 기록 + 푸시 (actorId = 문의 작성자 — 관리자 본인의 문의는 자신에게 알리지 않음)
         adminPushService.notifyActiveAdmins(
+                NotificationType.ADMIN_INQUIRY,
+                NotificationTargetType.INQUIRY,
+                inquiry.getId(),
                 "새 문의 접수",
                 "사용자 문의가 접수되었습니다.",
-                Map.of(
-                        "type", "ADMIN_INQUIRY",
-                        "targetType", "INQUIRY",
-                        "targetId", String.valueOf(inquiry.getId())
-                )
+                userId
         );
         log.info("Inquiry created: inquiryId={}, userId={}", inquiry.getId(), userId);
         return inquiry.getId();

@@ -14,5 +14,6 @@ public enum NotificationTargetType {
     INQUIRY,               // 문의 (targetId = inquiryId)
     WARNING,               // 경고 (targetId = warningId)
     PENALTY,               // 제재 (targetId = penaltyId)
-    VERIFICATION_REQUEST   // 학교 인증 요청 (targetId = requestId)
+    VERIFICATION_REQUEST,  // 학교 인증 요청 (targetId = requestId)
+    REPORT                 // 신고 (targetId = reportId, 관리자 알림 전용)
 }

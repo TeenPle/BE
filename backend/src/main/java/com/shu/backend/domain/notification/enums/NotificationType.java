@@ -22,5 +22,10 @@ public enum NotificationType {
     PENALTY,                // 커뮤니티 이용 제재
     VERIFICATION_APPROVED,  // 학교 인증 승인
     VERIFICATION_REJECTED,  // 학교 인증 거절
-    SYSTEM                  // 기타 시스템 알림
+    SYSTEM,                 // 기타 시스템 알림
+
+    // ===== 관리자 전용 알림 (ADMIN 계정에게만 발송) ===== //
+    ADMIN_REPORT,           // 새 신고 접수
+    ADMIN_INQUIRY,          // 새 문의 접수
+    ADMIN_VERIFICATION      // 새 학교 인증 요청
 }

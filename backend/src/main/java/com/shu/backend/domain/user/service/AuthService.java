@@ -2,6 +2,8 @@ package com.shu.backend.domain.user.service;
 
 import com.shu.backend.domain.auth.service.VerificationService;
 import com.shu.backend.domain.admin.service.AdminPushService;
+import com.shu.backend.domain.notification.enums.NotificationTargetType;
+import com.shu.backend.domain.notification.enums.NotificationType;
 import com.shu.backend.domain.pushtoken.dto.PushTokenDTO;
 import com.shu.backend.domain.pushtoken.enums.PushPlatform;
 import com.shu.backend.domain.pushtoken.service.PushTokenService;
@@ -32,7 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -314,14 +315,15 @@ public class AuthService {
     }
 
     private void notifyVerificationRequest(Long requestId, String schoolName) {
+        // 관리자 알림함 기록 + 푸시
+        // (인증 요청자는 가입 단계라 관리자일 수 없으므로 actorId는 null로 둔다)
         adminPushService.notifyActiveAdmins(
+                NotificationType.ADMIN_VERIFICATION,
+                NotificationTargetType.VERIFICATION_REQUEST,
+                requestId,
                 "새 학교 인증 요청",
                 schoolName + " 인증 요청이 접수되었습니다.",
-                Map.of(
-                        "type", "ADMIN_VERIFICATION",
-                        "targetType", "VERIFICATION_REQUEST",
-                        "targetId", String.valueOf(requestId)
-                )
+                null
         );
     }
 

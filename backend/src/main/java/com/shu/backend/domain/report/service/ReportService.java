@@ -5,6 +5,8 @@ import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.admin.service.AdminPushService;
 import com.shu.backend.domain.board.service.BoardAccessPolicy;
+import com.shu.backend.domain.notification.enums.NotificationTargetType;
+import com.shu.backend.domain.notification.enums.NotificationType;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.exception.CommentException;
 import com.shu.backend.domain.comment.exception.status.CommentErrorStatus;
@@ -37,7 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -91,14 +92,14 @@ public class ReportService {
                 .build();
 
         Long reportId = reportRepository.save(report).getId();
+        // 관리자 알림함 기록 + 푸시 (actorId = 신고자 — 관리자 본인의 신고는 자신에게 알리지 않음)
         adminPushService.notifyActiveAdmins(
+                NotificationType.ADMIN_REPORT,
+                NotificationTargetType.REPORT,
+                reportId,
                 "새 신고 접수",
                 report.getTargetType().name() + " 신고가 접수되었습니다.",
-                Map.of(
-                        "type", "ADMIN_REPORT",
-                        "targetType", "REPORT",
-                        "targetId", String.valueOf(reportId)
-                )
+                reporterId
         );
         log.info("Report created: reportId={}, reporterId={}, reportedUserId={}, targetType={}, targetId={}, reason={}",
                 reportId, reporterId, reportedUser.getId(), req.getTargetType(), req.getTargetId(), req.getReportReason());
