@@ -1,5 +1,6 @@
 package com.shu.backend.domain.user.dto;
 
+import com.shu.backend.domain.pushtoken.enums.PushPlatform;
 import com.shu.backend.domain.user.enums.Gender;
 import com.shu.backend.domain.user.enums.Grade;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -81,6 +82,14 @@ public class UserRequestDTO {
         @NotBlank(message = "본인인증 토큰이 필요합니다.")
         @Schema(description = "본인인증 완료 토큰", example = "verif_abc123...")
         private String verificationToken;
+
+        // FCM 푸시 토큰 (선택). 인증 승인 전에는 로그인이 차단되어 토큰을 등록할 기회가 없으므로,
+        // 가입 시점에 함께 등록해야 인증 승인/거절 결과를 푸시로 받을 수 있다.
+        @Schema(description = "FCM 푸시 토큰 (선택). 가입 시 등록해야 학교 인증 결과 푸시를 받을 수 있습니다.")
+        private String fcmToken;
+
+        @Schema(description = "푸시 토큰 플랫폼 (fcmToken 전달 시 필수)", example = "IOS", allowableValues = {"ANDROID", "IOS"})
+        private PushPlatform fcmPlatform;
     }
 
     @Getter
@@ -106,6 +115,14 @@ public class UserRequestDTO {
 
         @NotNull
         private Long schoolId;
+
+        // 재신청도 로그인 없이 진행되므로, 앱 재설치 등으로 토큰이 바뀐 경우를 대비해
+        // 가입과 동일하게 FCM 토큰을 함께 받아 갱신한다. (선택)
+        @Schema(description = "FCM 푸시 토큰 (선택). 재신청 시 등록해야 학교 인증 결과 푸시를 받을 수 있습니다.")
+        private String fcmToken;
+
+        @Schema(description = "푸시 토큰 플랫폼 (fcmToken 전달 시 필수)", example = "IOS", allowableValues = {"ANDROID", "IOS"})
+        private PushPlatform fcmPlatform;
     }
 
 }

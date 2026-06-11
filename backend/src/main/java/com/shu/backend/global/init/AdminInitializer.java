@@ -63,7 +63,7 @@ public class AdminInitializer implements CommandLineRunner {
                 System.getProperty("java.home"),
                 System.getProperty("javax.net.ssl.trustStore"));
 
-        importAllHighSchoolsWithDefaultBoards();
+//        importAllHighSchoolsWithDefaultBoards();
 
         // 지역 생성 or 조회
         Region adminRegion = regionRepository.findByName("의정부시")
@@ -181,21 +181,21 @@ public class AdminInitializer implements CommandLineRunner {
         seedTestSchoolPosts(testSchool, List.of(admin2, garen, lux, caitlyn, sivir));
     }
 
-    private void importAllHighSchoolsWithDefaultBoards() {
-        if (!neisSchoolSyncProperties.isEnabled() || !neisSchoolSyncProperties.isRunOnStartup()) {
-            System.out.println("[NEIS School Import] AdminInitializer skipped: enabled="
-                    + neisSchoolSyncProperties.isEnabled()
-                    + ", runOnStartup="
-                    + neisSchoolSyncProperties.isRunOnStartup());
-            return;
-        }
-
-        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(
-                false,
-                neisSchoolSyncProperties.isCreateBoards()
-        );
-        System.out.println("[NEIS School Import] AdminInitializer result = " + result);
-    }
+//    private void importAllHighSchoolsWithDefaultBoards() {
+//        if (!neisSchoolSyncProperties.isEnabled() || !neisSchoolSyncProperties.isRunOnStartup()) {
+//            System.out.println("[NEIS School Import] AdminInitializer skipped: enabled="
+//                    + neisSchoolSyncProperties.isEnabled()
+//                    + ", runOnStartup="
+//                    + neisSchoolSyncProperties.isRunOnStartup());
+//            return;
+//        }
+//
+//        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(
+//                false,
+//                neisSchoolSyncProperties.isCreateBoards()
+//        );
+//        System.out.println("[NEIS School Import] AdminInitializer result = " + result);
+//    }
 
     /**
      * 학교 게시판이 없으면 생성하고, 있으면 기존 게시판 반환

@@ -5,8 +5,11 @@ import com.shu.backend.domain.pushtoken.repository.PushTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
 
@@ -16,6 +19,7 @@ import java.util.*;
 public class PushService {
 
     private final PushTokenRepository pushTokenRepository;
+    private final PlatformTransactionManager transactionManager;
 
     public void sendToUserAfterCommit(Long userId, String title, String body, Map<String, String> data) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -56,7 +60,7 @@ public class PushService {
                 if (!r.isSuccessful()) {
                     failureCount++;
                     String failedToken = tokenValues.get(i);
-                    pushTokenRepository.deactivateByToken(failedToken);
+                    deactivateTokenInNewTransaction(failedToken);
                     log.warn("Push token deactivated: userId={}, tokenSuffix={}, error={}",
                             userId, tokenSuffix(failedToken), r.getException() != null ? r.getException().getMessage() : null);
                 }
@@ -66,6 +70,13 @@ public class PushService {
         } catch (Exception e) {
             log.warn("Push send failed: userId={}, tokenCount={}", userId, tokenValues.size(), e);
         }
+    }
+
+    // afterCommit 콜백에서는 기존 트랜잭션이 이미 커밋된 상태이므로 새 트랜잭션으로 실행해야 한다
+    private void deactivateTokenInNewTransaction(String token) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> pushTokenRepository.deactivateByToken(token));
     }
 
     private String tokenSuffix(String token) {

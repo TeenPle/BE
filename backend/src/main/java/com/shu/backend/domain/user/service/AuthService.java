@@ -2,6 +2,9 @@ package com.shu.backend.domain.user.service;
 
 import com.shu.backend.domain.auth.service.VerificationService;
 import com.shu.backend.domain.admin.service.AdminPushService;
+import com.shu.backend.domain.pushtoken.dto.PushTokenDTO;
+import com.shu.backend.domain.pushtoken.enums.PushPlatform;
+import com.shu.backend.domain.pushtoken.service.PushTokenService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -47,6 +50,7 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final VerificationService smsVerificationService;
     private final AdminPushService adminPushService;
+    private final PushTokenService pushTokenService;
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
 
@@ -65,6 +69,10 @@ public class AuthService {
         // 회원가입 시 알림 설정 기본값으로 자동 생성 (없으면 푸시 발송 조건에서 누락됨)
         userSettingRepository.save(UserSetting.create(newUser));
         createVerificationRequest(newUser, school, studentIdImageUrl);
+
+        // 인증 승인 전에는 로그인이 차단되어 토큰을 등록할 기회가 없으므로,
+        // 가입 시점에 FCM 토큰을 함께 등록해야 인증 결과 푸시를 받을 수 있다.
+        registerPushTokenIfPresent(newUser.getId(), request.getFcmToken(), request.getFcmPlatform());
 
         String accessToken = jwtTokenProvider.createAccessToken(newUser.getId());
         String refreshToken = issueRefreshToken(newUser);
@@ -271,9 +279,34 @@ public class AuthService {
 
         Long requestId = verificationRequestRepository.save(newRequest).getId();
         notifyVerificationRequest(requestId, school.getName());
+
+        // 재신청도 로그인 없이 진행되므로 앱 재설치 등으로 바뀐 토큰을 여기서 갱신한다.
+        registerPushTokenIfPresent(user.getId(), request.getFcmToken(), request.getFcmPlatform());
+
         log.info("School verification reapplied: userId={}, schoolId={}, requestId={}",
                 user.getId(), school.getId(), requestId);
         return requestId;
+    }
+
+    /**
+     * 가입/재신청 요청에 FCM 토큰이 포함된 경우 푸시 토큰을 등록한다.
+     *
+     * 토큰 등록 실패가 가입/재신청 자체를 막아서는 안 되므로 예외는 로그만 남기고 삼킨다.
+     * (등록에 실패하면 인증 결과 푸시만 못 받을 뿐, 알림함에는 정상 기록된다)
+     */
+    private void registerPushTokenIfPresent(Long userId, String fcmToken, PushPlatform platform) {
+        if (fcmToken == null || fcmToken.isBlank()) {
+            return;
+        }
+        if (platform == null) {
+            log.warn("Signup push token skipped: userId={}, reason=platform_missing", userId);
+            return;
+        }
+        try {
+            pushTokenService.registerOrUpdate(userId, new PushTokenDTO.RegisterRequest(fcmToken, platform));
+        } catch (Exception e) {
+            log.warn("Signup push token register failed: userId={}, platform={}", userId, platform, e);
+        }
     }
 
     private void notifyVerificationRequest(UserSchoolVerificationRequest request, String schoolName) {
