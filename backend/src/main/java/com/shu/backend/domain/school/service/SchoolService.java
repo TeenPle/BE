@@ -37,6 +37,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SchoolService {
 
+    private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
+
     private final RegionRepository regionRepository;
     private final SchoolRepository schoolRepository;
     private final BoardRepository boardRepository;
@@ -79,10 +81,11 @@ public class SchoolService {
         regionRepository.findById(regionId)
                 .orElseThrow(() -> new RegionException(RegionErrorStatus.REGION_NOT_FOUND));
 
-        if (keyword == null || keyword.isBlank()) {
-            return schoolRepository.findByRegionIdOrderByNameAsc(regionId);
-        }
-        return schoolRepository.findSchoolsByRegionAndName(regionId, keyword);
+        return schoolRepository.findSchoolsByRegionAndNameExcluding(
+                regionId,
+                keyword,
+                ADMIN_SCHOOL_NAME
+        );
     }
 
     @Transactional
@@ -97,7 +100,10 @@ public class SchoolService {
             throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_NAME);
         }
 
-        return schoolRepository.findSchoolsByName(keyword.trim());
+        return schoolRepository.findSchoolsByNameExcluding(
+                keyword.trim(),
+                ADMIN_SCHOOL_NAME
+        );
     }
 
     public Slice<PostResponse> getAllPostsBySchool(Long schoolId, Pageable pageable, Long currentUserId) {

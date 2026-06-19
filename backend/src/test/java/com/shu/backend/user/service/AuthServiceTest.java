@@ -1,6 +1,8 @@
 package com.shu.backend.user.service;
 
 import com.shu.backend.domain.auth.service.VerificationService;
+import com.shu.backend.domain.admin.service.AdminPushService;
+import com.shu.backend.domain.pushtoken.service.PushTokenService;
 import com.shu.backend.domain.school.entity.School;
 import com.shu.backend.domain.school.repository.SchoolRepository;
 import com.shu.backend.domain.school.exception.SchoolException;
@@ -69,6 +71,12 @@ public class AuthServiceTest {
     @Mock
     private VerificationService smsVerificationService;
 
+    @Mock
+    private AdminPushService adminPushService;
+
+    @Mock
+    private PushTokenService pushTokenService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -128,6 +136,8 @@ public class AuthServiceTest {
                     idField.set(u, 100L);
                     return u;
                 });
+        given(verificationRequestRepository.save(any(UserSchoolVerificationRequest.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // 토큰 발급
         given(jwtTokenProvider.createAccessToken(100L)).willReturn("fake-jwt-token");
@@ -261,6 +271,71 @@ public class AuthServiceTest {
         verify(userRepository).existsByEmail(request.getEmail());
         verify(userRepository).existsByNickname(request.getNickname());
         verify(schoolRepository).findFirstByNameOrderByIdAsc(request.getSchool());
+        verify(userRepository, never()).save(any(User.class));
+        verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 시 운영자 전용 학교명은 사용할 수 없다")
+    void join_fail_adminSchoolByName() {
+        UserRequestDTO.SignUp request = UserRequestDTO.SignUp.builder()
+                .username("홍길동")
+                .email("test@example.com")
+                .nickname("tester")
+                .school("운영자전용학교")
+                .password("Abcd1234!")
+                .verificationToken("verification-token")
+                .build();
+
+        School adminSchool = School.builder()
+                .id(1L)
+                .name("운영자전용학교")
+                .build();
+
+        given(userRepository.existsByEmail(request.getEmail())).willReturn(false);
+        given(userRepository.existsByNickname(request.getNickname())).willReturn(false);
+        given(schoolRepository.findFirstByNameOrderByIdAsc(request.getSchool()))
+                .willReturn(Optional.of(adminSchool));
+
+        SchoolException exception = assertThrows(
+                SchoolException.class,
+                () -> authService.join(request, "any-url")
+        );
+
+        assertThat(exception.getErrorReasonHttpStatus().getCode()).isEqualTo("SCHOOL4002");
+        verify(userRepository, never()).save(any(User.class));
+        verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 시 운영자 전용 학교 ID로도 우회할 수 없다")
+    void join_fail_adminSchoolById() {
+        UserRequestDTO.SignUp request = UserRequestDTO.SignUp.builder()
+                .username("홍길동")
+                .email("test@example.com")
+                .nickname("tester")
+                .school("운영자전용학교")
+                .schoolId(1L)
+                .password("Abcd1234!")
+                .verificationToken("verification-token")
+                .build();
+
+        School adminSchool = School.builder()
+                .id(1L)
+                .name("운영자전용학교")
+                .build();
+
+        given(userRepository.existsByEmail(request.getEmail())).willReturn(false);
+        given(userRepository.existsByNickname(request.getNickname())).willReturn(false);
+        given(schoolRepository.findById(1L)).willReturn(Optional.of(adminSchool));
+
+        SchoolException exception = assertThrows(
+                SchoolException.class,
+                () -> authService.join(request, "any-url")
+        );
+
+        assertThat(exception.getErrorReasonHttpStatus().getCode()).isEqualTo("SCHOOL4002");
+        verify(schoolRepository, never()).findFirstByNameOrderByIdAsc(anyString());
         verify(userRepository, never()).save(any(User.class));
         verify(verificationRequestRepository, never()).save(any(UserSchoolVerificationRequest.class));
     }

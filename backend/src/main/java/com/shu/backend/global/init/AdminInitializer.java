@@ -41,6 +41,38 @@ public class AdminInitializer implements CommandLineRunner {
 
     private static final String ADMIN_SCHOOL_NAME = "운영자전용학교";
     private static final String TEST_SCHOOL_NAME = "오남고등학교";
+    private static final List<OperationalPost> OPERATIONAL_POSTS = List.of(
+            new OperationalPost(
+                    "틴플 이용 안내",
+                    """
+                    틴플은 학교 인증을 완료한 학생들이 함께 소통하는 학교 기반 커뮤니티입니다.
+
+                    서로를 존중하며 자유롭게 이야기해 주세요. 학교폭력, 괴롭힘, 혐오·차별 표현, 허위 사실 유포, 성적 수치심을 유발하는 내용, 불법·광고성 게시물, 도배, 타인의 개인정보 공개는 제한될 수 있습니다.
+
+                    자세한 이용약관과 개인정보처리방침은 앱 설정에서 확인할 수 있습니다.
+                    """
+            ),
+            new OperationalPost(
+                    "우리 학교 게시판 첫 글을 남겨보세요",
+                    """
+                    아직 조용한 게시판이라면 여러분이 첫 이야기를 시작해 주세요.
+
+                    오늘 급식 후기, 시험·수행평가 정보, 동아리와 행사 소식, 등굣길 정보, 학교생활 질문처럼 친구들과 나누고 싶은 내용을 자유롭게 작성할 수 있습니다.
+
+                    개인을 특정하거나 상처를 줄 수 있는 내용은 피하고, 서로에게 도움이 되는 학교 커뮤니티를 함께 만들어 주세요.
+                    """
+            ),
+            new OperationalPost(
+                    "불편하거나 위험한 게시글 신고 방법",
+                    """
+                    불편하거나 위험한 게시글과 댓글을 발견하면 해당 콘텐츠의 오른쪽 위 메뉴에서 '신고하기'를 선택해 주세요.
+
+                    스팸, 욕설·모욕, 음란물·선정적 내용, 불법 콘텐츠, 괴롭힘 등의 사유로 신고할 수 있습니다. 접수된 신고는 운영자가 확인하고 필요한 경우 게시물 숨김, 경고 또는 이용 제한 조치를 진행합니다.
+
+                    신고 기능은 안전한 커뮤니티를 위한 기능입니다. 허위 신고나 반복적인 신고 기능 악용은 삼가 주세요.
+                    """
+            )
+    );
 
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
@@ -57,89 +89,44 @@ public class AdminInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-
         log.debug("AdminInitializer runtime: javaVersion={}, javaHome={}, trustStore={}",
                 System.getProperty("java.version"),
                 System.getProperty("java.home"),
                 System.getProperty("javax.net.ssl.trustStore"));
 
+        /*
+         * 실행 환경 전환 지점
+         *
+         * 로컬 개발: initializeLocalData() 호출을 열고 initializeProductionData()를 주석 처리한다.
+         * 실제 배포: initializeLocalData()를 주석 처리하고 initializeProductionData() 호출을 연다.
+         */
+        initializeLocalData();
+//        initializeProductionData();
+    }
+
+    /**
+     * 로컬 개발용 초기 데이터.
+     *
+     * 현재 사용 중인 학교, 계정, 게시글/댓글/좋아요 테스트 데이터를 그대로 구성한다.
+     */
+    private void initializeLocalData() {
 //        importAllHighSchoolsWithDefaultBoards();
 
         // 지역 생성 or 조회
-        Region adminRegion = regionRepository.findByName("의정부시")
-                .orElseGet(() -> regionRepository.save(Region.builder().name("의정부시").build()));
+        Region adminRegion = getOrCreateAdminRegion();
 
         // 오남고등학교 생성 or 조회 (region 할당)
-        School testSchool = schoolRepository.findFirstByNameOrderByIdAsc(TEST_SCHOOL_NAME)
-                .orElseGet(() -> schoolRepository.save(
-                        School.builder()
-                                .name(TEST_SCHOOL_NAME)
-                                .region(adminRegion)
-                                .logoImageUrl(null)
-                                .build()
-                ));
-        if (testSchool.getRegion() == null) {
-            testSchool.updateRegion(adminRegion);
-        }
+        School testSchool = getOrCreateTestSchool(adminRegion);
 
         // 운영자 전용 학교 생성 or 조회
-        School adminSchool = schoolRepository.findFirstByNameOrderByIdAsc(ADMIN_SCHOOL_NAME)
-                .orElseGet(() -> schoolRepository.save(
-                        School.builder()
-                                .name(ADMIN_SCHOOL_NAME)
-                                .region(adminRegion)
-                                .logoImageUrl(null)
-                                .build()
-                ));
+        School adminSchool = getOrCreateAdminSchool(adminRegion);
 
         // 오남고등학교 게시판 생성
-        createBoardIfNotExists(testSchool, "자유게시판", "자유롭게 이야기해요", BoardScope.SCHOOL);
-        createBoardIfNotExists(testSchool, "1학년 게시판", "1학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(testSchool, "2학년 게시판", "2학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(testSchool, "3학년 게시판", "3학년 전용 게시판", BoardScope.SCHOOL);
-        createBoardIfNotExists(testSchool, "졸업생 게시판", "졸업생 전용 게시판", BoardScope.SCHOOL);
+        ensureTestSchoolBoards(testSchool);
 
-        // admin은 그대로 유지
-        defaultSchoolBoardService.ensureDefaultBoards(testSchool);
+        createPrimaryAdminIfNotExists(adminSchool);
 
-        userRepository.findByEmail("leejd8131@naver.com")
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .username("시스템관리자1")
-                                .email("leejd8131@naver.com")
-                                .nickname("admin1")
-                                .password(passwordEncoder.encode("dhkdrl12"))
-                                .school(adminSchool)
-                                .role(UserRole.ADMIN) 
-                                .status(UserStatus.ACTIVE)
-                                .verified(true)
-                                .profileImageUrl(null)
-                                .grade(Grade.FIRST)
-                                .phoneNumber("01053468130")
-                                .gender(Gender.MALE)
-                                .build()
-                ));
-
-        // admin2는 일반회원 + 오남고등학교 소속으로만 생성
-        // 이미 같은 이메일 계정이 있으면 기존 계정을 그대로 사용
-        User admin2 = userRepository.findByEmail("teenple@example.com")
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .username("카이사")
-                                .email("teenple@example.com")
-                                .nickname("카이사")
-                                .password(passwordEncoder.encode("Abcd1234!"))
-                                .school(testSchool)
-                                .role(UserRole.USER)
-                                .status(UserStatus.ACTIVE)
-                                .verified(true)
-                                .profileImageUrl(null)
-                                .grade(Grade.FIRST)
-                                .phoneNumber("01071651075")
-                                .gender(Gender.MALE)
-                                .phoneVerified(true)
-                                .build()
-                ));
+        User testAccount = createAppTestAccountIfNotExists(testSchool);
 
         User garen = createTestUserIfNotExists(
                 "오남고테스트학생",
@@ -178,24 +165,191 @@ public class AdminInitializer implements CommandLineRunner {
         );
 
         // 오남고 테스트 학생 5명이 균일하게 글/댓글/좋아요를 작성한 시드 데이터
-        seedTestSchoolPosts(testSchool, List.of(admin2, garen, lux, caitlyn, sivir));
+        seedTestSchoolPosts(testSchool, List.of(testAccount, garen, lux, caitlyn, sivir));
     }
 
-//    private void importAllHighSchoolsWithDefaultBoards() {
-//        if (!neisSchoolSyncProperties.isEnabled() || !neisSchoolSyncProperties.isRunOnStartup()) {
-//            System.out.println("[NEIS School Import] AdminInitializer skipped: enabled="
-//                    + neisSchoolSyncProperties.isEnabled()
-//                    + ", runOnStartup="
-//                    + neisSchoolSyncProperties.isRunOnStartup());
-//            return;
-//        }
-//
-//        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(
-//                false,
-//                neisSchoolSyncProperties.isCreateBoards()
-//        );
-//        System.out.println("[NEIS School Import] AdminInitializer result = " + result);
-//    }
+    /**
+     * 실제 배포용 초기 데이터.
+     *
+     * 관리자 계정 2개와 앱 검수용 테스트 계정 1개를 구성한다.
+     * 게시글/댓글/좋아요 테스트 데이터 정리는 이번 변경 범위에 포함하지 않는다.
+     */
+    private void initializeProductionData() {
+        importAllHighSchoolsWithDefaultBoards();
+
+        Region adminRegion = getOrCreateAdminRegion();
+        School adminSchool = getOrCreateAdminSchool(adminRegion);
+        School testSchool = getOrCreateTestSchool(adminRegion);
+
+        User operationalAdmin = createPrimaryAdminIfNotExists(adminSchool);
+        createSecondaryAdminIfNotExists(adminSchool);
+        ensureTestSchoolBoards(testSchool);
+        createAppTestAccountIfNotExists(testSchool);
+        seedOperationalPostsForAllSchools(operationalAdmin);
+    }
+
+    private Region getOrCreateAdminRegion() {
+        return regionRepository.findByName("의정부시")
+                .orElseGet(() -> regionRepository.save(
+                        Region.builder()
+                                .name("의정부시")
+                                .build()
+                ));
+    }
+
+    private School getOrCreateTestSchool(Region region) {
+        School testSchool = schoolRepository.findFirstByNameOrderByIdAsc(TEST_SCHOOL_NAME)
+                .orElseGet(() -> schoolRepository.save(
+                        School.builder()
+                                .name(TEST_SCHOOL_NAME)
+                                .region(region)
+                                .logoImageUrl(null)
+                                .build()
+                ));
+
+        if (testSchool.getRegion() == null) {
+            testSchool.updateRegion(region);
+        }
+        return testSchool;
+    }
+
+    private School getOrCreateAdminSchool(Region region) {
+        return schoolRepository.findFirstByNameOrderByIdAsc(ADMIN_SCHOOL_NAME)
+                .orElseGet(() -> schoolRepository.save(
+                        School.builder()
+                                .name(ADMIN_SCHOOL_NAME)
+                                .region(region)
+                                .logoImageUrl(null)
+                                .build()
+                ));
+    }
+
+    private void ensureTestSchoolBoards(School testSchool) {
+        createBoardIfNotExists(testSchool, "자유게시판", "자유롭게 이야기해요", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "1학년 게시판", "1학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "2학년 게시판", "2학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "3학년 게시판", "3학년 전용 게시판", BoardScope.SCHOOL);
+        createBoardIfNotExists(testSchool, "졸업생 게시판", "졸업생 전용 게시판", BoardScope.SCHOOL);
+        defaultSchoolBoardService.ensureDefaultBoards(testSchool);
+    }
+
+    private User createPrimaryAdminIfNotExists(School adminSchool) {
+        return userRepository.findByEmail("leejd8131@naver.com")
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .username("시스템관리자1")
+                                .email("leejd8131@naver.com")
+                                .nickname("admin1")
+                                .password(passwordEncoder.encode("@a13688631"))
+                                .school(adminSchool)
+                                .role(UserRole.ADMIN)
+                                .status(UserStatus.ACTIVE)
+                                .verified(true)
+                                .profileImageUrl(null)
+                                .grade(Grade.FIRST)
+                                .phoneNumber("01053468130")
+                                .gender(Gender.MALE)
+                                .build()
+                ));
+    }
+
+    private User createSecondaryAdminIfNotExists(School adminSchool) {
+        return userRepository.findByEmail("rkdgusals@naver.com")
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .username("시스템관리자2")
+                                .email("rkdgusals@naver.com")
+                                .nickname("admin2")
+                                .password(passwordEncoder.encode("1234"))
+                                .school(adminSchool)
+                                .role(UserRole.ADMIN)
+                                .status(UserStatus.ACTIVE)
+                                .verified(true)
+                                .profileImageUrl(null)
+                                .grade(Grade.FIRST)
+                                .phoneNumber("01053468131")
+                                .gender(Gender.MALE)
+                                .phoneVerified(true)
+                                .build()
+                ));
+    }
+
+    private User createAppTestAccountIfNotExists(School testSchool) {
+        return userRepository.findByEmail("teenple@example.com")
+                .orElseGet(() -> userRepository.save(
+                        User.builder()
+                                .username("카이사")
+                                .email("teenple@example.com")
+                                .nickname("카이사")
+                                .password(passwordEncoder.encode("Abcd1234!"))
+                                .school(testSchool)
+                                .role(UserRole.USER)
+                                .status(UserStatus.ACTIVE)
+                                .verified(true)
+                                .profileImageUrl(null)
+                                .grade(Grade.FIRST)
+                                .phoneNumber("01071651075")
+                                .gender(Gender.MALE)
+                                .phoneVerified(true)
+                                .build()
+                ));
+    }
+
+    /**
+     * 운영자 전용 학교를 제외한 모든 학교의 자유게시판에 운영 안내 글을 생성한다.
+     *
+     * 같은 제목의 글이 이미 있으면 다시 만들지 않으므로 배포 초기화를 재실행해도 중복되지 않는다.
+     */
+    private void seedOperationalPostsForAllSchools(User operationalAdmin) {
+        List<School> schools = schoolRepository.findAll().stream()
+                .filter(school -> !ADMIN_SCHOOL_NAME.equals(school.getName()))
+                .toList();
+
+        int createdCount = 0;
+        for (School school : schools) {
+            defaultSchoolBoardService.ensureDefaultBoards(school);
+            Board freeBoard = boardRepository.findBySchoolIdAndType(school.getId(), BoardType.FREE)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "자유게시판 초기화 실패: schoolId=" + school.getId()
+                    ));
+
+            for (OperationalPost operationalPost : OPERATIONAL_POSTS) {
+                if (postRepository.existsByBoardAndTitle(freeBoard, operationalPost.title())) {
+                    continue;
+                }
+
+                postRepository.save(
+                        createPost(
+                                freeBoard,
+                                operationalAdmin,
+                                operationalPost.title(),
+                                operationalPost.content(),
+                                false,
+                                0
+                        )
+                );
+                createdCount++;
+            }
+        }
+
+        log.info("[Operational Post Seed] completed: schools={}, created={}",
+                schools.size(), createdCount);
+    }
+
+    private void importAllHighSchoolsWithDefaultBoards() {
+        if (!neisSchoolSyncProperties.isEnabled() || !neisSchoolSyncProperties.isRunOnStartup()) {
+            log.info("[NEIS School Import] skipped: enabled={}, runOnStartup={}",
+                    neisSchoolSyncProperties.isEnabled(),
+                    neisSchoolSyncProperties.isRunOnStartup());
+            return;
+        }
+
+        NeisSyncResult result = neisSchoolSyncService.syncAllHighSchools(
+                false,
+                neisSchoolSyncProperties.isCreateBoards()
+        );
+        log.info("[NEIS School Import] result={}", result);
+    }
 
     /**
      * 학교 게시판이 없으면 생성하고, 있으면 기존 게시판 반환
@@ -453,6 +607,12 @@ public class AdminInitializer implements CommandLineRunner {
             boolean anonymous,
             int likeCount,
             int commentCount
+    ) {
+    }
+
+    private record OperationalPost(
+            String title,
+            String content
     ) {
     }
 }

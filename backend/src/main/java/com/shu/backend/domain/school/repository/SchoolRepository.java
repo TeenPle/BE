@@ -21,13 +21,16 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     public List<School> findByRegionId(Long regionId);
 
-    List<School> findByRegionIdOrderByNameAsc(Long regionId);
-
     // 지역 ID와 학교명(keyword)을 기준으로 학교 검색
     @Query("SELECT s FROM School s WHERE s.region.id = :regionId " +
+            "AND s.name <> :excludedSchoolName " +
             "AND (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%')) " +
             "ORDER BY s.name ASC")
-    List<School> findSchoolsByRegionAndName(@Param("regionId") Long regionId, @Param("keyword") String keyword);
+    List<School> findSchoolsByRegionAndNameExcluding(
+            @Param("regionId") Long regionId,
+            @Param("keyword") String keyword,
+            @Param("excludedSchoolName") String excludedSchoolName
+    );
 
     @Query("""
         select s
@@ -40,9 +43,13 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     // 학교명(keyword)으로 전체 학교 검색
     @Query("SELECT s FROM School s " +
-            "WHERE (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%')) " +
+            "WHERE s.name <> :excludedSchoolName " +
+            "AND (:keyword IS NULL OR :keyword = '' OR s.name LIKE CONCAT('%', :keyword, '%')) " +
             "ORDER BY s.name ASC")
-    List<School> findSchoolsByName(@Param("keyword") String keyword);
+    List<School> findSchoolsByNameExcluding(
+            @Param("keyword") String keyword,
+            @Param("excludedSchoolName") String excludedSchoolName
+    );
 
 
     boolean existsByRegionIdAndName(Long id, String name);

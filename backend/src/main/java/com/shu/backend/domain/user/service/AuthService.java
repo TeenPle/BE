@@ -64,7 +64,7 @@ public class AuthService {
                 request.getEmail()
         );
 
-        School school = getSchoolByName(request.getSchool());
+        School school = getSchool(request);
         User newUser = createUser(request, school, true);
         userRepository.save(newUser);
         // 회원가입 시 알림 설정 기본값으로 자동 생성 (없으면 푸시 발송 조건에서 누락됨)
@@ -172,19 +172,26 @@ public class AuthService {
     }
 
     public School getSchoolByName(String schoolName) {
-        if (ADMIN_SCHOOL_NAME.equals(schoolName)) {
-            throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_FOR_SIGNUP);
-        }
-        return schoolRepository.findFirstByNameOrderByIdAsc(schoolName)
+        School school = schoolRepository.findFirstByNameOrderByIdAsc(schoolName)
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+        validateSchoolForSignUp(school);
+        return school;
     }
 
     public School getSchool(UserRequestDTO.SignUp request) {
         if (request.getSchoolId() != null) {
-            return schoolRepository.findById(request.getSchoolId())
+            School school = schoolRepository.findById(request.getSchoolId())
                     .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+            validateSchoolForSignUp(school);
+            return school;
         }
         return getSchoolByName(request.getSchool());
+    }
+
+    private void validateSchoolForSignUp(School school) {
+        if (ADMIN_SCHOOL_NAME.equals(school.getName())) {
+            throw new SchoolException(SchoolErrorStatus.INVALID_SCHOOL_FOR_SIGNUP);
+        }
     }
 
     public User createUser(UserRequestDTO.SignUp request, School school, boolean phoneVerified) {
@@ -270,6 +277,7 @@ public class AuthService {
 
         School school = schoolRepository.findById(request.getSchoolId())
                 .orElseThrow(() -> new SchoolException(SchoolErrorStatus.SCHOOL_NOT_FOUND));
+        validateSchoolForSignUp(school);
 
         UserSchoolVerificationRequest newRequest =
                 UserSchoolVerificationRequest.builder()
