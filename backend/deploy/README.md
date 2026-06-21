@@ -2,7 +2,7 @@
 
 - `teenple.env.example`: copy to `/etc/teenple/teenple.env`, replace every placeholder, and set mode `600`.
 - `teenple-backend.service`: install as `/etc/systemd/system/teenple-backend.service`.
-- `nginx-api.teenple.com.conf`: install under `/etc/nginx/conf.d/` after issuing the TLS certificate.
+- `nginx-api.teenple.app.conf`: install under `/etc/nginx/conf.d/` after issuing the TLS certificate.
 
 The EC2 instance profile must allow the required S3 operations on both buckets and `rekognition:DetectModerationLabels`. Do not place long-lived AWS access keys in the environment file.
 
