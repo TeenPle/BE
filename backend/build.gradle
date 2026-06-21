@@ -74,6 +74,7 @@ dependencies {
 	implementation 'com.google.firebase:firebase-admin:9.2.0'
 
 	//flyway
+	implementation 'org.springframework.boot:spring-boot-flyway'   // Boot 4.0 Flyway 자동설정 모듈 (이게 있어야 마이그레이션 자동 실행됨)
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-mysql'
 
