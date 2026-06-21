@@ -1,0 +1,24 @@
+[Unit]
+Description=TeenPle Spring Boot backend
+After=network-online.target redis6.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=teenple
+Group=teenple
+WorkingDirectory=/opt/teenple
+EnvironmentFile=/etc/teenple/teenple.env
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=70 -Duser.timezone=Asia/Seoul -jar /opt/teenple/teenple-backend.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/teenple
+
+[Install]
+WantedBy=multi-user.target

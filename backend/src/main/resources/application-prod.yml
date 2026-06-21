@@ -17,6 +17,12 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 mail:
   from: ${MAIL_FROM}
 
@@ -54,8 +60,5 @@ file:
 
 cloud:
   aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY_ID}
-      secret-key: ${AWS_SECRET_ACCESS_KEY}
     region:
       static: ${AWS_REGION}

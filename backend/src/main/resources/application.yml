@@ -1,6 +1,7 @@
 server:
   address: ${SERVER_ADDRESS:0.0.0.0}
   port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
 
 spring:
   profiles:
@@ -151,11 +152,7 @@ file:
     base-url: ${FILE_BASE_URL}
     region: ${AWS_REGION}
 
-#배포후 접근키 비밀키 삽입
 cloud:
   aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY_ID}
-      secret-key: ${AWS_SECRET_ACCESS_KEY}
     region:
       static: ${AWS_REGION}
