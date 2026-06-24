@@ -16,7 +16,7 @@ env:
   SERVICE_NAME: teenple-backend
   JAR_PATH: /opt/teenple/teenple-backend.jar
   DEPLOY_BUCKET: ${{ secrets.DEPLOY_BUCKET }}
-  SSM_INSTANCE_ID: i-0f2b472b047b256ff
+  SSM_INSTANCE_ID: ${{ secrets.SSM_INSTANCE_ID }}
 
 jobs:
   deploy:

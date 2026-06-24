@@ -18,7 +18,7 @@ The instance must already have:
 - `/opt/teenple`, `/var/log/teenple`, and `/etc/teenple/teenple.env` prepared.
 - `teenple-backend.service` installed and working.
 - SSM managed instance ID matching the workflow target:
-  - instance ID: `i-0f2b472b047b256ff`
+  - stored in GitHub Actions secret `SSM_INSTANCE_ID`
 
 The EC2 role needs at least:
 
@@ -56,6 +56,7 @@ Add these in GitHub:
 
 - `AWS_ROLE_TO_ASSUME`: IAM role ARN used by GitHub Actions through OIDC.
 - `DEPLOY_BUCKET`: private S3 bucket name for JAR artifacts.
+- `SSM_INSTANCE_ID`: EC2 instance ID managed by SSM.
 
 Do not add `.env`, database passwords, JWT secrets, Firebase JSON, or mail
 passwords to GitHub Actions secrets for this deployment flow.
