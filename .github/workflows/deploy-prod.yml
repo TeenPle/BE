@@ -37,6 +37,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Make Gradle wrapper executable
+        working-directory: backend
+        run: chmod +x ./gradlew
+
       - name: Build boot jar
         working-directory: backend
         run: ./gradlew clean bootJar
