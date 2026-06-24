@@ -98,7 +98,70 @@ backend
 
 ## 🚀 배포 파이프라인 (CI/CD)
 
-(추후 작성)
+TeenPle 백엔드는 **GitHub Actions + AWS OIDC + S3 + SSM Run Command + systemd** 기반으로
+프로덕션 자동 배포를 구성했습니다.
+
+### 배포 트리거
+
+- `main` 브랜치에 코드가 반영되면 자동 배포가 실행됩니다.
+- GitHub Actions 화면에서 `Run workflow`로 수동 실행할 수도 있습니다.
+- 문서 수정만 있는 경우에는 불필요한 서버 재배포를 막기 위해 배포 workflow를 실행하지 않습니다.
+
+```text
+TeenPle/BE
+└─ .github
+   └─ workflows
+      └─ deploy-prod.yml
+```
+
+### CI 단계
+
+GitHub Actions runner에서 JDK 21과 Gradle 환경을 구성한 뒤 Spring Boot 실행 JAR을 빌드합니다.
+
+```bash
+./gradlew clean bootJar
+```
+
+빌드가 실패하면 이후 배포 단계는 실행되지 않습니다.
+
+### CD 단계
+
+빌드가 성공하면 다음 순서로 운영 EC2에 배포합니다.
+
+```text
+1. bootJar 산출물 생성
+2. S3 deploy/releases 경로에 JAR 업로드
+3. AWS SSM Run Command로 EC2에 배포 명령 전송
+4. EC2에서 S3의 JAR 다운로드
+5. /opt/teenple/teenple-backend.jar 교체
+6. teenple-backend systemd 서비스 재시작
+7. /actuator/health 헬스체크
+```
+
+배포 성공 여부는 GitHub Actions 로그와 EC2 내부 헬스체크로 확인합니다.
+
+```bash
+sudo systemctl status teenple-backend --no-pager
+curl -i http://127.0.0.1:8080/actuator/health
+```
+
+### 운영 Secret 관리
+
+GitHub Actions에는 운영 비밀번호나 `.env` 값을 저장하지 않습니다.
+
+- AWS 접근은 GitHub OIDC와 IAM Role을 사용합니다.
+- 배포에 필요한 값은 GitHub Actions Secrets로 관리합니다.
+- 운영 애플리케이션 환경변수는 EC2의 `/etc/teenple/teenple.env`에서 관리합니다.
+
+현재 배포 workflow에서 사용하는 GitHub Secrets:
+
+```text
+AWS_ROLE_TO_ASSUME
+DEPLOY_BUCKET
+SSM_INSTANCE_ID
+```
+
+Firebase service account JSON, DB 비밀번호, JWT secret 등 민감 정보는 저장소에 커밋하지 않습니다.
 
 ---
 
