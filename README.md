@@ -101,9 +101,12 @@ backend
 TeenPle 백엔드는 **GitHub Actions + AWS OIDC + S3 + SSM Run Command + systemd** 기반으로
 프로덕션 자동 배포를 구성했습니다.
 
+배포 서버에 SSH 키를 직접 전달하지 않고, GitHub Actions가 AWS OIDC로 임시 권한을 발급받은 뒤
+SSM Run Command를 통해 EC2 내부에서 배포 명령을 실행하는 방식입니다.
+
 ### 배포 트리거
 
-- `main` 브랜치에 코드가 반영되면 자동 배포가 실행됩니다.
+- `main` 브랜치에 코드가 반영되면 자동으로 CI/CD 파이프라인이 실행됩니다.
 - GitHub Actions 화면에서 `Run workflow`로 수동 실행할 수도 있습니다.
 - 문서 수정만 있는 경우에는 불필요한 서버 재배포를 막기 위해 배포 workflow를 실행하지 않습니다.
 
@@ -114,19 +117,43 @@ TeenPle/BE
       └─ deploy-prod.yml
 ```
 
+배포 제외 대상:
+
+```text
+**/*.md
+docs/**
+backend/deploy/**
+```
+
+따라서 README, 문서, 배포 설명 파일만 수정하는 경우에는 운영 서버가 재시작되지 않습니다.
+
 ### CI 단계
 
-GitHub Actions runner에서 JDK 21과 Gradle 환경을 구성한 뒤 Spring Boot 실행 JAR을 빌드합니다.
+CI 단계에서는 GitHub Actions runner에서 애플리케이션이 정상적으로 빌드되는지 검증합니다.
+
+진행 순서:
+
+```text
+1. 저장소 checkout
+2. JDK 21 설치
+3. Gradle 캐시 및 빌드 환경 구성
+4. Gradle Wrapper 실행 권한 부여
+5. Spring Boot 실행 JAR 빌드
+```
+
+실행 명령:
 
 ```bash
 ./gradlew clean bootJar
 ```
 
-빌드가 실패하면 이후 배포 단계는 실행되지 않습니다.
+빌드가 실패하면 S3 업로드와 EC2 배포 단계는 실행되지 않습니다.
+
+현재 CI는 컴파일 및 패키징 검증 중심이며, 추후 `./gradlew test` 단계를 추가해 테스트 자동 검증까지 확장할 수 있습니다.
 
 ### CD 단계
 
-빌드가 성공하면 다음 순서로 운영 EC2에 배포합니다.
+CD 단계에서는 CI에서 생성한 JAR 파일을 운영 EC2에 반영합니다.
 
 ```text
 1. bootJar 산출물 생성
@@ -138,12 +165,32 @@ GitHub Actions runner에서 JDK 21과 Gradle 환경을 구성한 뒤 Spring Boot
 7. /actuator/health 헬스체크
 ```
 
-배포 성공 여부는 GitHub Actions 로그와 EC2 내부 헬스체크로 확인합니다.
+배포 명령은 EC2에 직접 SSH 접속하는 방식이 아니라 AWS SSM을 통해 실행됩니다.
+EC2는 S3에 업로드된 JAR을 내려받아 기존 실행 파일을 교체하고, systemd 서비스 재시작 후 헬스체크를 수행합니다.
+
+### 배포 검증
+
+배포 성공 여부는 GitHub Actions 로그와 EC2 내부 명령으로 확인합니다.
+
+EC2에서 서비스 상태 확인:
 
 ```bash
 sudo systemctl status teenple-backend --no-pager
+```
+
+EC2에 반영된 JAR 확인:
+
+```bash
+ls -lh /opt/teenple/teenple-backend.jar
+```
+
+Spring Boot 헬스체크:
+
+```bash
 curl -i http://127.0.0.1:8080/actuator/health
 ```
+
+정상 배포 시 `/actuator/health`는 `200 OK`와 `UP` 상태를 반환합니다.
 
 ### 운영 Secret 관리
 
@@ -152,6 +199,7 @@ GitHub Actions에는 운영 비밀번호나 `.env` 값을 저장하지 않습니
 - AWS 접근은 GitHub OIDC와 IAM Role을 사용합니다.
 - 배포에 필요한 값은 GitHub Actions Secrets로 관리합니다.
 - 운영 애플리케이션 환경변수는 EC2의 `/etc/teenple/teenple.env`에서 관리합니다.
+- Firebase service account JSON은 EC2 내부 경로에서 관리하며 저장소에 포함하지 않습니다.
 
 현재 배포 workflow에서 사용하는 GitHub Secrets:
 
@@ -161,7 +209,27 @@ DEPLOY_BUCKET
 SSM_INSTANCE_ID
 ```
 
-Firebase service account JSON, DB 비밀번호, JWT secret 등 민감 정보는 저장소에 커밋하지 않습니다.
+민감 정보 관리 원칙:
+
+```text
+.env 커밋 금지
+DB 비밀번호 커밋 금지
+JWT secret 커밋 금지
+Firebase service account JSON 커밋 금지
+장기 AWS access key 사용 금지
+```
+
+### 배포 구성 요소
+
+| 구성 요소 | 역할 |
+| --- | --- |
+| GitHub Actions | CI/CD workflow 실행 |
+| GitHub OIDC | GitHub Actions가 AWS IAM Role을 임시로 사용 |
+| AWS IAM Role | S3 업로드 및 SSM 명령 실행 권한 제공 |
+| Amazon S3 | 빌드된 JAR 파일 임시 저장 |
+| AWS SSM Run Command | EC2에 배포 명령 전달 |
+| systemd | Spring Boot 애플리케이션 프로세스 관리 |
+| Actuator Health | 배포 후 애플리케이션 정상 기동 확인 |
 
 ---
 
