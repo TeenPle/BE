@@ -75,7 +75,8 @@ public class SecurityConfig {
                                 "/uploads/**",
                                 // WebSocket 핸드셰이크는 HTTP Upgrade 요청 → 브라우저가 커스텀 헤더 불가
                                 // STOMP JWT 인증은 WsJwtChannelInterceptor에서 처리
-                                "/ws/**"
+                                "/ws/**",
+                                "/actuator/health"
                         ).permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

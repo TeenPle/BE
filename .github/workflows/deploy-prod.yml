@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           JAR_FILE="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | head -n 1)"
           S3_KEY="deploy/releases/${APP_NAME}-${GITHUB_SHA}.jar"
-          aws s3 cp "$JAR_FILE" "s3://${DEPLOY_BUCKET}/${S3_KEY}"
+          aws s3 cp "$JAR_FILE" "s3://${DEPLOY_BUCKET}/${S3_KEY}" --no-progress
           echo "S3_KEY=${S3_KEY}" >> "$GITHUB_ENV"
 
       - name: Deploy through SSM
@@ -72,11 +72,12 @@ jobs:
             '{
               commands: [
                 "set -euo pipefail",
-                "aws s3 cp s3://\($bucket)/\($key) /tmp/\($app).jar",
+                "aws s3 cp s3://\($bucket)/\($key) /tmp/\($app).jar --no-progress",
                 "sudo install -o teenple -g teenple -m 500 /tmp/\($app).jar \($jar_path)",
                 "sudo systemctl restart \($service)",
                 "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 2; done",
                 "sudo systemctl status \($service) --no-pager",
+                "sudo journalctl -u \($service) -n 120 --no-pager",
                 "exit 1"
               ]
             }' > ssm-parameters.json
