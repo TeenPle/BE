@@ -17,9 +17,8 @@ The instance must already have:
 - AWS CLI installed.
 - `/opt/teenple`, `/var/log/teenple`, and `/etc/teenple/teenple.env` prepared.
 - `teenple-backend.service` installed and working.
-- A tag matching the workflow target:
-  - key: `Name`
-  - value: `teenple-ec2`
+- SSM managed instance ID matching the workflow target:
+  - instance ID: `i-0f2b472b047b256ff`
 
 The EC2 role needs at least:
 
@@ -82,8 +81,8 @@ The GitHub Actions role needs permissions similar to:
         "arn:aws:ec2:ap-northeast-2:YOUR_AWS_ACCOUNT_ID:instance/*"
       ],
       "Condition": {
-        "StringLike": {
-          "ssm:resourceTag/Name": "teenple-ec2"
+        "StringEquals": {
+          "ec2:ResourceTag/Name": "teenple-ec2"
         }
       }
     },

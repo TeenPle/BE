@@ -16,8 +16,7 @@ env:
   SERVICE_NAME: teenple-backend
   JAR_PATH: /opt/teenple/teenple-backend.jar
   DEPLOY_BUCKET: ${{ secrets.DEPLOY_BUCKET }}
-  SSM_TARGET_KEY: tag:Name
-  SSM_TARGET_VALUE: teenple-ec2
+  SSM_INSTANCE_ID: i-0f2b472b047b256ff
 
 jobs:
   deploy:
@@ -85,7 +84,7 @@ jobs:
           COMMAND_ID="$(
             aws ssm send-command \
               --document-name "AWS-RunShellScript" \
-              --targets "Key=${SSM_TARGET_KEY},Values=${SSM_TARGET_VALUE}" \
+              --instance-ids "${SSM_INSTANCE_ID}" \
               --comment "Deploy ${APP_NAME} ${GITHUB_SHA}" \
               --parameters file://ssm-parameters.json \
               --query "Command.CommandId" \
