@@ -1,0 +1,117 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  APP_NAME: teenple-backend
+  SERVICE_NAME: teenple-backend
+  JAR_PATH: /opt/teenple/teenple-backend.jar
+  DEPLOY_BUCKET: ${{ secrets.DEPLOY_BUCKET }}
+  SSM_TARGET_KEY: tag:Name
+  SSM_TARGET_VALUE: teenple-ec2
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build boot jar
+        working-directory: backend
+        run: ./gradlew clean bootJar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload jar to S3
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          JAR_FILE="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | head -n 1)"
+          S3_KEY="deploy/releases/${APP_NAME}-${GITHUB_SHA}.jar"
+          aws s3 cp "$JAR_FILE" "s3://${DEPLOY_BUCKET}/${S3_KEY}"
+          echo "S3_KEY=${S3_KEY}" >> "$GITHUB_ENV"
+
+      - name: Deploy through SSM
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg bucket "${DEPLOY_BUCKET}" \
+            --arg key "${S3_KEY}" \
+            --arg app "${APP_NAME}" \
+            --arg jar_path "${JAR_PATH}" \
+            --arg service "${SERVICE_NAME}" \
+            '{
+              commands: [
+                "set -euo pipefail",
+                "aws s3 cp s3://\($bucket)/\($key) /tmp/\($app).jar",
+                "sudo install -o teenple -g teenple -m 500 /tmp/\($app).jar \($jar_path)",
+                "sudo systemctl restart \($service)",
+                "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/actuator/health && exit 0; sleep 2; done",
+                "sudo systemctl status \($service) --no-pager",
+                "exit 1"
+              ]
+            }' > ssm-parameters.json
+
+          COMMAND_ID="$(
+            aws ssm send-command \
+              --document-name "AWS-RunShellScript" \
+              --targets "Key=${SSM_TARGET_KEY},Values=${SSM_TARGET_VALUE}" \
+              --comment "Deploy ${APP_NAME} ${GITHUB_SHA}" \
+              --parameters file://ssm-parameters.json \
+              --query "Command.CommandId" \
+              --output text
+          )"
+
+          echo "SSM command id: ${COMMAND_ID}"
+
+          for i in $(seq 1 60); do
+            STATUSES="$(aws ssm list-command-invocations --command-id "${COMMAND_ID}" --query "CommandInvocations[].Status" --output text)"
+            echo "SSM statuses: ${STATUSES:-none}"
+
+            if [ -z "${STATUSES}" ]; then
+              sleep 5
+              continue
+            fi
+
+            if echo "${STATUSES}" | grep -Eq "Failed|Cancelled|TimedOut|Cancelling"; then
+              aws ssm list-command-invocations --command-id "${COMMAND_ID}" --details --output json
+              exit 1
+            fi
+
+            if ! echo "${STATUSES}" | grep -Eq "Pending|InProgress|Delayed"; then
+              aws ssm list-command-invocations --command-id "${COMMAND_ID}" --details --output json
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          aws ssm list-command-invocations --command-id "${COMMAND_ID}" --details --output json
+          echo "SSM command did not finish in time"
+          exit 1
