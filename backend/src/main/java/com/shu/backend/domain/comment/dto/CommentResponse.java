@@ -61,7 +61,7 @@ public class CommentResponse {
         if (authorDeleted) {
             author = UserDisplay.DELETED_USER_NAME;
         } else if (comment.getAnonymous()) {
-            author = anonymousNumber > 0 ? "익명" + anonymousNumber : "익명";
+            author = UserDisplay.teenplerAlias(comment.getUser());
         } else {
             author = comment.getUser().getNickname();
         }

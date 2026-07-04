@@ -4,6 +4,7 @@ import com.shu.backend.domain.adminaudit.enums.AdminAuditAction;
 import com.shu.backend.domain.adminaudit.enums.AdminAuditTargetType;
 import com.shu.backend.domain.adminaudit.service.AdminAuditLogService;
 import com.shu.backend.domain.admin.service.AdminPushService;
+import com.shu.backend.domain.block.service.UserBlockService;
 import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.notification.enums.NotificationTargetType;
 import com.shu.backend.domain.notification.enums.NotificationType;
@@ -58,6 +59,7 @@ public class ReportService {
     private final BoardAccessPolicy boardAccessPolicy;
     private final AdminAuditLogService adminAuditLogService;
     private final AdminPushService adminPushService;
+    private final UserBlockService userBlockService;
 
     @Transactional
     public Long create(Long reporterId, ReportDTO.CreateRequest req) {
@@ -78,8 +80,16 @@ public class ReportService {
             throw new ReportException(ReportErrorStatus.SELF_REPORT_FORBIDDEN);
         }
 
-        if(reportRepository.existsByReporterIdAndTargetTypeAndTargetId(reporterId, req.getTargetType(), req.getTargetId())){
-            throw new ReportException(ReportErrorStatus.DUPLICATE_REPORT);
+        var existingReport = reportRepository.findByReporterIdAndTargetTypeAndTargetId(
+                reporterId,
+                req.getTargetType(),
+                req.getTargetId()
+        );
+        if (existingReport.isPresent()) {
+            userBlockService.blockUser(reporterId, reportedUser.getId());
+            log.info("Duplicate report treated as block: reportId={}, reporterId={}, reportedUserId={}, targetType={}, targetId={}",
+                    existingReport.get().getId(), reporterId, reportedUser.getId(), req.getTargetType(), req.getTargetId());
+            return existingReport.get().getId();
         }
 
         Report report = Report.builder()
@@ -92,6 +102,7 @@ public class ReportService {
                 .build();
 
         Long reportId = reportRepository.save(report).getId();
+        userBlockService.blockUser(reporterId, reportedUser.getId());
         // 관리자 알림함 기록 + 푸시 (actorId = 신고자 — 관리자 본인의 신고는 자신에게 알리지 않음)
         adminPushService.notifyActiveAdmins(
                 NotificationType.ADMIN_REPORT,
@@ -120,6 +131,7 @@ public class ReportService {
                 .orElseThrow(() -> new UserException(UserErrorStatus.USER_NOT_FOUND));
 
         report.resolve(handler, penaltyDays);
+        hideReportedContent(report);
 
         Long penaltyId = penaltyService.create(reportId, penaltyDays);
         adminAuditLogService.recordAfterCommit(
@@ -133,6 +145,19 @@ public class ReportService {
         log.info("Report approved: reportId={}, adminId={}, reportedUserId={}, penaltyDays={}, penaltyId={}",
                 reportId, adminId, report.getReportedUser().getId(), penaltyDays, penaltyId);
         return penaltyId;
+    }
+
+    private void hideReportedContent(Report report) {
+        switch (report.getTargetType()) {
+            case POST -> postRepository.findById(report.getTargetId())
+                    .ifPresent(Post::hide);
+            case COMMENT -> commentRepository.findById(report.getTargetId())
+                    .ifPresent(Comment::hide);
+            case USER -> {
+                // 사용자 신고는 대상 게시글/댓글이 없으므로 제재만 적용한다.
+            }
+            default -> throw new ReportException(ReportErrorStatus.UNSUPPORTED_TARGET_TYPE);
+        }
     }
 
 

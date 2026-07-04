@@ -27,7 +27,7 @@ public class AdminCommentResponse {
         Long authorId = comment.getUser() != null ? comment.getUser().getId() : null;
         boolean anonymous = Boolean.TRUE.equals(comment.getAnonymous());
         String label = anonymous
-                ? "익명 사용자 #" + authorId
+                ? "작성자 #" + authorId
                 : comment.getUser() != null ? comment.getUser().getNickname() : "알 수 없음";
 
         return AdminCommentResponse.builder()

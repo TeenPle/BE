@@ -244,7 +244,7 @@ public class UserService {
         userBlockRepository.deleteByBlockerId(userId);
         userBlockRepository.deleteByBlockedId(userId);
 
-        // 4. PII 익명화 (게시글/댓글 FK 보존을 위해 행은 유지)
+        // 4. PII 비식별 처리 (게시글/댓글 FK 보존을 위해 행은 유지)
         user.anonymize();
         userRepository.save(user);
         log.info("Account purged: userId={}", userId);

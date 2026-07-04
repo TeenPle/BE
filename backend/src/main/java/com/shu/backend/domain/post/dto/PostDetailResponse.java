@@ -60,6 +60,9 @@ public class PostDetailResponse {
         boolean mine = post.getUser().getId().equals(currentUserId);
         boolean canActOnAuthor = !authorDeleted && !mine;
         String profileImageUrl = (post.getAnonymous() || authorDeleted) ? null : post.getUser().getProfileImageUrl();
+        String username = Boolean.TRUE.equals(post.getAnonymous())
+                ? UserDisplay.teenplerAlias(post.getUser())
+                : UserDisplay.nicknameOrDeleted(post.getUser());
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
         }
@@ -77,7 +80,7 @@ public class PostDetailResponse {
                 .likedByMe(likedByMe)
                 .dislikedByMe(dislikedByMe)
                 .postStatus(post.getPostStatus().name())
-                .username(UserDisplay.nicknameOrDeleted(post.getUser()))
+                .username(username)
                 .authorProfileImageUrl(profileImageUrl)
                 .authorDeleted(authorDeleted)
                 .canChatWithAuthor(canActOnAuthor)

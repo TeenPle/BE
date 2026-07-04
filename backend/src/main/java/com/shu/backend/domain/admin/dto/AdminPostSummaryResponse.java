@@ -43,7 +43,7 @@ public class AdminPostSummaryResponse {
                 .postStatus(post.getPostStatus().name())
                 .anonymous(anonymous)
                 .authorUserId(authorId)
-                .authorLabel(anonymous ? "익명 사용자 #" + authorId : post.getUser().getNickname())
+                .authorLabel(anonymous ? "작성자 #" + authorId : post.getUser().getNickname())
                 .boardId(post.getBoard().getId())
                 .boardTitle(post.getBoard().getTitle())
                 .schoolId(post.getBoard().getSchool() != null ? post.getBoard().getSchool().getId() : null)

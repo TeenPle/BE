@@ -109,6 +109,7 @@ public class ChatRoomController {
             @Valid @RequestBody ChatRoomDTO.ReportRequest request
     ) {
         chatRoomService.report(user.getId(), roomId, request.getReason(), request.getDetail());
+        publishRoomUpdatedToParticipants(roomId);
         return ApiResponse.of(ChatRoomSuccessStatus.CHAT_ROOM_REPORT_SUCCESS, "OK");
     }
 

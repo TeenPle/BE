@@ -67,6 +67,9 @@ public class PostResponse {
 
     public static PostResponse toDto(Post post, int commentCount) {
         boolean authorDeleted = UserDisplay.isDeleted(post.getUser());
+        String username = Boolean.TRUE.equals(post.getAnonymous())
+                ? UserDisplay.teenplerAlias(post.getUser())
+                : UserDisplay.usernameOrDeleted(post.getUser());
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -78,7 +81,7 @@ public class PostResponse {
                 .dislikeCount(post.getDislikeCount())
                 .boardId(post.getBoard().getId())
                 .userId(authorDeleted ? null : post.getUser().getId())
-                .username(UserDisplay.usernameOrDeleted(post.getUser()))
+                .username(username)
                 .authorDeleted(authorDeleted)
                 .commentCount(commentCount)
                 .createdAt(post.getCreatedAt())
@@ -113,6 +116,8 @@ public class PostResponse {
             userId = null;
             username = UserDisplay.DELETED_USER_NAME;
             authorProfileImageUrl = null;
+        } else if (Boolean.TRUE.equals(anonymous)) {
+            username = UserDisplay.teenplerAlias(userId);
         }
 
         return PostResponse.builder()

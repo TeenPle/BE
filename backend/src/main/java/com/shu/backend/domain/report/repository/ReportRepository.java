@@ -12,9 +12,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
     boolean existsByReporterIdAndTargetTypeAndTargetId(Long reporterId, TargetType targetType, Long targetId);
+
+    Optional<Report> findByReporterIdAndTargetTypeAndTargetId(Long reporterId, TargetType targetType, Long targetId);
 
     Page<Report> findAllByStatus(ReportStatus status, Pageable pageable);
 

@@ -222,7 +222,8 @@ public class ChatRoomService {
                 reason,
                 detail
         ));
-        log.info("Chat room report created - reporterId={}, roomId={}, reportedUserId={}", myId, roomId, otherId);
+        cru.block();
+        log.info("Chat room report created and room blocked - reporterId={}, roomId={}, reportedUserId={}", myId, roomId, otherId);
     }
 
     @Transactional(readOnly = true)
