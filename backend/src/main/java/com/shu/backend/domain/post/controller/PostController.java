@@ -52,7 +52,7 @@ public class PostController {
                     encoding = @Encoding(name = "data", contentType = MediaType.APPLICATION_JSON_VALUE)
             )
     )
-    @RateLimit(key = "post", limit = 10, windowSeconds = 3600)
+    @RateLimit(key = "post:create:success", limit = 10, windowSeconds = 3600, countFailures = false)
     @PostMapping(value = "/boards/{boardId}/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Long> createPost(
             @PathVariable Long boardId,

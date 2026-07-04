@@ -7,8 +7,8 @@ import com.shu.backend.domain.contentfilter.enums.ContentFilterSource;
 import com.shu.backend.domain.contentfilter.repository.ContentFilterTermRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ContentFilterGithubSyncService {
+public class ContentFilterGithubSyncService implements ApplicationRunner {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
@@ -50,8 +50,8 @@ public class ContentFilterGithubSyncService {
         syncAllSources();
     }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void syncOnStartup() {
+    @Override
+    public void run(ApplicationArguments args) {
         if (!properties.isSyncEnabled()) {
             return;
         }

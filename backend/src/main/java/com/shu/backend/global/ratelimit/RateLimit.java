@@ -24,4 +24,6 @@ public @interface RateLimit {
 
     /** true이면 클라이언트 IP 기준으로 제한 (비인증 엔드포인트용) */
     boolean byIp() default false;
+
+    boolean countFailures() default true;
 }

@@ -29,7 +29,7 @@ public class CommentController {
             summary = "댓글 생성",
             description = "특정 게시판에 댓글을 작성합니다."
     )
-    @RateLimit(key = "comment", limit = 5, windowSeconds = 60)
+    @RateLimit(key = "comment:create:success", limit = 5, windowSeconds = 60, countFailures = false)
     @PostMapping("/posts/{postId}/comments")
     public ApiResponse<Long> createComment(@PathVariable Long postId,
                                            @RequestBody @Valid CommentCreateRequest req,

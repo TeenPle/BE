@@ -5,6 +5,7 @@ import com.shu.backend.domain.contentfilter.enums.ContentFilterSeverity;
 import com.shu.backend.domain.contentfilter.repository.ContentFilterTermRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContentFilterDictionaryService {
 
     private final ContentFilterTermRepository termRepository;
@@ -28,6 +30,11 @@ public class ContentFilterDictionaryService {
                 .sorted(Comparator.comparingInt((ContentFilterTerm term) -> term.getNormalizedTerm().length()).reversed())
                 .toList();
         activeTerms.set(terms);
+        if (terms.isEmpty()) {
+            log.warn("Content filter dictionary is empty. Text filtering will only use built-in pattern checks until sync succeeds.");
+        } else {
+            log.info("Content filter dictionary loaded. activeBlockTerms={}", terms.size());
+        }
     }
 
     public ContentFilterMatch findBlockedTerm(String normalizedText) {

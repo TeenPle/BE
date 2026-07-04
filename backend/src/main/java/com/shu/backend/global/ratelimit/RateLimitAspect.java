@@ -5,8 +5,9 @@ import com.shu.backend.global.exception.GeneralException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,15 +28,11 @@ public class RateLimitAspect {
 
     private final StringRedisTemplate redisTemplate;
 
-    @Before("@annotation(rateLimit)")
-    public void check(RateLimit rateLimit) {
-        String subject;
-        if (rateLimit.byIp()) {
-            subject = resolveClientIp();
-            if (subject == null) return;
-        } else {
-            subject = resolveUserId();
-            if (subject == null) return;
+    @Around("@annotation(rateLimit)")
+    public Object check(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
+        String subject = rateLimit.byIp() ? resolveClientIp() : resolveUserId();
+        if (subject == null) {
+            return joinPoint.proceed();
         }
 
         String redisKey = "rate:" + rateLimit.key() + ":" + subject;
@@ -42,23 +40,38 @@ public class RateLimitAspect {
         long windowStart = now - (long) rateLimit.windowSeconds() * 1000;
 
         try {
-            // 슬라이딩 윈도우: 오래된 항목 제거 → 현재 개수 확인 → 새 항목 추가
             redisTemplate.opsForZSet().removeRangeByScore(redisKey, Double.NEGATIVE_INFINITY, windowStart);
-
             Long count = redisTemplate.opsForZSet().zCard(redisKey);
             if (count != null && count >= rateLimit.limit()) {
                 throw new GeneralException(ErrorStatus.RATE_LIMIT_EXCEEDED);
             }
-
-            // member에 UUID를 포함해 동일 ms 내 복수 요청도 모두 별개로 기록
-            redisTemplate.opsForZSet().add(redisKey, now + ":" + UUID.randomUUID(), now);
-            // TTL을 윈도우 크기 + 여유분으로 설정해 미사용 키 자동 삭제
-            redisTemplate.expire(redisKey,
-                    java.time.Duration.ofSeconds(rateLimit.windowSeconds() + 10));
         } catch (GeneralException e) {
             throw e;
         } catch (Exception e) {
             log.warn("RateLimit Redis 연결 실패, 제한 없이 통과합니다. key={}", redisKey, e);
+            return joinPoint.proceed();
+        }
+
+        Object result;
+        try {
+            result = joinPoint.proceed();
+        } catch (Throwable e) {
+            if (rateLimit.countFailures()) {
+                safeRecord(redisKey, now, rateLimit.windowSeconds());
+            }
+            throw e;
+        }
+
+        safeRecord(redisKey, now, rateLimit.windowSeconds());
+        return result;
+    }
+
+    private void safeRecord(String redisKey, long now, int windowSeconds) {
+        try {
+            redisTemplate.opsForZSet().add(redisKey, now + ":" + UUID.randomUUID(), now);
+            redisTemplate.expire(redisKey, Duration.ofSeconds(windowSeconds + 10L));
+        } catch (Exception e) {
+            log.warn("RateLimit Redis 기록 실패. 요청 결과는 유지합니다. key={}", redisKey, e);
         }
     }
 
@@ -69,8 +82,8 @@ public class RateLimitAspect {
         if (principal instanceof com.shu.backend.domain.user.entity.User user) {
             return String.valueOf(user.getId());
         }
-        if (principal instanceof UserDetails ud) {
-            return ud.getUsername();
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
         }
         return null;
     }
@@ -89,8 +102,6 @@ public class RateLimitAspect {
 
     private String getClientIp(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
-        // X-Forwarded-For는 직접 연결이 신뢰할 수 있는 프록시(사설 대역)에서 온 경우에만 신뢰한다.
-        // 외부에서 직접 연결하면 remoteAddr이 공인 IP이므로 헤더를 무시해 스푸핑을 차단한다.
         if (!isTrustedProxy(remoteAddr)) {
             return remoteAddr;
         }
@@ -105,10 +116,6 @@ public class RateLimitAspect {
         return remoteAddr;
     }
 
-    /**
-     * 루프백 또는 RFC-1918 사설 대역 주소이면 신뢰할 수 있는 프록시로 판단한다.
-     * 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.x, IPv6 루프백
-     */
     private boolean isTrustedProxy(String addr) {
         if (addr == null) return false;
         if (addr.equals("127.0.0.1") || addr.equals("::1") || addr.equals("0:0:0:0:0:0:0:1")) {
