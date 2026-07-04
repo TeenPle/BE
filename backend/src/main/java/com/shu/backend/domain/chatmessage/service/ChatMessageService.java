@@ -21,6 +21,7 @@ import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.user.support.UserDisplay;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.moderation.ContentModerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,6 +62,7 @@ public class ChatMessageService {
     private final UserSettingRepository userSettingRepository;
     private final ChatActionRateLimiter chatActionRateLimiter;
     private final FileStorageService fileStorageService;
+    private final ContentModerationService contentModerationService;
 
     // 채팅 메시지 전송
     @PreAuthorize("@penaltyChecker.notPenalized(#senderId)")
@@ -109,6 +111,7 @@ public class ChatMessageService {
             if (req.getContent().length() > MAX_TEXT_LENGTH) {
                 throw new ChatMessageException(ChatMessageErrorStatus.MESSAGE_TOO_LONG);
             }
+            contentModerationService.checkChatMessage(req.getContent());
         }
 
         // IMAGE 메시지는 업로드/검수 완료된 mediaId 필수

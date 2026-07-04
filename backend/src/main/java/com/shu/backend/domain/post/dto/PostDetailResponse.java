@@ -61,7 +61,7 @@ public class PostDetailResponse {
         boolean canActOnAuthor = !authorDeleted && !mine;
         String profileImageUrl = (post.getAnonymous() || authorDeleted) ? null : post.getUser().getProfileImageUrl();
         String username = Boolean.TRUE.equals(post.getAnonymous())
-                ? UserDisplay.teenplerAlias(post.getUser())
+                ? UserDisplay.teenplerAlias(post.getId())
                 : UserDisplay.nicknameOrDeleted(post.getUser());
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;

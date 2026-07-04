@@ -46,10 +46,6 @@ public final class UserDisplay {
         return isDeleted(user) ? DELETED_USER_NAME : anonymousName;
     }
 
-    public static String teenplerAlias(User user) {
-        return isDeleted(user) ? DELETED_USER_NAME : teenplerAlias(user.getId());
-    }
-
     public static String teenplerAlias(Long seed) {
         long value = seed == null ? 0L : seed;
         int adjectiveIndex = Math.floorMod((value * 31L) + 17L, TEENPLER_ADJECTIVES.size());

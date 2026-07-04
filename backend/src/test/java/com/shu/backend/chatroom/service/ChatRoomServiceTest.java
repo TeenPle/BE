@@ -29,6 +29,7 @@ import com.shu.backend.domain.user.enums.UserStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
 import com.shu.backend.domain.usersetting.repository.UserSettingRepository;
 import com.shu.backend.global.file.FileStorageService;
+import com.shu.backend.global.moderation.ContentModerationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,6 +66,7 @@ class ChatFeatureServiceTest {
     @Mock BoardAccessPolicy boardAccessPolicy;
     @Mock ChatActionRateLimiter chatActionRateLimiter;
     @Mock FileStorageService fileStorageService;
+    @Mock ContentModerationService contentModerationService;
 
     @InjectMocks ChatRoomService chatRoomService;
     @InjectMocks ChatMessageService chatMessageService;

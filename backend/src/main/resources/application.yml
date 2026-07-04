@@ -117,6 +117,20 @@ viewcount:
   mode: PESSIMISTIC
 
 moderation:
+  text:
+    sync-enabled: ${MODERATION_TEXT_SYNC_ENABLED:true}
+    sync-cron: ${MODERATION_TEXT_SYNC_CRON:0 0 4 * * *}
+    sources:
+      - enabled: ${MODERATION_TEXT_EN_SOURCE_ENABLED:true}
+        language: en
+        url: ${MODERATION_TEXT_EN_SOURCE_URL:https://api.github.com/repos/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/contents/en}
+        severity: BLOCK
+        category: PROFANITY
+      - enabled: ${MODERATION_TEXT_KO_SOURCE_ENABLED:true}
+        language: ko
+        url: ${MODERATION_TEXT_KO_SOURCE_URL:https://api.github.com/repos/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/contents/ko}
+        severity: BLOCK
+        category: PROFANITY
   image:
     # Rekognition 카테고리별 차단 신뢰도 임계값 (0~100, 이 값 이상이면 차단)
     nudity-threshold: 50
