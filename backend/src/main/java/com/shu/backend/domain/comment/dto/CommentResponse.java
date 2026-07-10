@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
+import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.support.UserDisplay;
 import lombok.Builder;
 import lombok.Getter;
@@ -59,9 +60,12 @@ public class CommentResponse {
         };
 
         boolean authorDeleted = UserDisplay.isDeleted(comment.getUser());
+        boolean adminAuthor = !authorDeleted && comment.getUser().getRole() == UserRole.ADMIN;
         String author;
         if (authorDeleted) {
             author = UserDisplay.DELETED_USER_NAME;
+        } else if (adminAuthor) {
+            author = comment.getUser().getNickname();
         } else if (boardProfile != null) {
             author = boardProfile.getDisplayName();
         } else {
@@ -89,7 +93,7 @@ public class CommentResponse {
                 .commentStatus(comment.getCommentStatus().name())
                 .content(content)
                 .author(author)
-                .authorProfileImageUrl(authorDeleted ? null : boardProfileImageUrl)
+                .authorProfileImageUrl(authorDeleted ? null : adminAuthor ? comment.getUser().getProfileImageUrl() : boardProfileImageUrl)
                 .likeCount(comment.getLikeCount())
                 .dislikeCount(comment.getDislikeCount())
                 .likedByMe(likedByMe)

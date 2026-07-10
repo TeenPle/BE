@@ -61,6 +61,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = {"user", "board", "board.school", "board.region"})
     Optional<Post> findWithAdminContextById(Long postId);
 
+    @EntityGraph(attributePaths = {"board"})
+    List<Post> findByIdIn(Collection<Long> postIds);
+
     @Query("""
         select p.id
         from Post p

@@ -30,6 +30,7 @@ import com.shu.backend.domain.reaction.entity.Reaction;
 import com.shu.backend.domain.reaction.enums.ReactionTargetType;
 import com.shu.backend.domain.reaction.repository.ReactionRepository;
 import com.shu.backend.domain.user.entity.User;
+import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.exception.UserException;
 import com.shu.backend.domain.user.exception.status.UserErrorStatus;
 import com.shu.backend.domain.user.repository.UserRepository;
@@ -242,7 +243,10 @@ public class PostService {
 
         viewCountAccumulator.increment(postId);
 
-        BoardDisplayProfile authorProfile = boardDisplayProfileService.getOrCreate(post.getUser(), post.getBoard());
+        boolean adminAuthor = post.getUser().getRole() == UserRole.ADMIN;
+        BoardDisplayProfile authorProfile = adminAuthor
+                ? null
+                : boardDisplayProfileService.getOrCreate(post.getUser(), post.getBoard());
         List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(
                 postId,
                 currentUserId,
@@ -261,7 +265,7 @@ public class PostService {
         return PostDetailResponse.toDto(
                 post,
                 authorProfile,
-                boardDisplayProfileService.toReadUrl(authorProfile.getProfileImageUrl()),
+                authorProfile == null ? null : boardDisplayProfileService.toReadUrl(authorProfile.getProfileImageUrl()),
                 comments,
                 mediaList,
                 currentUserId,
@@ -462,8 +466,24 @@ public class PostService {
     }
 
     private List<PostResponse> toPostResponses(List<Object[]> rows) {
+        List<Long> rowUserIds = rows.stream()
+                .filter(row -> row.length > 9 && row[9] != null)
+                .map(row -> (Long) row[9])
+                .distinct()
+                .toList();
+        Map<Long, User> usersById = rowUserIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(rowUserIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
         Map<Long, List<Object[]>> rowsByBoard = rows.stream()
-                .filter(row -> row.length > 9 && row[8] != null && row[9] != null)
+                .filter(row -> {
+                    if (row.length <= 9 || row[8] == null || row[9] == null) {
+                        return false;
+                    }
+                    User author = usersById.get((Long) row[9]);
+                    return author == null || author.getRole() != UserRole.ADMIN;
+                })
                 .collect(Collectors.groupingBy(row -> (Long) row[8]));
 
         Map<String, BoardDisplayProfile> profilesByKey = rowsByBoard.entrySet().stream()
@@ -489,6 +509,10 @@ public class PostService {
                     PostResponse response = PostResponse.fromRow(row);
                     if (response.isAuthorDeleted() || response.getUserId() == null) {
                         return response;
+                    }
+                    User author = usersById.get(response.getUserId());
+                    if (author != null && author.getRole() == UserRole.ADMIN) {
+                        return response.withBoardProfile(author.getNickname(), author.getProfileImageUrl());
                     }
                     BoardDisplayProfile profile = profilesByKey.get(response.getBoardId() + ":" + response.getUserId());
                     if (profile == null) {
