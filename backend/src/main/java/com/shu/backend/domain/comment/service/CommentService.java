@@ -46,7 +46,6 @@ public class CommentService {
     private final UserSettingRepository userSettingRepository;
     private final ContentModerationService contentModerationService;
     private final BoardAccessPolicy boardAccessPolicy;
-
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
     public Long createComment(Long userId, Long postId, CommentCreateRequest req){
@@ -79,11 +78,9 @@ public class CommentService {
             depth = parent.getDepth() + 1;
         }
 
-        boolean anonymous = req.getAnonymous();
-
         Comment comment = Comment.builder()
                 .content(safeContent)
-                .anonymous(anonymous)
+                .anonymous(false)
                 .post(post)
                 .user(user)
                 .parent(parent)
@@ -209,7 +206,7 @@ public class CommentService {
             throw new CommentException(CommentErrorStatus.COMMENT_ALREADY_DELETED);
         }
 
-        comment.update(safeContent, req.isAnonymous());
+        comment.update(safeContent, false);
         log.info("Comment updated: commentId={}, userId={}", commentId, userId);
 
         return commentId;

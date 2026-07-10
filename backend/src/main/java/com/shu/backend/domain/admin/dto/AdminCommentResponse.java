@@ -25,16 +25,15 @@ public class AdminCommentResponse {
 
     public static AdminCommentResponse from(Comment comment) {
         Long authorId = comment.getUser() != null ? comment.getUser().getId() : null;
-        boolean anonymous = Boolean.TRUE.equals(comment.getAnonymous());
-        String label = anonymous
-                ? "작성자 #" + authorId
-                : comment.getUser() != null ? comment.getUser().getNickname() : "알 수 없음";
+        String label = comment.getUser() != null
+                ? comment.getUser().getUsername() + " #" + comment.getUser().getId()
+                : "알 수 없음";
 
         return AdminCommentResponse.builder()
                 .commentId(comment.getId())
                 .authorUserId(authorId)
                 .authorLabel(label)
-                .anonymous(anonymous)
+                .anonymous(false)
                 .commentStatus(comment.getCommentStatus().name())
                 .content(comment.getContent())
                 .likeCount(comment.getLikeCount())

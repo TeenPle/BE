@@ -1,0 +1,22 @@
+CREATE TABLE board_display_profile (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  board_id BIGINT NOT NULL,
+  adjective VARCHAR(20) NOT NULL,
+  number VARCHAR(4) NOT NULL,
+  display_name VARCHAR(40) NOT NULL,
+  profile_image_url VARCHAR(255) NULL DEFAULT 'default_profile.png',
+  last_changed_at DATETIME NULL,
+  next_change_available_at DATETIME NULL,
+  created_at DATETIME NULL,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT uq_board_display_profile_user_board UNIQUE (user_id, board_id),
+  CONSTRAINT uq_board_display_profile_board_name UNIQUE (board_id, display_name),
+  CONSTRAINT fk_board_display_profile_user FOREIGN KEY (user_id) REFERENCES user (id),
+  CONSTRAINT fk_board_display_profile_board FOREIGN KEY (board_id) REFERENCES board (id),
+  INDEX idx_board_display_profile_user (user_id),
+  INDEX idx_board_display_profile_board (board_id),
+  INDEX idx_board_display_profile_user_board (user_id, board_id),
+  INDEX idx_board_display_profile_board_name (board_id, display_name)
+);

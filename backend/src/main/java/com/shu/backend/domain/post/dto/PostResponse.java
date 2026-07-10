@@ -65,18 +65,38 @@ public class PostResponse {
                 .build();
     }
 
+    public PostResponse withBoardProfile(String displayName, String profileImageUrl) {
+        return PostResponse.builder()
+                .id(this.id)
+                .title(this.title)
+                .content(this.content)
+                .postStatus(this.postStatus)
+                .viewCount(this.viewCount)
+                .anonymous(false)
+                .likeCount(this.likeCount)
+                .dislikeCount(this.dislikeCount)
+                .boardId(this.boardId)
+                .userId(this.userId)
+                .username(displayName)
+                .authorProfileImageUrl(profileImageUrl)
+                .authorDeleted(this.authorDeleted)
+                .commentCount(this.commentCount)
+                .createdAt(this.createdAt)
+                .mediaList(this.mediaList)
+                .hasPoll(this.hasPoll)
+                .build();
+    }
+
     public static PostResponse toDto(Post post, int commentCount) {
         boolean authorDeleted = UserDisplay.isDeleted(post.getUser());
-        String username = Boolean.TRUE.equals(post.getAnonymous())
-                ? UserDisplay.teenplerAlias(post.getId())
-                : UserDisplay.usernameOrDeleted(post.getUser());
+        String username = UserDisplay.usernameOrDeleted(post.getUser());
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .postStatus(post.getPostStatus().name())
                 .viewCount(post.getViewCount())
-                .anonymous(post.getAnonymous())
+                .anonymous(false)
                 .likeCount(post.getLikeCount())
                 .dislikeCount(post.getDislikeCount())
                 .boardId(post.getBoard().getId())
@@ -104,9 +124,11 @@ public class PostResponse {
         int commentCount = (r[11] == null) ? 0 : ((Number) r[11]).intValue();
 
         String rawProfileUrl = (r.length > 12) ? (String) r[12] : null;
+        String boardDisplayName = (r.length > 16) ? (String) r[16] : null;
+        String boardProfileImageUrl = (r.length > 17) ? (String) r[17] : null;
         String authorProfileImageUrl = null;
-        if (Boolean.FALSE.equals(anonymous) && rawProfileUrl != null && rawProfileUrl.startsWith("http")) {
-            authorProfileImageUrl = rawProfileUrl;
+        if (boardProfileImageUrl != null && boardProfileImageUrl.startsWith("http")) {
+            authorProfileImageUrl = boardProfileImageUrl;
         }
 
         LocalDateTime createdAt = (r.length > 13) ? (LocalDateTime) r[13] : null;
@@ -116,8 +138,8 @@ public class PostResponse {
             userId = null;
             username = UserDisplay.DELETED_USER_NAME;
             authorProfileImageUrl = null;
-        } else if (Boolean.TRUE.equals(anonymous)) {
-            username = UserDisplay.teenplerAlias(id);
+        } else if (boardDisplayName != null && !boardDisplayName.isBlank()) {
+            username = boardDisplayName;
         }
 
         return PostResponse.builder()
@@ -126,7 +148,7 @@ public class PostResponse {
                 .content(content)
                 .postStatus(postStatus)
                 .viewCount(viewCount)
-                .anonymous(anonymous)
+                .anonymous(false)
                 .likeCount(likeCount == null ? 0 : likeCount)
                 .dislikeCount(dislikeCount == null ? 0 : dislikeCount)
                 .boardId(boardId)

@@ -40,16 +40,18 @@ public class AdminPostDetailResponse {
             List<AdminCommentResponse> comments
     ) {
         Long authorId = post.getUser() != null ? post.getUser().getId() : null;
-        boolean anonymous = Boolean.TRUE.equals(post.getAnonymous());
+        String authorLabel = post.getUser() == null
+                ? "알 수 없음"
+                : post.getUser().getUsername() + " #" + post.getUser().getId();
 
         return AdminPostDetailResponse.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .postStatus(post.getPostStatus().name())
-                .anonymous(anonymous)
+                .anonymous(false)
                 .authorUserId(authorId)
-                .authorLabel(anonymous ? "작성자 #" + authorId : post.getUser().getNickname())
+                .authorLabel(authorLabel)
                 .boardId(post.getBoard().getId())
                 .boardTitle(post.getBoard().getTitle())
                 .schoolId(post.getBoard().getSchool() != null ? post.getBoard().getSchool().getId() : null)
