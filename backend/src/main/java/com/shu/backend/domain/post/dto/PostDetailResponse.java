@@ -2,6 +2,7 @@ package com.shu.backend.domain.post.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.poll.dto.PollResponse;
 import com.shu.backend.domain.post.entity.Post;
@@ -55,14 +56,12 @@ public class PostDetailResponse {
     private PollResponse poll;
 
 
-    public static PostDetailResponse toDto(Post post, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked, PollResponse poll, boolean likedByMe, boolean dislikedByMe) {
+    public static PostDetailResponse toDto(Post post, BoardDisplayProfile boardProfile, String boardProfileImageUrl, List<CommentResponse> comments, List<PostMediaResponse> mediaList, Long currentUserId, boolean isBookmarked, PollResponse poll, boolean likedByMe, boolean dislikedByMe) {
         boolean authorDeleted = UserDisplay.isDeleted(post.getUser());
         boolean mine = post.getUser().getId().equals(currentUserId);
         boolean canActOnAuthor = !authorDeleted && !mine;
-        String profileImageUrl = (post.getAnonymous() || authorDeleted) ? null : post.getUser().getProfileImageUrl();
-        String username = Boolean.TRUE.equals(post.getAnonymous())
-                ? UserDisplay.teenplerAlias(post.getId())
-                : UserDisplay.nicknameOrDeleted(post.getUser());
+        String profileImageUrl = authorDeleted ? null : boardProfileImageUrl;
+        String username = authorDeleted ? UserDisplay.DELETED_USER_NAME : boardProfile.getDisplayName();
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
         }
@@ -74,7 +73,7 @@ public class PostDetailResponse {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .viewCount(post.getViewCount())
-                .anonymous(post.getAnonymous())
+                .anonymous(false)
                 .likeCount(post.getLikeCount())
                 .dislikeCount(post.getDislikeCount())
                 .likedByMe(likedByMe)

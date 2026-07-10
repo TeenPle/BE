@@ -21,6 +21,11 @@ public enum UserErrorStatus implements BaseErrorCode {
     SAME_NICKNAME(HttpStatus.BAD_REQUEST, "USER4006", "현재와 동일한 닉네임입니다."),
     SAME_PASSWORD(HttpStatus.BAD_REQUEST, "USER4007", "현재와 동일한 비밀번호입니다."),
     NICKNAME_CHANGE_COOLDOWN(HttpStatus.BAD_REQUEST, "USER4008", "닉네임은 30일에 한 번만 변경할 수 있습니다."),
+    BOARD_PROFILE_CHANGE_COOLDOWN(HttpStatus.BAD_REQUEST, "USER4014", "게시판별 프로필은 90일에 한 번만 변경할 수 있습니다."),
+    EXIST_BOARD_PROFILE_DISPLAY_NAME(HttpStatus.CONFLICT, "USER4015", "이미 해당 게시판에서 사용 중인 게시판 프로필 이름입니다."),
+    INVALID_BOARD_PROFILE_DISPLAY_NAME(HttpStatus.BAD_REQUEST, "USER4016", "게시판 프로필 이름 형식이 올바르지 않습니다."),
+    BOARD_PROFILE_GENERATION_FAILED(HttpStatus.CONFLICT, "USER4017", "게시판 프로필을 생성하지 못했습니다. 잠시 후 다시 시도해주세요."),
+    BOARD_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "USER4018", "게시판 프로필을 찾을 수 없습니다."),
     INACTIVE_USER(HttpStatus.FORBIDDEN, "USER4009", "Inactive user."),
     /** 탈퇴 유예 기간 중 로그인 시도 — 복구 화면으로 분기하기 위한 전용 코드 */
     ACCOUNT_PENDING_DELETION(HttpStatus.FORBIDDEN, "USER4051", "탈퇴 대기 중인 계정입니다. 7일 이내에 복구할 수 있습니다."),

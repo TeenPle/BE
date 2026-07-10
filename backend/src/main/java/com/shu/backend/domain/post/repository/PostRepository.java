@@ -53,6 +53,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         select p
         from Post p
         join fetch p.user u
+        join fetch p.board b
         where p.id = :postId
     """)
     Optional<Post> findDetailById(@Param("postId") Long postId);
@@ -95,10 +96,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where b.id = :boardId
           and p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.user.id not in (
@@ -145,10 +149,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and (
                 p.title like concat('%', :keyword, '%') escape '\\'
@@ -214,10 +221,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where p.id in :postIds
         order by p.id desc
     """)
@@ -292,10 +302,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where b.school.id = :schoolId
           and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
           and b.defaultBoard = true
@@ -336,10 +349,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and p.createdAt >= :since
           and p.likeCount >= 1
@@ -412,10 +428,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 from com.shu.backend.domain.poll.entity.Poll poll
                 where poll.post.id = p.id
             ),
-            u.status
+            u.status,
+            bdp.displayName,
+            bdp.profileImageUrl
         from Post p
         join p.board b
         join p.user u
+        left join BoardDisplayProfile bdp on bdp.board = b and bdp.user = u
         where p.postStatus = com.shu.backend.domain.post.enums.PostStatus.ACTIVE
           and b.scope = com.shu.backend.domain.board.enums.BoardScope.SCHOOL
           and b.defaultBoard = true
