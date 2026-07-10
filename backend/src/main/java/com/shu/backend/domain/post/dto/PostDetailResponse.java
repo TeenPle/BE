@@ -6,6 +6,7 @@ import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.poll.dto.PollResponse;
 import com.shu.backend.domain.post.entity.Post;
+import com.shu.backend.domain.user.enums.UserRole;
 import com.shu.backend.domain.user.support.UserDisplay;
 import lombok.Builder;
 import lombok.Getter;
@@ -60,8 +61,16 @@ public class PostDetailResponse {
         boolean authorDeleted = UserDisplay.isDeleted(post.getUser());
         boolean mine = post.getUser().getId().equals(currentUserId);
         boolean canActOnAuthor = !authorDeleted && !mine;
+        boolean adminAuthor = !authorDeleted && post.getUser().getRole() == UserRole.ADMIN;
         String profileImageUrl = authorDeleted ? null : boardProfileImageUrl;
-        String username = authorDeleted ? UserDisplay.DELETED_USER_NAME : boardProfile.getDisplayName();
+        String username = authorDeleted
+                ? UserDisplay.DELETED_USER_NAME
+                : adminAuthor
+                ? post.getUser().getNickname()
+                : boardProfile.getDisplayName();
+        if (adminAuthor) {
+            profileImageUrl = post.getUser().getProfileImageUrl();
+        }
         if (profileImageUrl != null && !profileImageUrl.startsWith("http")) {
             profileImageUrl = null;
         }

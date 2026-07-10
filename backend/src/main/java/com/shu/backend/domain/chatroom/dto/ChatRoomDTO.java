@@ -23,6 +23,9 @@ public class ChatRoomDTO {
     public static class CreateDmResponse {
         private Long roomId;
         private Long otherUserId;
+        private String roomTitle;
+        private String counterpartDisplayName;
+        private String counterpartProfileImageUrl;
         private String displayName;
         private LocalDateTime lastMessageAt;
         private boolean blocked;
@@ -42,6 +45,9 @@ public class ChatRoomDTO {
         private String lastPreview;
         private LocalDateTime lastMessageAt;
 
+        private String roomTitle;
+        private String counterpartDisplayName;
+        private String counterpartProfileImageUrl;
         private String displayName;
 
         private long unreadCount;
