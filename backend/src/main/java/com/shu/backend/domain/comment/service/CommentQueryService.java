@@ -7,6 +7,7 @@ import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
 import com.shu.backend.domain.comment.repository.CommentRepository;
 import com.shu.backend.domain.reaction.repository.ReactionRepository;
+import com.shu.backend.domain.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,7 @@ public class CommentQueryService {
                 allVisible.stream()
                         .map(Comment::getUser)
                         .filter(Objects::nonNull)
+                        .filter(user -> user.getRole() != UserRole.ADMIN)
                         .map(User -> User.getId())
                         .toList()
         );
