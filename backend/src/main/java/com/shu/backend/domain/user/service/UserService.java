@@ -62,6 +62,7 @@ public class UserService {
 
         return UserDTO.ProfileResponse.builder()
                 .id(user.getId())
+                .username(user.getUsername())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .profileImageUrl(fileStorageService.toPresignedReadUrl(user.getProfileImageUrl()))

@@ -1,5 +1,7 @@
 package com.shu.backend.domain.comment.service;
 
+import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
+import com.shu.backend.domain.boardprofile.service.BoardDisplayProfileService;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
@@ -19,8 +21,9 @@ public class CommentQueryService {
 
     private final CommentRepository commentRepository;
     private final ReactionRepository reactionRepository;
+    private final BoardDisplayProfileService boardDisplayProfileService;
 
-    public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId, Long postAuthorId) {
+    public List<CommentResponse> getCommentsForPostDetail(Long postId, Long currentUserId, Long postAuthorId, Long boardId) {
         List<Comment> parents = commentRepository.findParentsForPostDetail(postId, currentUserId);
 
         if (parents.isEmpty()) {
@@ -33,7 +36,6 @@ public class CommentQueryService {
         Map<Long, List<Comment>> childrenMap = children.stream()
                 .collect(Collectors.groupingBy(comment -> comment.getParent().getId()));
 
-        // Collect all visible comments for batch reaction lookup and anonymous numbering
         List<Comment> allVisible = new ArrayList<>();
         Map<Long, List<Comment>> parentToVisibleReplies = new LinkedHashMap<>();
 
@@ -52,46 +54,40 @@ public class CommentQueryService {
             parentToVisibleReplies.put(parent.getId(), visibleReplies);
         }
 
-        // Batch fetch liked comment IDs for current user
         Set<Long> likedCommentIds = Set.of();
         if (currentUserId != null && !allVisible.isEmpty()) {
             List<Long> allCommentIds = allVisible.stream().map(Comment::getId).toList();
             likedCommentIds = reactionRepository.findLikedCommentIds(currentUserId, allCommentIds);
         }
 
-        // Build anonymous numbering: same user gets same number within this post
-        // Post author (if anonymous) gets number 0 treated as special — here we just assign sequential numbers
-        Map<Long, Integer> userAnonNumberMap = new LinkedHashMap<>();
+        Map<Long, BoardDisplayProfile> profilesByUserId = boardDisplayProfileService.getOrCreateByUserIds(
+                boardId,
+                allVisible.stream()
+                        .map(Comment::getUser)
+                        .filter(Objects::nonNull)
+                        .map(User -> User.getId())
+                        .toList()
+        );
 
-        // Flatten in display order to assign numbers in order of first appearance
-        for (Comment c : allVisible) {
-            if (c.getAnonymous() && c.getUser() != null) {
-                userAnonNumberMap.computeIfAbsent(c.getUser().getId(), k -> userAnonNumberMap.size() + 1);
-            }
-        }
-
-        // Build final response list
         List<CommentResponse> result = new ArrayList<>();
 
         for (Comment parent : parents) {
             List<Comment> visibleReplies = parentToVisibleReplies.get(parent.getId());
-            if (visibleReplies == null) continue; // was excluded above
+            if (visibleReplies == null) continue;
 
-            result.add(toDto(parent, currentUserId, postAuthorId, likedCommentIds, userAnonNumberMap));
+            result.add(toDto(parent, currentUserId, postAuthorId, likedCommentIds, profilesByUserId));
             for (Comment reply : visibleReplies) {
-                result.add(toDto(reply, currentUserId, postAuthorId, likedCommentIds, userAnonNumberMap));
+                result.add(toDto(reply, currentUserId, postAuthorId, likedCommentIds, profilesByUserId));
             }
         }
 
         return result;
     }
 
-    private CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, Set<Long> likedCommentIds, Map<Long, Integer> userAnonNumberMap) {
+    private CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, Set<Long> likedCommentIds, Map<Long, BoardDisplayProfile> profilesByUserId) {
         boolean likedByMe = likedCommentIds.contains(comment.getId());
-        int anonNumber = 0;
-        if (comment.getAnonymous() && comment.getUser() != null) {
-            anonNumber = userAnonNumberMap.getOrDefault(comment.getUser().getId(), 0);
-        }
-        return CommentResponse.toDto(comment, currentUserId, postAuthorId, likedByMe, anonNumber);
+        BoardDisplayProfile profile = comment.getUser() == null ? null : profilesByUserId.get(comment.getUser().getId());
+        String profileImageUrl = profile == null ? null : boardDisplayProfileService.toReadUrl(profile.getProfileImageUrl());
+        return CommentResponse.toDto(comment, currentUserId, postAuthorId, likedByMe, profile, profileImageUrl);
     }
 }

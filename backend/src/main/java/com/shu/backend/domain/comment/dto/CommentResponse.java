@@ -2,6 +2,7 @@ package com.shu.backend.domain.comment.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
 import com.shu.backend.domain.comment.entity.Comment;
 import com.shu.backend.domain.comment.enums.CommentStatus;
 import com.shu.backend.domain.user.support.UserDisplay;
@@ -28,6 +29,7 @@ public class CommentResponse {
     private String commentStatus;
     private String content;
     private String author;
+    private String authorProfileImageUrl;
     private int likeCount;
     private int dislikeCount;
     @JsonProperty("likedByMe")
@@ -46,10 +48,10 @@ public class CommentResponse {
     }
 
     public static CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId) {
-        return toDto(comment, currentUserId, postAuthorId, false, 0);
+        return toDto(comment, currentUserId, postAuthorId, false, null, null);
     }
 
-    public static CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, boolean likedByMe, int anonymousNumber) {
+    public static CommentResponse toDto(Comment comment, Long currentUserId, Long postAuthorId, boolean likedByMe, BoardDisplayProfile boardProfile, String boardProfileImageUrl) {
         String content = switch (comment.getCommentStatus()) {
             case DELETED -> "삭제된 댓글입니다.";
             case HIDDEN -> "블라인드 처리된 댓글입니다.";
@@ -60,8 +62,8 @@ public class CommentResponse {
         String author;
         if (authorDeleted) {
             author = UserDisplay.DELETED_USER_NAME;
-        } else if (comment.getAnonymous()) {
-            author = UserDisplay.teenplerAlias(comment.getId());
+        } else if (boardProfile != null) {
+            author = boardProfile.getDisplayName();
         } else {
             author = comment.getUser().getNickname();
         }
@@ -87,10 +89,11 @@ public class CommentResponse {
                 .commentStatus(comment.getCommentStatus().name())
                 .content(content)
                 .author(author)
+                .authorProfileImageUrl(authorDeleted ? null : boardProfileImageUrl)
                 .likeCount(comment.getLikeCount())
                 .dislikeCount(comment.getDislikeCount())
                 .likedByMe(likedByMe)
-                .anonymous(comment.getAnonymous())
+                .anonymous(false)
                 .depth(comment.getDepth())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .createdAt(comment.getCreatedAt())

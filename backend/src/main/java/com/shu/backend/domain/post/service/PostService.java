@@ -7,6 +7,8 @@ import com.shu.backend.domain.board.exception.status.BoardErrorStatus;
 import com.shu.backend.domain.board.repository.BoardRepository;
 import com.shu.backend.domain.board.service.BoardAccessPolicy;
 import com.shu.backend.domain.block.repository.UserBlockRepository;
+import com.shu.backend.domain.boardprofile.entity.BoardDisplayProfile;
+import com.shu.backend.domain.boardprofile.service.BoardDisplayProfileService;
 import com.shu.backend.domain.comment.dto.CommentResponse;
 import com.shu.backend.domain.comment.service.CommentQueryService;
 import com.shu.backend.domain.bookmark.repository.BookmarkRepository;
@@ -53,6 +55,8 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,6 +79,7 @@ public class PostService {
     private final PollService pollService;
     private final ReactionRepository reactionRepository;
     private final BoardAccessPolicy boardAccessPolicy;
+    private final BoardDisplayProfileService boardDisplayProfileService;
 
     @PreAuthorize("@penaltyChecker.notPenalized(#userId)")
     @Transactional
@@ -133,7 +138,7 @@ public class PostService {
         Post post = Post.builder()
                 .title(title)
                 .content(content)
-                .anonymous(req.isAnonymous())
+                .anonymous(false)
                 .postStatus(PostStatus.ACTIVE)
                 .board(board)
                 .user(user)
@@ -176,7 +181,7 @@ public class PostService {
         String title = HtmlUtils.htmlEscape(rawTitle);
         String content = HtmlUtils.htmlEscape(rawContent);
 
-        post.update(title, content, req.isAnonymous());
+        post.update(title, content, false);
         pollService.syncPoll(post, req.getPollOptions());
 
         postMediaService.deleteByIds(req.getDeleteMediaIds(), postId, userId);
@@ -237,7 +242,13 @@ public class PostService {
 
         viewCountAccumulator.increment(postId);
 
-        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(postId, currentUserId, post.getUser().getId());
+        BoardDisplayProfile authorProfile = boardDisplayProfileService.getOrCreate(post.getUser(), post.getBoard());
+        List<CommentResponse> comments = commentQueryService.getCommentsForPostDetail(
+                postId,
+                currentUserId,
+                post.getUser().getId(),
+                post.getBoard().getId()
+        );
         List<PostMediaResponse> mediaList = postMediaService.getByPostId(postId);
         boolean isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
         PollResponse poll = pollService.getPollResponse(postId, currentUserId);
@@ -247,7 +258,18 @@ public class PostService {
         boolean likedByMe = myReaction != null && Boolean.TRUE.equals(myReaction.getLiked());
         boolean dislikedByMe = myReaction != null && Boolean.TRUE.equals(myReaction.getDisliked());
 
-        return PostDetailResponse.toDto(post, comments, mediaList, currentUserId, isBookmarked, poll, likedByMe, dislikedByMe);
+        return PostDetailResponse.toDto(
+                post,
+                authorProfile,
+                boardDisplayProfileService.toReadUrl(authorProfile.getProfileImageUrl()),
+                comments,
+                mediaList,
+                currentUserId,
+                isBookmarked,
+                poll,
+                likedByMe,
+                dislikedByMe
+        );
     }
 
     // 특정 게시판의 글 페이징 조회
@@ -276,9 +298,7 @@ public class PostService {
             rows = rows.subList(0, pageable.getPageSize());
         }
 
-        List<PostResponse> content = rows.stream()
-                .map(PostResponse::fromRow)
-                .toList();
+        List<PostResponse> content = toPostResponses(rows);
 
         content = attachMediaToResponses(content);
 
@@ -344,9 +364,7 @@ public class PostService {
         // Phase 2: 21개에 대해서만 join + 댓글카운트 수행
         List<Object[]> rows = postRepository.findPostRowsByIds(ids);
 
-        List<PostResponse> content = rows.stream()
-                .map(PostResponse::fromRow)
-                .toList();
+        List<PostResponse> content = toPostResponses(rows);
 
         content = attachMediaToResponses(content);
 
@@ -375,9 +393,7 @@ public class PostService {
             rows = rows.subList(0, pageable.getPageSize());
         }
 
-        List<PostResponse> content = rows.stream()
-                .map(PostResponse::fromRow)
-                .toList();
+        List<PostResponse> content = toPostResponses(rows);
 
         content = attachMediaToResponses(content);
 
@@ -396,7 +412,7 @@ public class PostService {
         };
         Pageable pageable = PageRequest.of(0, safeSize);
         List<Object[]> rows = postRepository.findHotPostRowsBySchoolId(schoolId, since, currentUserId, pageable);
-        List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
+        List<PostResponse> content = toPostResponses(rows);
         return attachMediaToResponses(content);
     }
 
@@ -417,7 +433,7 @@ public class PostService {
                 currentUserId,
                 pageable
         );
-        List<PostResponse> content = rows.stream().map(PostResponse::fromRow).toList();
+        List<PostResponse> content = toPostResponses(rows);
         return attachMediaToResponses(content);
     }
 
@@ -442,6 +458,47 @@ public class PostService {
 
         return posts.stream()
                 .map(p -> p.withMedia(mediaByPostId.getOrDefault(p.getId(), List.of())))
+                .toList();
+    }
+
+    private List<PostResponse> toPostResponses(List<Object[]> rows) {
+        Map<Long, List<Object[]>> rowsByBoard = rows.stream()
+                .filter(row -> row.length > 9 && row[8] != null && row[9] != null)
+                .collect(Collectors.groupingBy(row -> (Long) row[8]));
+
+        Map<String, BoardDisplayProfile> profilesByKey = rowsByBoard.entrySet().stream()
+                .flatMap(entry -> {
+                    Long boardId = entry.getKey();
+                    List<Long> userIds = entry.getValue().stream()
+                            .map(row -> (Long) row[9])
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .toList();
+                    return boardDisplayProfileService.getOrCreateByUserIds(boardId, userIds)
+                            .values()
+                            .stream();
+                })
+                .collect(Collectors.toMap(
+                        profile -> profile.getBoard().getId() + ":" + profile.getUser().getId(),
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
+        return rows.stream()
+                .map(row -> {
+                    PostResponse response = PostResponse.fromRow(row);
+                    if (response.isAuthorDeleted() || response.getUserId() == null) {
+                        return response;
+                    }
+                    BoardDisplayProfile profile = profilesByKey.get(response.getBoardId() + ":" + response.getUserId());
+                    if (profile == null) {
+                        return response;
+                    }
+                    return response.withBoardProfile(
+                            profile.getDisplayName(),
+                            boardDisplayProfileService.toReadUrl(profile.getProfileImageUrl())
+                    );
+                })
                 .toList();
     }
 

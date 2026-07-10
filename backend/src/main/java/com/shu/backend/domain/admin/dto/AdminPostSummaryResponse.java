@@ -34,16 +34,18 @@ public class AdminPostSummaryResponse {
         String content = post.getContent() == null ? "" : post.getContent();
         String preview = content.length() > 120 ? content.substring(0, 120) : content;
         Long authorId = post.getUser() != null ? post.getUser().getId() : null;
-        boolean anonymous = Boolean.TRUE.equals(post.getAnonymous());
+        String authorLabel = post.getUser() == null
+                ? "알 수 없음"
+                : post.getUser().getUsername() + " #" + post.getUser().getId();
 
         return AdminPostSummaryResponse.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
                 .contentPreview(preview)
                 .postStatus(post.getPostStatus().name())
-                .anonymous(anonymous)
+                .anonymous(false)
                 .authorUserId(authorId)
-                .authorLabel(anonymous ? "작성자 #" + authorId : post.getUser().getNickname())
+                .authorLabel(authorLabel)
                 .boardId(post.getBoard().getId())
                 .boardTitle(post.getBoard().getTitle())
                 .schoolId(post.getBoard().getSchool() != null ? post.getBoard().getSchool().getId() : null)

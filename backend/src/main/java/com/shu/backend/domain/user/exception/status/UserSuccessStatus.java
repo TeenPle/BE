@@ -33,6 +33,8 @@ public enum UserSuccessStatus implements BaseCode {
     USER_MY_COMMENTS_SUCCESS(HttpStatus.OK, "USER2024", "내 댓글 조회 성공"),
     USER_DELETE_SUCCESS(HttpStatus.OK, "USER2025", "회원 탈퇴 요청 성공 (7일 후 완전 삭제)"),
     USER_RESTORE_SUCCESS(HttpStatus.OK, "USER2026", "계정 복구 성공"),
+    USER_BOARD_PROFILES_SUCCESS(HttpStatus.OK, "USER2027", "게시판별 프로필 조회 성공"),
+    USER_BOARD_PROFILE_UPDATE_SUCCESS(HttpStatus.OK, "USER2028", "게시판별 프로필 변경 성공"),
 
     // Verification
     VERIFICATION_APPROVED(HttpStatus.OK, "VERI2001", "학교 인증 승인 완료");
