@@ -89,7 +89,6 @@ public class PostService {
                 .orElseThrow(() -> new BoardException(BoardErrorStatus.BOARD_NOT_FOUND));
 
         User verifiedUser = boardAccessPolicy.requireVerifiedActiveUserWithSchool(userId);
-        boardAccessPolicy.assertCanAccessBoard(verifiedUser, board);
 
         if (!board.isActive()) {
             throw new BoardException(BoardErrorStatus.BOARD_INACTIVE);
