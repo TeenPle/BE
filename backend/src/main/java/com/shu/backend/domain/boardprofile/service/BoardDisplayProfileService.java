@@ -42,7 +42,7 @@ public class BoardDisplayProfileService {
     private static final Pattern DISPLAY_NAME_PATTERN = Pattern.compile("^(.+)한틴플러#(\\d{4})$");
     private static final List<String> ADJECTIVES = List.of(
             "조용", "엉뚱", "차분", "다정", "솔직", "상냥", "용감", "밝", "성실", "기운찬",
-            "빠른", "느긋", "명랑", "친절", "꼼꼼", "새로운", "듬직", "재치", "반짝", "든든"
+            "빠른", "즐거운", "명랑", "친절", "꼼꼼", "새로운", "씩씩", "재치", "반짝", "든든"
     );
 
     private final BoardDisplayProfileRepository profileRepository;
@@ -121,7 +121,7 @@ public class BoardDisplayProfileService {
         User user = boardAccessPolicy.requireVerifiedActiveUserWithSchool(userId);
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus.BOARD_PROFILE_NOT_FOUND));
-        boardAccessPolicy.assertCanAccessBoard(user, board);
+        assertCanManageProfile(user, board);
 
         BoardDisplayProfile profile = getOrCreate(user, board);
         LocalDateTime now = LocalDateTime.now();
@@ -203,7 +203,10 @@ public class BoardDisplayProfileService {
 
     private NameParts parseOrGenerateName(Long boardId, String requestedDisplayName, String currentDisplayName) {
         String displayName = requestedDisplayName == null ? "" : requestedDisplayName.trim();
-        if (displayName.isBlank() || displayName.equals(currentDisplayName)) {
+        if (displayName.isBlank()) {
+            return generateName(boardId);
+        }
+        if (displayName.equals(currentDisplayName)) {
             return parseDisplayName(currentDisplayName).orElseGet(() -> generateName(boardId));
         }
         Matcher matcher = DISPLAY_NAME_PATTERN.matcher(displayName);
@@ -221,6 +224,27 @@ public class BoardDisplayProfileService {
         Matcher matcher = DISPLAY_NAME_PATTERN.matcher(displayName);
         if (!matcher.matches()) return Optional.empty();
         return Optional.of(new NameParts(matcher.group(1), matcher.group(2), displayName));
+    }
+
+    private void assertCanManageProfile(User user, Board board) {
+        if (!board.isActive()) {
+            throw new GeneralException(UserErrorStatus.BOARD_PROFILE_NOT_FOUND);
+        }
+        if (board.getScope() == BoardScope.SCHOOL) {
+            if (board.getSchool() == null || !board.getSchool().getId().equals(user.getSchool().getId())) {
+                throw new GeneralException(UserErrorStatus.BOARD_PROFILE_NOT_FOUND);
+            }
+            return;
+        }
+        if (board.getScope() == BoardScope.REGION) {
+            if (user.getSchool().getRegion() == null ||
+                    board.getRegion() == null ||
+                    !board.getRegion().getId().equals(user.getSchool().getRegion().getId())) {
+                throw new GeneralException(UserErrorStatus.BOARD_PROFILE_NOT_FOUND);
+            }
+            return;
+        }
+        throw new GeneralException(UserErrorStatus.BOARD_PROFILE_NOT_FOUND);
     }
 
     private record NameParts(String adjective, String number, String displayName) {
