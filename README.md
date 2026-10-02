@@ -3,11 +3,12 @@
 고등학생이 자신의 학교를 인증하고 참여할 수 있는  
 **학교 전용 익명 커뮤니티 TeenPle**(Teenage Place)의 **백엔드 레포지토리**입니다.
 
-본 저장소는 인증, 게시판, 채팅, 통계 등 TeenPle의 핵심 서버 기능을 담당합니다.
-
 <div align="center">
-  <img width="380" alt="TeenPle Poster" src="https://github.com/user-attachments/files/28346924/default.bmp" />
+  <img src="./assets/KakaoTalk_20260701_163144598.png" width="49%" alt="TeenPle promo 1" />
+  <img src="./assets/KakaoTalk_20260701_163144598_01.png" width="49%" alt="TeenPle promo 2" />
 </div>
+
+본 저장소는 인증, 게시판, 채팅, 통계 등 TeenPle의 핵심 서버 기능을 담당합니다.
 
 ---
 
