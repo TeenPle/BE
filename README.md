@@ -68,31 +68,56 @@
 
 ```text
 backend
-├─ domain                     # 비즈니스 도메인 계층
-│  └─ chatmessage             # 도메인 세분화 예시 (채팅 메시지)
-│     ├─ controller           # API 요청/응답 처리
-│     ├─ dto                  # Request / Response DTO
-│     ├─ entity               # JPA Entity
-│     ├─ exception            # 도메인 전용 예외
-│     ├─ repository           # 데이터 접근 계층
-│     └─ service              # 비즈니스 로직
+├─ src
+│  ├─ main
+│  │  ├─ java/com/shu/backend
+│  │  │  ├─ domain                         # 비즈니스 도메인
+│  │  │  │  ├─ auth                       # 이메일 인증 및 인증 코드 관리
+│  │  │  │  ├─ user                       # 사용자
+│  │  │  │  ├─ school                     # 학교
+│  │  │  │  ├─ post                       # 게시글
+│  │  │  │  ├─ comment                    # 댓글
+│  │  │  │  ├─ chatroom                   # 채팅방
+│  │  │  │  ├─ chatmessage                # 채팅 메시지
+│  │  │  │  ├─ notification               # 알림
+│  │  │  │  ├─ report                     # 신고
+│  │  │  │  └─ ...                        # 기타 도메인
+│  │  │  │
+│  │  │  └─ global                         # 전역 공통 인프라
+│  │  │     ├─ apiPayload                  # 공통 API 응답
+│  │  │     ├─ batch                       # 배치 및 스케줄링
+│  │  │     ├─ cache                       # 애플리케이션 캐시
+│  │  │     ├─ config                      # 전역 설정
+│  │  │     ├─ exception                   # 글로벌 예외 처리
+│  │  │     ├─ file                        # 파일 저장 및 S3 연동
+│  │  │     ├─ firebase                    # Firebase / FCM
+│  │  │     ├─ jwt                         # JWT 인증
+│  │  │     ├─ logging                     # 요청 로깅
+│  │  │     ├─ moderation                  # 콘텐츠 검증 및 필터링
+│  │  │     ├─ neis                        # NEIS API 연동
+│  │  │     ├─ ratelimit                   # API Rate Limiting
+│  │  │     ├─ security                    # Spring Security
+│  │  │     ├─ swagger                     # OpenAPI / Swagger
+│  │  │     ├─ util                        # 공통 유틸리티
+│  │  │     └─ websocket                   # WebSocket / Redis Pub/Sub
+│  │  │
+│  │  └─ resources
+│  │     ├─ db/migration                   # DB Migration
+│  │     ├─ application.yml                # 공통 환경 설정
+│  │     ├─ application-local.yml          # 로컬 환경 설정
+│  │     ├─ application-prod.yml           # 운영 환경 설정
+│  │     └─ logback-spring.xml             # 로깅 설정
+│  │
+│  └─ test/java                            # 테스트 코드
 │
-├─ global                     # 전역 공통 모듈
-│  ├─ apiPayload              # 공통 API 응답 / 에러 코드
-│  ├─ batch                   # 배치 및 스케줄링 작업
-│  ├─ common                  # 공통 유틸리티
-│  ├─ config                  # 전역 설정
-│  ├─ exception               # 글로벌 예외 처리
-│  ├─ file                    # 파일 처리 (S3 연동)
-│  ├─ firebase                # Firebase Admin 연동
-│  ├─ init                    # 초기 데이터 설정
-│  ├─ jwt                     # JWT 인증
-│  ├─ security                # Spring Security 설정
-│  ├─ swagger                 # API 문서 설정
-│  └─ websocket               # WebSocket 설정
+├─ deploy                                  # 운영 배포 설정
+│  ├─ nginx-api.teenple.app.conf           # Nginx 설정
+│  ├─ teenple-backend.service              # systemd 서비스
+│  └─ teenple.env.example                  # 환경변수 예시
 │
-├─ docker                     # Docker 및 배포 관련 설정
-└─ resources                  # 환경 설정 파일
+├─ build.gradle                            # Gradle 빌드 설정
+├─ settings.gradle
+└─ gradlew
 ```
 
 ---
