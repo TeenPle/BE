@@ -4,8 +4,8 @@
 **학교 전용 익명 커뮤니티 TeenPle**(Teenage Place)의 **백엔드 레포지토리**입니다.
 
 <div align="center">
-  <img src="./assets/KakaoTalk_20260701_163144598.png" width="49%" alt="TeenPle promo 1" />
-  <img src="./assets/KakaoTalk_20260701_163144598_01.png" width="49%" alt="TeenPle promo 2" />
+  <img src="./assets/KakaoTalk_20260701_163144598.png" width="100%" alt="TeenPle promo 1" />
+  <img src="./assets/KakaoTalk_20260701_163144598_01.png" width="100%" alt="TeenPle promo 2" />
 </div>
 
 본 저장소는 인증, 게시판, 채팅, 통계 등 TeenPle의 핵심 서버 기능을 담당합니다.
